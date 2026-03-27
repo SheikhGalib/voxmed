@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>VoxMed | Automated Prescription Renewals</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "secondary-fixed": "#c9e7f7",
+              "on-secondary-container": "#395663",
+              "surface-container-lowest": "#ffffff",
+              "primary": "#1b6d24",
+              "surface-variant": "#dde4e5",
+              "on-secondary-fixed-variant": "#435f6d",
+              "on-tertiary-container": "#445e4a",
+              "on-surface": "#2d3435",
+              "tertiary": "#4b6551",
+              "primary-dim": "#076019",
+              "inverse-primary": "#9df197",
+              "secondary-dim": "#3a5764",
+              "tertiary-container": "#d7f6db",
+              "tertiary-dim": "#3f5945",
+              "primary-container": "#a3f69c",
+              "secondary": "#466370",
+              "error-dim": "#5c1202",
+              "on-tertiary-fixed-variant": "#4e6954",
+              "on-primary-fixed": "#004b0f",
+              "outline-variant": "#adb3b4",
+              "on-secondary-fixed": "#264350",
+              "on-tertiary": "#e8ffe9",
+              "primary-fixed-dim": "#95e88f",
+              "on-error": "#fff7f6",
+              "surface-container-highest": "#dde4e5",
+              "background": "#f9f9f9",
+              "surface-container-low": "#f2f4f4",
+              "surface-bright": "#f9f9f9",
+              "on-primary": "#e5ffdd",
+              "on-primary-container": "#065f18",
+              "on-surface-variant": "#5a6061",
+              "secondary-container": "#c9e7f7",
+              "inverse-on-surface": "#9c9d9d",
+              "error": "#9e422c",
+              "surface-tint": "#1b6d24",
+              "on-secondary": "#f3faff",
+              "surface-container-high": "#e4e9ea",
+              "error-container": "#fe8b70",
+              "surface-container": "#ebeeef",
+              "inverse-surface": "#0c0f0f",
+              "on-error-container": "#742410",
+              "tertiary-fixed": "#d7f6db",
+              "on-primary-fixed-variant": "#176a21",
+              "surface-dim": "#d4dbdd",
+              "surface": "#f9f9f9",
+              "on-background": "#2d3435",
+              "primary-fixed": "#a3f69c",
+              "tertiary-fixed-dim": "#c9e7cd",
+              "secondary-fixed-dim": "#bbd9e9",
+              "outline": "#757c7d",
+              "on-tertiary-fixed": "#324c39"
+            },
+            fontFamily: {
+              "headline": ["Manrope"],
+              "body": ["Inter"],
+              "label": ["Inter"]
+            },
+            borderRadius: {"DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem"},
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .tap-highlight-transparent { -webkit-tap-highlight-color: transparent; }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-background font-body antialiased">
+<!-- TopAppBar -->
+<nav class="fixed top-0 w-full z-50 bg-[#f9f9f9]/80 backdrop-blur-md flex items-center justify-between px-6 py-4 w-full">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-primary-container flex items-center justify-center overflow-hidden">
+<img alt="Profile" class="w-full h-full object-cover" data-alt="User professional portrait for medical profile" src="https://lh3.googleusercontent.com/aida-public/AB6AXuABtSKV81HYGxtxX8YFVxki-JMjFCkYenX_oleMAfoyd4dLfWa6NJLtP-j8mdQijq7Yk7lm6-qRzHyxLJIB3x6AGoYO6euMBc4S5sNJG99A-JwUAz8ZG8WXcSmCazkJJw_9fO-qZjjM79Kpiyp5ed5V-MKoxhZrgfzCxFvzImKnoifp1VO3daXsy4ORUBgWXCNGGMbTwvcnXfpQsm0yfL2CZhTIAg1J4omTCJj9JCUiccHO-azSPNZhS12nQLKaXi-_H-110PyMpJA"/>
+</div>
+<span class="font-headline font-extrabold text-green-900 text-xl">VoxMed</span>
+</div>
+<div class="flex items-center gap-4">
+<button class="text-slate-500 hover:opacity-80 transition-opacity tap-highlight-transparent active:scale-95">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+</div>
+</nav>
+<div class="bg-slate-200/50 h-[1px] w-full fixed top-[72px] z-50"></div>
+<main class="pt-24 pb-32 px-6 max-w-2xl mx-auto">
+<!-- Editorial Header -->
+<header class="mb-12">
+<h1 class="font-headline text-[2.5rem] font-extrabold leading-tight text-on-primary-fixed mb-2">Prescription Renewals</h1>
+<p class="text-on-surface-variant text-lg leading-relaxed">Manage your active medications and set up automated refills to stay on track with your health.</p>
+</header>
+<!-- Subscription/Banner Card (Bento Style) -->
+<section class="mb-10 bg-gradient-to-br from-primary to-primary-dim rounded-[2rem] p-8 text-on-primary shadow-lg relative overflow-hidden">
+<div class="relative z-10">
+<div class="flex items-center gap-2 mb-4">
+<span class="material-symbols-outlined" data-icon="auto_awesome" style="font-variation-settings: 'FILL' 1;">auto_awesome</span>
+<span class="font-headline font-bold tracking-wide text-sm uppercase">Smart Sync Active</span>
+</div>
+<h2 class="font-headline text-2xl font-bold mb-2">Automated Renewal Hub</h2>
+<p class="text-on-primary/80 mb-6">VoxMed AI monitors your supply and requests renewals from your physician 7 days before you run out.</p>
+<button class="bg-surface-container-lowest text-primary font-bold px-6 py-3 rounded-full flex items-center gap-2 active:scale-95 transition-transform">
+                    View Renewal History
+                    <span class="material-symbols-outlined text-sm" data-icon="arrow_forward">arrow_forward</span>
+</button>
+</div>
+<!-- Decorative Glass Circle -->
+<div class="absolute -right-10 -bottom-10 w-48 h-48 bg-white/10 rounded-full blur-2xl"></div>
+</section>
+<!-- Current Medications List -->
+<div class="space-y-6">
+<h3 class="font-headline text-xl font-bold text-on-primary-fixed flex items-center justify-between px-2">
+                Current Medications
+                <span class="text-sm font-normal text-on-surface-variant">3 Active Prescriptions</span>
+</h3>
+<!-- Med Card 1: Low Supply -->
+<div class="bg-surface-container-lowest rounded-3xl p-6 shadow-[0_4px_24px_rgba(0,0,0,0.04)] relative">
+<div class="flex justify-between items-start mb-6">
+<div class="flex gap-4">
+<div class="w-14 h-14 rounded-2xl bg-error-container/20 flex items-center justify-center">
+<span class="material-symbols-outlined text-error text-3xl" data-icon="pill">pill</span>
+</div>
+<div>
+<h4 class="font-headline text-lg font-bold text-on-surface">Lisinopril</h4>
+<p class="text-on-surface-variant text-sm">10mg Tablet • Once Daily</p>
+</div>
+</div>
+<div class="bg-error-container text-on-error-container px-3 py-1 rounded-full text-[11px] font-bold flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]" data-icon="warning" style="font-variation-settings: 'FILL' 1;">warning</span>
+                        Low Supply
+                    </div>
+</div>
+<div class="grid grid-cols-2 gap-4 mb-8">
+<div class="bg-surface-container-low rounded-2xl p-4">
+<p class="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider mb-1">Remaining</p>
+<p class="text-xl font-bold text-error">4 Days</p>
+</div>
+<div class="bg-surface-container-low rounded-2xl p-4">
+<p class="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider mb-1">Last Refill</p>
+<p class="text-xl font-bold text-on-surface">Oct 12</p>
+</div>
+</div>
+<button class="w-full bg-gradient-to-r from-primary to-primary-dim text-on-primary font-bold py-4 rounded-full flex items-center justify-center gap-3 active:scale-95 transition-transform">
+<span class="material-symbols-outlined" data-icon="autorenew">autorenew</span>
+                    Request Automated Renewal
+                </button>
+</div>
+<!-- Med Card 2: Healthy Supply -->
+<div class="bg-surface-container-lowest rounded-3xl p-6 shadow-[0_4px_24px_rgba(0,0,0,0.04)]">
+<div class="flex justify-between items-start mb-6">
+<div class="flex gap-4">
+<div class="w-14 h-14 rounded-2xl bg-secondary-container/30 flex items-center justify-center">
+<span class="material-symbols-outlined text-secondary text-3xl" data-icon="medication">medication</span>
+</div>
+<div>
+<h4 class="font-headline text-lg font-bold text-on-surface">Metformin ER</h4>
+<p class="text-on-surface-variant text-sm">500mg Tablet • Twice Daily</p>
+</div>
+</div>
+<div class="bg-primary-container/30 text-on-primary-container px-3 py-1 rounded-full text-[11px] font-bold">
+                        Healthy Supply
+                    </div>
+</div>
+<div class="grid grid-cols-2 gap-4 mb-8">
+<div class="bg-surface-container-low rounded-2xl p-4">
+<p class="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider mb-1">Remaining</p>
+<p class="text-xl font-bold text-on-surface">22 Days</p>
+</div>
+<div class="bg-surface-container-low rounded-2xl p-4">
+<p class="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider mb-1">Last Refill</p>
+<p class="text-xl font-bold text-on-surface">Nov 04</p>
+</div>
+</div>
+<button class="w-full bg-surface-container-high text-primary font-bold py-4 rounded-full flex items-center justify-center gap-3 active:scale-95 transition-transform opacity-60">
+<span class="material-symbols-outlined" data-icon="check_circle" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+                    Renewal Scheduled
+                </button>
+</div>
+<!-- Med Card 3: Moderate Supply -->
+<div class="bg-surface-container-lowest rounded-3xl p-6 shadow-[0_4px_24px_rgba(0,0,0,0.04)]">
+<div class="flex justify-between items-start mb-6">
+<div class="flex gap-4">
+<div class="w-14 h-14 rounded-2xl bg-tertiary-container/30 flex items-center justify-center">
+<span class="material-symbols-outlined text-tertiary text-3xl" data-icon="vaccines">vaccines</span>
+</div>
+<div>
+<h4 class="font-headline text-lg font-bold text-on-surface">Atorvastatin</h4>
+<p class="text-on-surface-variant text-sm">20mg Tablet • Nightly</p>
+</div>
+</div>
+<div class="bg-orange-100 text-orange-700 px-3 py-1 rounded-full text-[11px] font-bold">
+                        Refill Soon
+                    </div>
+</div>
+<div class="grid grid-cols-2 gap-4 mb-8">
+<div class="bg-surface-container-low rounded-2xl p-4">
+<p class="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider mb-1">Remaining</p>
+<p class="text-xl font-bold text-on-surface">11 Days</p>
+</div>
+<div class="bg-surface-container-low rounded-2xl p-4">
+<p class="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider mb-1">Last Refill</p>
+<p class="text-xl font-bold text-on-surface">Oct 28</p>
+</div>
+</div>
+<button class="w-full border-2 border-primary/20 text-primary font-bold py-4 rounded-full flex items-center justify-center gap-3 active:scale-95 transition-transform">
+<span class="material-symbols-outlined" data-icon="autorenew">autorenew</span>
+                    Request Automated Renewal
+                </button>
+</div>
+</div>
+<!-- Footer Note -->
+<p class="mt-10 text-center text-sm text-on-surface-variant px-12">
+            Renewal requests are sent to <span class="font-semibold">Dr. Sarah Thompson</span> at Oakwood Medical Center.
+        </p>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 left-0 w-full z-50 bg-white/90 backdrop-blur-xl flex justify-around items-center px-4 pb-8 pt-3 rounded-t-[32px] border-t border-slate-100 shadow-[0_-4px_24px_rgba(0,0,0,0.04)]">
+<button class="flex flex-col items-center justify-center text-slate-400 px-3 py-1 active:scale-90 transition-all duration-300 ease-out">
+<span class="material-symbols-outlined mb-1" data-icon="home">home</span>
+<span class="font-manrope text-[11px] font-semibold tracking-wide">Home</span>
+</button>
+<button class="flex flex-col items-center justify-center text-slate-400 px-3 py-1 active:scale-90 transition-all duration-300 ease-out">
+<span class="material-symbols-outlined mb-1" data-icon="medical_services">medical_services</span>
+<span class="font-manrope text-[11px] font-semibold tracking-wide">Passport</span>
+</button>
+<button class="flex flex-col items-center justify-center text-slate-400 px-3 py-1 active:scale-90 transition-all duration-300 ease-out">
+<span class="material-symbols-outlined mb-1" data-icon="event">event</span>
+<span class="font-manrope text-[11px] font-semibold tracking-wide">Booking</span>
+</button>
+<button class="flex flex-col items-center justify-center text-green-800 bg-green-50 rounded-2xl px-3 py-1 active:scale-90 transition-all duration-300 ease-out">
+<span class="material-symbols-outlined mb-1" data-icon="pill" style="font-variation-settings: 'FILL' 1;">pill</span>
+<span class="font-manrope text-[11px] font-semibold tracking-wide">Meds</span>
+</button>
+</nav>
+</body></html>

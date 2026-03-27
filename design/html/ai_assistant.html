@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>VoxMed - AI Triage Assistant</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Manrope:wght@600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "on-tertiary-container": "#445e4a",
+                        "surface": "#f9f9f9",
+                        "surface-container-high": "#e4e9ea",
+                        "tertiary-container": "#d7f6db",
+                        "on-surface": "#2d3435",
+                        "surface-dim": "#d4dbdd",
+                        "primary": "#1b6d24",
+                        "on-error": "#fff7f6",
+                        "on-primary-fixed-variant": "#176a21",
+                        "background": "#f9f9f9",
+                        "tertiary-dim": "#3f5945",
+                        "on-secondary-fixed": "#264350",
+                        "surface-container-low": "#f2f4f4",
+                        "secondary": "#466370",
+                        "surface-variant": "#dde4e5",
+                        "surface-bright": "#f9f9f9",
+                        "on-tertiary": "#e8ffe9",
+                        "secondary-dim": "#3a5764",
+                        "on-surface-variant": "#5a6061",
+                        "tertiary": "#4b6551",
+                        "error": "#9e422c",
+                        "surface-tint": "#1b6d24",
+                        "on-secondary-container": "#395663",
+                        "on-tertiary-fixed-variant": "#4e6954",
+                        "secondary-fixed": "#c9e7f7",
+                        "tertiary-fixed": "#d7f6db",
+                        "on-secondary-fixed-variant": "#435f6d",
+                        "primary-container": "#a3f69c",
+                        "error-container": "#fe8b70",
+                        "surface-container-highest": "#dde4e5",
+                        "outline-variant": "#adb3b4",
+                        "outline": "#757c7d",
+                        "on-primary-container": "#065f18",
+                        "on-background": "#2d3435",
+                        "secondary-container": "#c9e7f7",
+                        "on-error-container": "#742410",
+                        "primary-dim": "#076019",
+                        "inverse-surface": "#0c0f0f",
+                        "on-primary": "#e5ffdd",
+                        "error-dim": "#5c1202",
+                        "inverse-primary": "#9df197",
+                        "primary-fixed": "#a3f69c",
+                        "on-tertiary-fixed": "#324c39",
+                        "inverse-on-surface": "#9c9d9d",
+                        "on-secondary": "#f3faff",
+                        "primary-fixed-dim": "#95e88f",
+                        "secondary-fixed-dim": "#bbd9e9",
+                        "on-primary-fixed": "#004b0f",
+                        "surface-container-lowest": "#ffffff",
+                        "surface-container": "#ebeeef",
+                        "tertiary-fixed-dim": "#c9e7cd"
+                    },
+                    fontFamily: {
+                        "headline": ["Manrope"],
+                        "body": ["Inter"],
+                        "label": ["Inter"]
+                    },
+                    borderRadius: {"DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem"},
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .chat-scroll::-webkit-scrollbar { width: 4px; }
+        .chat-scroll::-webkit-scrollbar-track { background: transparent; }
+        .chat-scroll::-webkit-scrollbar-thumb { background: #dde4e5; border-radius: 10px; }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface font-body text-on-surface">
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full flex justify-between items-center px-6 py-4 bg-[#f9f9f9]/80 dark:bg-gray-900/80 backdrop-blur-xl z-50">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary text-2xl" data-icon="clinical_notes">clinical_notes</span>
+<h1 class="font-headline font-extrabold text-[#1b6d24] dark:text-[#95e88f] text-2xl tracking-tighter">VoxMed</h1>
+</div>
+<div class="flex items-center gap-4">
+<button class="text-on-surface-variant hover:opacity-80 transition-opacity">
+<span class="material-symbols-outlined" data-icon="search">search</span>
+</button>
+<div class="w-10 h-10 rounded-full bg-surface-container-highest overflow-hidden border-2 border-primary/10">
+<img alt="User Profile" class="w-full h-full object-cover" data-alt="Portrait of a smiling user profile" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCaMlD9i-1UOEi0L22LSu28dLChycHRiF6l1Otvuwg1v2xomeWuWQoxenYRVQrA5fHWkaQlThdZrd2AbBYvcfXh0n230hI2zzLSbhlUF3aSsOuP9_RWwMXxhy6b5PfmtBac95Tmf1WJEAhwJ4ClwZBPRyMtCVFfDz5g7kijCnb5iyOg1FakV8LFxsYDoxk-HfFYdf8ieOTalDv8SfsiLkr1g1jeYHOtq_4-aK-qkS9KXhpG71S01-jqFxn0V7RUtOCiwJ9BGZw5Vd0"/>
+</div>
+</div>
+</header>
+<main class="min-h-screen pt-24 pb-32 max-w-4xl mx-auto px-4 md:px-8">
+<!-- Chat Header Section -->
+<section class="mb-10 text-center">
+<div class="inline-flex items-center justify-center p-4 bg-tertiary-container text-on-tertiary-container rounded-full mb-4 shadow-sm">
+<span class="material-symbols-outlined text-3xl" data-icon="smart_toy" style="font-variation-settings: 'FILL' 1;">smart_toy</span>
+</div>
+<h2 class="font-headline text-3xl font-bold text-on-primary-fixed mb-2 tracking-tight">AI Triage Assistant</h2>
+<p class="text-on-surface-variant max-w-md mx-auto">Tell me about your symptoms. I can help guide you to the right care, but I am not a doctor.</p>
+</section>
+<!-- Chat Conversation Area -->
+<div class="space-y-8 chat-scroll">
+<!-- AI Message -->
+<div class="flex items-start gap-4 max-w-[85%]">
+<div class="w-8 h-8 rounded-full bg-gradient-to-br from-[#1b6d24] to-[#076019] flex items-center justify-center flex-shrink-0 shadow-md">
+<span class="material-symbols-outlined text-white text-sm" data-icon="smart_toy">smart_toy</span>
+</div>
+<div class="space-y-2">
+<div class="bg-surface-container-lowest p-5 rounded-2xl rounded-tl-none shadow-[0_2px_12px_rgba(0,0,0,0.03)] border border-outline-variant/10">
+<p class="leading-relaxed">Hello! I'm your medical assistant. To help you best, could you describe what symptoms you're experiencing and when they started?</p>
+</div>
+<span class="text-[10px] text-on-surface-variant/60 font-medium px-1">JUST NOW</span>
+</div>
+</div>
+<!-- User Message -->
+<div class="flex items-start gap-4 flex-row-reverse ml-auto max-w-[85%]">
+<div class="w-8 h-8 rounded-full bg-surface-container-highest flex items-center justify-center flex-shrink-0">
+<span class="material-symbols-outlined text-on-surface-variant text-sm" data-icon="person">person</span>
+</div>
+<div class="space-y-2 text-right">
+<div class="bg-primary text-on-primary p-5 rounded-2xl rounded-tr-none shadow-lg shadow-primary/10">
+<p class="leading-relaxed">I've been having a persistent dull headache for the last two days, mostly around my temples.</p>
+</div>
+<span class="text-[10px] text-on-surface-variant/60 font-medium px-1">2 MIN AGO</span>
+</div>
+</div>
+<!-- AI Detailed Analysis Message -->
+<div class="flex items-start gap-4 max-w-[90%]">
+<div class="w-8 h-8 rounded-full bg-gradient-to-br from-[#1b6d24] to-[#076019] flex items-center justify-center flex-shrink-0 shadow-md">
+<span class="material-symbols-outlined text-white text-sm" data-icon="smart_toy">smart_toy</span>
+</div>
+<div class="space-y-4 w-full">
+<div class="bg-surface-container-lowest p-6 rounded-2xl rounded-tl-none shadow-[0_4px_20px_rgba(0,0,0,0.04)] border border-outline-variant/10">
+<p class="mb-4 font-medium text-primary">Tension headache suspected.</p>
+<p class="mb-6 text-on-surface-variant leading-relaxed">Headaches around the temples are often related to stress or eye strain. I have a few follow-up questions to rule out other possibilities:</p>
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+<button class="flex items-center justify-between p-4 rounded-xl bg-surface-container-low hover:bg-surface-container transition-colors text-left group">
+<span class="text-sm font-medium">Blurred vision?</span>
+<span class="material-symbols-outlined text-primary opacity-0 group-hover:opacity-100 transition-opacity" data-icon="chevron_right">chevron_right</span>
+</button>
+<button class="flex items-center justify-between p-4 rounded-xl bg-surface-container-low hover:bg-surface-container transition-colors text-left group">
+<span class="text-sm font-medium">Nausea or vomiting?</span>
+<span class="material-symbols-outlined text-primary opacity-0 group-hover:opacity-100 transition-opacity" data-icon="chevron_right">chevron_right</span>
+</button>
+<button class="flex items-center justify-between p-4 rounded-xl bg-surface-container-low hover:bg-surface-container transition-colors text-left group">
+<span class="text-sm font-medium">Sensitivity to light?</span>
+<span class="material-symbols-outlined text-primary opacity-0 group-hover:opacity-100 transition-opacity" data-icon="chevron_right">chevron_right</span>
+</button>
+<button class="flex items-center justify-between p-4 rounded-xl bg-surface-container-low hover:bg-surface-container transition-colors text-left group">
+<span class="text-sm font-medium">None of these</span>
+<span class="material-symbols-outlined text-primary opacity-0 group-hover:opacity-100 transition-opacity" data-icon="chevron_right">chevron_right</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Input Area Container -->
+<div class="fixed bottom-[110px] left-0 right-0 px-4 md:px-8 max-w-4xl mx-auto z-40">
+<div class="bg-surface-container-lowest border border-outline-variant/20 rounded-2xl p-2 shadow-2xl shadow-on-surface/5 flex items-end gap-2">
+<button class="p-3 text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined" data-icon="add_circle">add_circle</span>
+</button>
+<textarea class="flex-grow bg-transparent border-none focus:ring-0 text-on-surface py-3 resize-none font-body placeholder:text-outline" placeholder="Type your symptoms here..." rows="1"></textarea>
+<button class="w-12 h-12 rounded-xl bg-primary text-on-primary flex items-center justify-center hover:bg-primary-dim transition-transform active:scale-95 shadow-md shadow-primary/20">
+<span class="material-symbols-outlined" data-icon="send" style="font-variation-settings: 'FILL' 1;">send</span>
+</button>
+</div>
+</div>
+</main>
+<!-- NavigationDrawer (Active AI State) -->
+<div class="fixed bottom-24 right-6 z-50 transition-transform active:scale-90 flex items-center justify-center">
+<div class="bg-gradient-to-br from-[#1b6d24] to-[#076019] rounded-full h-16 w-16 flex items-center justify-center shadow-xl shadow-green-900/20 ring-4 ring-primary-container animate-pulse">
+<span class="material-symbols-outlined text-white" data-icon="smart_toy">smart_toy</span>
+</div>
+<!-- Tooltip Label for Active State -->
+<div class="absolute -top-10 right-0 bg-primary text-on-primary px-3 py-1 rounded-lg text-xs font-bold whitespace-nowrap">
+            AI Triage Active
+        </div>
+</div>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 w-full z-50 flex justify-around items-center px-4 pb-6 pt-3 bg-[#f9f9f9]/90 dark:bg-gray-900/90 backdrop-blur-lg shadow-[0_-4px_24px_-4px_rgba(45,52,53,0.06)] rounded-t-3xl">
+<div class="flex flex-col items-center justify-center text-[#5a6061] dark:text-gray-400 px-5 py-2 hover:text-[#1b6d24] transition-all duration-300">
+<span class="material-symbols-outlined mb-1" data-icon="dashboard">dashboard</span>
+<span class="font-headline text-[10px] font-semibold uppercase tracking-widest">Dashboard</span>
+</div>
+<div class="flex flex-col items-center justify-center text-[#5a6061] dark:text-gray-400 px-5 py-2 hover:text-[#1b6d24] transition-all duration-300">
+<span class="material-symbols-outlined mb-1" data-icon="medical_services">medical_services</span>
+<span class="font-headline text-[10px] font-semibold uppercase tracking-widest">Doctors</span>
+</div>
+<div class="flex flex-col items-center justify-center text-[#5a6061] dark:text-gray-400 px-5 py-2 hover:text-[#1b6d24] transition-all duration-300">
+<span class="material-symbols-outlined mb-1" data-icon="badge">badge</span>
+<span class="font-headline text-[10px] font-semibold uppercase tracking-widest">Passport</span>
+</div>
+<div class="flex flex-col items-center justify-center text-[#5a6061] dark:text-gray-400 px-5 py-2 hover:text-[#1b6d24] transition-all duration-300">
+<span class="material-symbols-outlined mb-1" data-icon="favorite">favorite</span>
+<span class="font-headline text-[10px] font-semibold uppercase tracking-widest">Health</span>
+</div>
+</nav>
+</body></html>
