@@ -12,7 +12,7 @@
 
 ---
 
-## Phase 0: Project Setup & Design (Current)
+## Phase 0: Project Setup & Design (Complete)
 
 | Task | Status | Date | Notes |
 |------|--------|------|-------|
@@ -31,21 +31,34 @@
 
 ---
 
-## Phase 1: Foundation & Auth (⏳ Not Started)
+## Phase 1: Foundation & Auth (Complete ✅)
 
 | Task | Status | Date | Notes |
 |------|--------|------|-------|
-| Add `supabase_flutter` + `flutter_dotenv` | ⏳ | | |
-| Initialize Supabase client in `main.dart` | ⏳ | | |
-| Run database migration in Supabase | ⏳ | | Create enums, tables, indexes, RLS, triggers |
-| Create data models (`UserProfile`, etc.) | ⏳ | | `lib/models/` |
-| Build `AuthRepository` | ⏳ | | signUp, signIn, signOut, getSession |
-| Build Login screen | ⏳ | | |
-| Build Register screen | ⏳ | | With role selection |
-| Add auth guard to router | ⏳ | | Redirect unauthenticated users |
-| Add role-based routing | ⏳ | | Patient shell vs Doctor shell |
-| Add `flutter_riverpod` | ⏳ | | |
-| Create storage buckets | ⏳ | | avatars, reports, prescriptions |
+| Add `flutter_riverpod` + `intl` dependencies | ✅ | 2026-03-28 | `pubspec.yaml` updated |
+| Supabase client initialized in `main.dart` | ✅ | 2026-03-28 | Already done in Phase 0, now also in `supabase_config.dart` |
+| Run database migration in Supabase | ✅ | 2026-03-28 | Manually done by user in cloud |
+| Create `supabase_config.dart` | ✅ | 2026-03-28 | Singleton accessor in `lib/core/config/` |
+| Create `app_constants.dart` | ✅ | 2026-03-28 | Routes, table names, buckets, 8 Dart enums |
+| Create `extensions.dart` | ✅ | 2026-03-28 | DateTime + String extensions |
+| Create `validators.dart` | ✅ | 2026-03-28 | Email, password, name, phone validators |
+| Create `error_handler.dart` | ✅ | 2026-03-28 | AppException, error/success SnackBars |
+| Create data models (10 files) | ✅ | 2026-03-28 | UserProfile, Hospital, Doctor, DoctorSchedule, Appointment, MedicalRecord, Prescription, PrescriptionItem, NotificationModel, Review |
+| Build `AuthRepository` | ✅ | 2026-03-28 | signUp (with metadata), signIn, signOut, session |
+| Build `ProfileRepository` | ✅ | 2026-03-28 | getProfile, updateProfile, getCurrentUserProfile |
+| Build `HospitalRepository` | ✅ | 2026-03-28 | list, get, search |
+| Build `DoctorRepository` | ✅ | 2026-03-28 | list, get, filterBySpecialty, create, getSchedule |
+| Build `AppointmentRepository` | ✅ | 2026-03-28 | create, listByPatient, listUpcoming, listByDoctor, updateStatus |
+| Create Riverpod providers (5 files) | ✅ | 2026-03-28 | auth, profile, hospital, doctor, appointment |
+| Build Login screen | ✅ | 2026-03-28 | Email/password, validation, role-based redirect |
+| Build Register screen | ✅ | 2026-03-28 | Role toggle (Patient/Doctor), metadata sign-up |
+| Add auth guard to router | ✅ | 2026-03-28 | Redirect unauthenticated → `/login` |
+| Add role-based routing | ✅ | 2026-03-28 | Patient shell (4 tabs) + Doctor shell (3 tabs) |
+| Wrap app with `ProviderScope` | ✅ | 2026-03-28 | `main.dart` updated |
+| Create shared widgets | ✅ | 2026-03-28 | LoadingIndicator, ErrorWidget, EmptyStateWidget |
+| Write unit tests | ✅ | 2026-03-28 | 36 tests — models, validators, enums |
+| `flutter analyze` — 0 issues | ✅ | 2026-03-28 | Clean |
+| `flutter test` — all passing | ✅ | 2026-03-28 | 36/36 passed |
 
 ---
 

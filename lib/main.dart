@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'core/theme/app_theme.dart';
 import 'core/router/app_router.dart';
@@ -13,13 +14,15 @@ Future<void> main() async {
   // Initialize Supabase
   await Supabase.initialize(
     url: dotenv.env['SUPABASE_URL']!,
-    anonKey: dotenv.env['SUPABASE_PUBLISHABLE_KEY']!, // Pass the publishable key here
+    anonKey: dotenv.env['SUPABASE_PUBLISHABLE_KEY']!,
   );
 
-  runApp(const VoxMedApp());
+  runApp(
+    const ProviderScope(
+      child: VoxMedApp(),
+    ),
+  );
 }
-
-final supabase = Supabase.instance.client;
 
 class VoxMedApp extends StatelessWidget {
   const VoxMedApp({super.key});
