@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../core/theme/app_colors.dart';
+import '../core/constants/app_constants.dart';
+import '../providers/auth_provider.dart';
 
-class VoxmedAppBar extends StatelessWidget implements PreferredSizeWidget {
+class VoxmedAppBar extends ConsumerWidget implements PreferredSizeWidget {
   final String? title;
   final List<Widget>? actions;
   final bool showBackButton;
@@ -20,7 +24,9 @@ class VoxmedAppBar extends StatelessWidget implements PreferredSizeWidget {
   Size get preferredSize => const Size.fromHeight(64);
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final profileAsync = ref.watch(currentUserProfileProvider);
+
     return AppBar(
       automaticallyImplyLeading: showBackButton,
       leading: showBackButton
@@ -51,16 +57,54 @@ class VoxmedAppBar extends StatelessWidget implements PreferredSizeWidget {
         if (showAvatar)
           Padding(
             padding: const EdgeInsets.only(right: 16),
-            child: CircleAvatar(
-              radius: 20,
-              backgroundColor: AppColors.surfaceContainer,
-              backgroundImage: const NetworkImage(
-                'https://lh3.googleusercontent.com/aida-public/AB6AXuDT-tVFn5_C6v_J1ggmOXpH0-GQ6p9tnH-2EGE6_dZhgRFSb3ZerekHhYAsyE0SqHbqRbT3PKMWPU8f1C7eBEY46_Kj6lzq2C4aG4HRh9YYAtE7lJ-Q7GskOP-2AoYyxyOqfxiryQOZ16NMUMtb6bRuSeP5HEky_fH0_QHsg8Ibj_9j63PdKqPJzhQZq0PETbueJeHAwqpoBVzQ68ib2Qu1tLVOwySS6pcZy5uxj8Cm-zOSDeoJZf9TEcjiHOslaz4K05wO7rV5Gdc',
+            child: GestureDetector(
+              onTap: () => context.push(AppRoutes.profile),
+              child: profileAsync.when(
+                data: (profile) => CircleAvatar(
+                  radius: 20,
+                  backgroundColor: AppColors.surfaceContainer,
+                  backgroundImage: profile?.avatarUrl != null
+                      ? NetworkImage(profile!.avatarUrl!)
+                      : null,
+                  child: profile?.avatarUrl == null
+                      ? Text(
+                          _getInitials(profile?.fullName),
+                          style: GoogleFonts.manrope(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.primary,
+                          ),
+                        )
+                      : null,
+                ),
+                loading: () => CircleAvatar(
+                  radius: 20,
+                  backgroundColor: AppColors.surfaceContainer,
+                  child: const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary),
+                  ),
+                ),
+                error: (_, _) => CircleAvatar(
+                  radius: 20,
+                  backgroundColor: AppColors.surfaceContainer,
+                  child: const Icon(Icons.person, size: 20, color: AppColors.onSurfaceVariant),
+                ),
               ),
             ),
           ),
         ...?actions,
       ],
     );
+  }
+
+  String _getInitials(String? name) {
+    if (name == null || name.isEmpty) return 'U';
+    final parts = name.split(' ');
+    if (parts.length >= 2) {
+      return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
+    }
+    return name[0].toUpperCase();
   }
 }

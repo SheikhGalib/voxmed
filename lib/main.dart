@@ -8,14 +8,18 @@ import 'core/router/app_router.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Load environment variables
-  await dotenv.load(fileName: '.env');
+  try {
+    // Load environment variables
+    await dotenv.load(fileName: ".env");
 
-  // Initialize Supabase
-  await Supabase.initialize(
-    url: dotenv.env['SUPABASE_URL']!,
-    anonKey: dotenv.env['SUPABASE_PUBLISHABLE_KEY']!,
-  );
+    // Initialize Supabase
+    await Supabase.initialize(
+      url: dotenv.env['SUPABASE_URL']!,
+      anonKey: dotenv.env['SUPABASE_PUBLISHABLE_KEY']!, 
+    );
+  } catch (e) {
+    print('Initialization error: $e'); // ignore: avoid_print
+  }
 
   runApp(
     const ProviderScope(

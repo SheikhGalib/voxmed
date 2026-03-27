@@ -14,6 +14,7 @@ import '../../screens/live_consultation_screen.dart';
 import '../../screens/clinical_dashboard_screen.dart';
 import '../../screens/collaborative_hub_screen.dart';
 import '../../screens/approval_queue_screen.dart';
+import '../../screens/profile_screen.dart';
 import '../../widgets/voxmed_app_bar.dart';
 import '../../widgets/voxmed_bottom_nav.dart';
 import '../../widgets/ai_fab.dart';
@@ -126,6 +127,11 @@ final appRouter = GoRouter(
     ),
 
     // Full-screen routes (no bottom nav)
+    GoRoute(
+      path: AppRoutes.profile,
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (context, state) => const ProfileScreen(),
+    ),
     GoRoute(
       path: AppRoutes.aiAssistant,
       parentNavigatorKey: _rootNavigatorKey,

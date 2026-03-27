@@ -17,6 +17,7 @@ class AppRoutes {
   static const String doctorBooking = '/doctor-booking';
   static const String scanRecords = '/scan-records';
   static const String prescriptionRenewals = '/prescription-renewals';
+  static const String profile = '/profile';
 
   // Doctor shell tabs
   static const String clinicalDashboard = '/clinical-dashboard';

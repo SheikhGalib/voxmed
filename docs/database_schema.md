@@ -1225,7 +1225,7 @@ BEGIN
     NEW.id,
     COALESCE(NEW.raw_user_meta_data->>'full_name', 'User'),
     NEW.email,
-    COALESCE((NEW.raw_user_meta_data->>'role')::user_role, 'patient')
+    COALESCE((NEW.raw_user_meta_data->>'role')::public.user_role, 'patient')
   );
   RETURN NEW;
 END;
