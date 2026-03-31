@@ -2,9 +2,88 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../core/theme/app_colors.dart';
 import '../widgets/voxmed_card.dart';
+import 'dart:io';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
+import '../core/constants/app_constants.dart';
+import '../core/utils/error_handler.dart';
+import '../providers/medical_record_provider.dart';
 
-class ScanRecordsScreen extends StatelessWidget {
+class ScanRecordsScreen extends ConsumerStatefulWidget {
   const ScanRecordsScreen({super.key});
+
+  @override
+  ConsumerState<ScanRecordsScreen> createState() => _ScanRecordsScreenState();
+}
+
+class _ScanRecordsScreenState extends ConsumerState<ScanRecordsScreen> {
+  File? _selectedFile;
+  final _titleController = TextEditingController();
+  final _descriptionController = TextEditingController();
+  RecordType? _selectedRecordType;
+  bool _isUploading = false;
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _descriptionController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _pickImage(ImageSource source) async {
+    try {
+      final imagePicker = ImagePicker();
+      final pickedFile = await imagePicker.pickImage(
+        source: source,
+        imageQuality: 85,
+        maxWidth: 1920,
+        maxHeight: 1080,
+      );
+      if (pickedFile != null && mounted) {
+        setState(() => _selectedFile = File(pickedFile.path));
+      }
+    } catch (e) {
+      if (mounted) {
+        showErrorSnackBar(context, 'Failed to pick image: $e');
+      }
+    }
+  }
+
+  Future<void> _uploadRecord() async {
+    if (_selectedFile == null) {
+      showErrorSnackBar(context, 'Please select an image');
+      return;
+    }
+    if (_titleController.text.isEmpty) {
+      showErrorSnackBar(context, 'Please enter a title');
+      return;
+    }
+    if (_selectedRecordType == null) {
+      showErrorSnackBar(context, 'Please select a record type');
+      return;
+    }
+
+    setState(() => _isUploading = true);
+    try {
+      final fileName = _selectedFile!.path.split('/').last;
+      final result = await ref.read(medicalRecordsProvider.notifier).uploadRecord(
+            file: _selectedFile!,
+            fileName: fileName,
+            title: _titleController.text,
+            recordType: _selectedRecordType!,
+            description: _descriptionController.text.isEmpty ? null : _descriptionController.text,
+          );
+      if (mounted && result != null) {
+        showSuccessSnackBar(context, 'Record uploaded successfully');
+        if (mounted) context.go('/passport');
+      }
+    } catch (e) {
+      if (mounted) showErrorSnackBar(context, 'Upload failed: $e');
+    } finally {
+      if (mounted) setState(() => _isUploading = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -15,12 +94,10 @@ class ScanRecordsScreen extends StatelessWidget {
         leading: Row(
           children: [
             const SizedBox(width: 8),
-            Icon(Icons.medical_information_outlined, color: AppColors.primary, size: 24),
-          ],
-        ),
-        title: Text('VoxMed', style: GoogleFonts.manrope(fontSize: 22, fontWeight: FontWeight.w800, color: AppColors.primary)),
-      ),
-      body: SingleChildScrollView(
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back),
+              onPressed: () => context.pop(),
+            ),
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -36,21 +113,62 @@ class ScanRecordsScreen extends StatelessWidget {
             _buildScanArea(),
             const SizedBox(height: 20),
             _buildOCRTips(),
-            const SizedBox(height: 24),
-            _buildExtractedData(),
+                _buildImageSelector(),
+                if (_selectedFile != null) ...[
+                  const SizedBox(height: 20),
+                  _buildImagePreview(),
+                ],
+                const SizedBox(height: 20),
+                _buildRecordForm(),
+                const SizedBox(height: 20),
             const SizedBox(height: 24),
             _buildFinalizeButton(),
-          ],
-        ),
-      ),
+                _buildUploadSection(),
     );
   }
 
   Widget _buildScanArea() {
     return Container(
       height: 240,
-      width: double.infinity,
+      Widget _buildImageSelector() {
       decoration: BoxDecoration(
+          onTap: () {
+            showModalBottomSheet(
+              context: context,
+              builder: (ctx) => SafeArea(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    ListTile(
+                      leading: const Icon(Icons.camera_alt),
+                      title: const Text('Take Photo'),
+                      onTap: () {
+                        Navigator.pop(ctx);
+                        _pickImage(ImageSource.camera);
+                      },
+                    ),
+                    ListTile(
+                      leading: const Icon(Icons.image),
+                      title: const Text('Choose from Gallery'),
+                      onTap: () {
+                        Navigator.pop(ctx);
+                        _pickImage(ImageSource.gallery);
+                      },
+                    ),
+                    if (_selectedFile != null)
+                      ListTile(
+                        leading: const Icon(Icons.clear),
+                        title: const Text('Clear Selection'),
+                        onTap: () {
+                          Navigator.pop(ctx);
+                          setState(() => _selectedFile = null);
+                        },
+                      ),
+                  ],
+                ),
+              ),
+            );
+          },
         color: AppColors.surfaceContainerLow,
         borderRadius: BorderRadius.circular(24),
         border: Border.all(color: AppColors.primary.withValues(alpha: 0.2), width: 2),
@@ -59,7 +177,12 @@ class ScanRecordsScreen extends StatelessWidget {
         alignment: Alignment.center,
         children: [
           // Scanner corners
-          ...List.generate(4, (i) {
+            child: _selectedFile != null
+                ? ClipRRect(
+                    borderRadius: BorderRadius.circular(24),
+                    child: Image.file(_selectedFile!, fit: BoxFit.cover),
+                  )
+                : Stack(
             return Positioned(
               top: i < 2 ? 16 : null,
               bottom: i >= 2 ? 16 : null,
@@ -87,18 +210,84 @@ class ScanRecordsScreen extends StatelessWidget {
               Text('Position document here',
                   style: GoogleFonts.inter(fontSize: 14, color: AppColors.onSurfaceVariant, fontWeight: FontWeight.w500)),
               const SizedBox(height: 4),
-              Text('Auto-capture enabled',
+                    Text('Tap to select or capture document',
                   style: GoogleFonts.inter(fontSize: 11, color: AppColors.onSurfaceVariant.withValues(alpha: 0.6))),
             ],
-          ),
+                    Text('Camera or gallery',
         ],
       ),
     );
   }
 
+          ),
   Widget _buildOCRTips() {
     return VoxmedCard(
       color: AppColors.surfaceContainerLow,
+      Widget _buildImagePreview() {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Selected Image', style: GoogleFonts.manrope(fontSize: 15, fontWeight: FontWeight.w700, color: AppColors.onSurface)),
+            const SizedBox(height: 8),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: Image.file(_selectedFile!, height: 150, width: double.infinity, fit: BoxFit.cover),
+            ),
+          ],
+        );
+      }
+
+      Widget _buildRecordForm() {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Record Details', style: GoogleFonts.manrope(fontSize: 15, fontWeight: FontWeight.w700, color: AppColors.onSurface)),
+            const SizedBox(height: 12),
+            DropdownButton<RecordType>(
+              isExpanded: true,
+              value: _selectedRecordType,
+              hint: Text('Select Record Type', style: GoogleFonts.inter(color: AppColors.onSurfaceVariant)),
+              items: RecordType.values.map((type) => DropdownMenuItem(
+                value: type,
+                child: Text(type.name[0].toUpperCase() + type.name.substring(1), style: GoogleFonts.inter(color: AppColors.onSurface)),
+              )).toList(),
+              onChanged: (value) => setState(() => _selectedRecordType = value),
+              underline: Container(height: 1, color: AppColors.outlineVariant),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _titleController,
+              decoration: InputDecoration(
+                labelText: 'Record Title *',
+                hintText: 'e.g., Blood Test Report',
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _descriptionController,
+              decoration: InputDecoration(
+                labelText: 'Description (Optional)',
+                hintText: 'Add notes about this record',
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              maxLines: 3,
+            ),
+          ],
+        );
+      }
+
+      Widget _buildUploadSection() {
+        return SizedBox(
+          width: double.infinity,
+          child: ElevatedButton(
+            onPressed: _isUploading ? null : _uploadRecord,
+            child: _isUploading
+                ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                : const Text('Save to Health Passport'),
+          ),
+        );
+      }
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
