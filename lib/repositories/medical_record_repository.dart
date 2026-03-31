@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../core/config/supabase_config.dart';
 import '../core/constants/app_constants.dart';
@@ -49,10 +50,17 @@ class MedicalRecordRepository {
         throw AppException(message: 'User not authenticated');
       }
 
-      final toInsert = {
+      final toInsert = <String, dynamic>{
         'patient_id': userId,
+        'doctor_id': doctorId,
+        'appointment_id': appointmentId,
         'record_type': recordType.value,
         'title': title,
+        'description': description,
+        'file_url': fileUrl,
+        'data': extractedData,
+        if (recordDate != null)
+          'record_date': recordDate.toIso8601String().split('T').first,
         'ocr_extracted': extractedData != null,
       };
 
@@ -111,16 +119,17 @@ class MedicalRecordRepository {
         body: {'fileUrl': fileUrl},
       );
 
-      // FunctionResponse returns data as dynamic, handle gracefully
-      if (response is Map && response['success'] == true) {
-        final data = response['data'];
-        if (data is Map<String, dynamic>) {
-          return data;
+      final payload = response.data;
+      if (payload is Map<String, dynamic>) {
+        if (payload['success'] == true && payload['data'] is Map<String, dynamic>) {
+          return payload['data'] as Map<String, dynamic>;
         }
+        return payload;
       }
+
       return null;
     } catch (e) {
-      print('OCR extraction failed (non-critical): $e'); // ignore: avoid_print
+      debugPrint('OCR extraction failed (non-critical): $e');
       return null; // Gracefully handle OCR failures
     }
   }
@@ -171,24 +180,3 @@ class MedicalRecordRepository {
     }
   }
 }
-
-'doctor_id': doctorId,
-'appointment_id': appointmentId,
-'description': description,
-'file_url': fileUrl,
-'data': extractedData,
-'record_date': recordDate?.toIso8601String().split('T').first,
-
-      final toInsert =<String, dynamic>{
-        'patient_id': userId,
-        if (doctorId != null) 'doctor_id': doctorId,
-        if (appointmentId != null) 'appointment_id': appointmentId,
-        'record_type': recordType.value,
-        'title': title,
-        if (description != null) 'description': description,
-        if (fileUrl != null) 'file_url': fileUrl,
-        if (extractedData != null) 'data': extractedData,
-        if (recordDate != null)
-          'record_date': recordDate.toIso8601String().split('T').first,
-        'ocr_extracted': extractedData != null,
-      };
