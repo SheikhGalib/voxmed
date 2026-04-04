@@ -1,12 +1,36 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../core/config/supabase_config.dart';
+import '../core/constants/app_constants.dart';
 import '../core/theme/app_colors.dart';
+import '../providers/prescription_provider.dart';
 
-class AiAssistantScreen extends StatelessWidget {
+class AiAssistantScreen extends ConsumerStatefulWidget {
   const AiAssistantScreen({super.key});
 
   @override
+  ConsumerState<AiAssistantScreen> createState() => _AiAssistantScreenState();
+}
+
+class _AiAssistantScreenState extends ConsumerState<AiAssistantScreen> {
+  final _controller = TextEditingController();
+  String? _activeConversationId;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final conversationsAsync = ref.watch(aiConversationsProvider);
+
+    // Get the first conversation or use the active one
+    final conversations = conversationsAsync.valueOrNull ?? [];
+    final conversationId = _activeConversationId ?? (conversations.isNotEmpty ? conversations.first['id'] as String : null);
+
     return Scaffold(
       backgroundColor: AppColors.surface,
       appBar: AppBar(
@@ -33,74 +57,96 @@ class AiAssistantScreen extends StatelessWidget {
       body: Column(
         children: [
           Expanded(
-            child: ListView(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
-              children: [
-                _buildHeader(),
-                const SizedBox(height: 24),
-                _buildBotMessage(
-                  'Hello! I\'m your medical assistant. To help you best, could you describe what symptoms you\'re experiencing and when they started?',
-                  showAvatar: true,
-                ),
-                Center(child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                  child: Text('JUST NOW', style: GoogleFonts.inter(fontSize: 9, fontWeight: FontWeight.w700, letterSpacing: 1.5, color: AppColors.onSurfaceVariant.withValues(alpha: 0.5))),
-                )),
-                _buildUserMessage(
-                  'I\'ve been having a persistent dull headache for the last two days, mostly around my temples.',
-                ),
-                Center(child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                  child: Text('2 MIN AGO', style: GoogleFonts.inter(fontSize: 9, fontWeight: FontWeight.w700, letterSpacing: 1.5, color: AppColors.onSurfaceVariant.withValues(alpha: 0.5))),
-                )),
-                _buildBotMessage(
-                  null,
-                  showAvatar: true,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          const Icon(Icons.psychology, color: AppColors.primary, size: 18),
-                          const SizedBox(width: 8),
-                          Text('Tension headache suspected',
-                              style: GoogleFonts.manrope(fontSize: 15, fontWeight: FontWeight.w700, color: AppColors.onSurface)),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Headaches around the temples are often related to stress or eye strain. I have a few follow-up questions to rule out other possibilities:',
-                        style: GoogleFonts.inter(fontSize: 13, color: AppColors.onSurfaceVariant, height: 1.5),
-                      ),
-                      const SizedBox(height: 14),
-                      _FollowUpChip(label: 'Blurred vision?', icon: Icons.visibility),
-                      const SizedBox(height: 8),
-                      _FollowUpChip(label: 'Nausea / Vomiting?', icon: Icons.sick),
-                      const SizedBox(height: 8),
-                      _FollowUpChip(label: 'Sensitivity to light?', icon: Icons.lightbulb_outline),
-                      const SizedBox(height: 8),
-                      _FollowUpChip(label: 'None of these', icon: Icons.check_circle_outline),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                    decoration: BoxDecoration(
-                      color: AppColors.primary,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text('AI Triage Active', style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w700, color: Colors.white)),
-                  ),
-                ),
-              ],
-            ),
+            child: conversationId == null
+                ? _buildEmptyState()
+                : _buildMessages(conversationId),
           ),
-          _buildInputBar(),
+          _buildInputBar(conversationId),
         ],
       ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+      children: [
+        _buildHeader(),
+        const SizedBox(height: 24),
+        _buildBotMessage(
+          'Hello! I\'m your medical assistant. To help you best, could you describe what symptoms you\'re experiencing and when they started?',
+          showAvatar: true,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMessages(String conversationId) {
+    final messagesAsync = ref.watch(aiMessagesProvider(conversationId));
+
+    return messagesAsync.when(
+      data: (messages) {
+        return ListView(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+          children: [
+            _buildHeader(),
+            const SizedBox(height: 24),
+            ...messages.map((msg) {
+              final role = msg['role'] as String? ?? 'assistant';
+              final content = msg['content'] as String? ?? '';
+              final metadata = msg['metadata'] as Map<String, dynamic>?;
+
+              if (role == 'user') {
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: _buildUserMessage(content),
+                );
+              } else {
+                // assistant or system
+                final followUps = metadata?['follow_ups'] as List?;
+                if (followUps != null && followUps.isNotEmpty) {
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: _buildBotMessage(
+                      null,
+                      showAvatar: true,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(content, style: GoogleFonts.inter(fontSize: 14, color: AppColors.onSurface, height: 1.5)),
+                          const SizedBox(height: 14),
+                          ...followUps.map((f) => Padding(
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: _FollowUpChip(label: f.toString(), icon: Icons.help_outline),
+                          )),
+                        ],
+                      ),
+                    ),
+                  );
+                }
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: _buildBotMessage(content, showAvatar: true),
+                );
+              }
+            }),
+            const SizedBox(height: 12),
+            Align(
+              alignment: Alignment.centerRight,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                decoration: BoxDecoration(
+                  color: AppColors.primary,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text('AI Triage Active', style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w700, color: Colors.white)),
+              ),
+            ),
+          ],
+        );
+      },
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (_, __) => Center(child: Text('Failed to load messages', style: GoogleFonts.inter(color: AppColors.error))),
     );
   }
 
@@ -191,7 +237,7 @@ class AiAssistantScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildInputBar() {
+  Widget _buildInputBar(String? conversationId) {
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
       decoration: BoxDecoration(
@@ -211,6 +257,7 @@ class AiAssistantScreen extends StatelessWidget {
                 children: [
                   Expanded(
                     child: TextField(
+                      controller: _controller,
                       decoration: InputDecoration(
                         hintText: 'Type your symptoms here...',
                         hintStyle: GoogleFonts.inter(fontSize: 14, color: AppColors.onSurfaceVariant),
@@ -225,17 +272,60 @@ class AiAssistantScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 10),
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: AppColors.primary,
-              borderRadius: BorderRadius.circular(16),
+          GestureDetector(
+            onTap: () => _sendMessage(conversationId),
+            child: Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppColors.primary,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: const Icon(Icons.send, color: Colors.white, size: 20),
             ),
-            child: const Icon(Icons.send, color: Colors.white, size: 20),
           ),
         ],
       ),
     );
+  }
+
+  Future<void> _sendMessage(String? conversationId) async {
+    final text = _controller.text.trim();
+    if (text.isEmpty) return;
+
+    final uid = supabase.auth.currentUser?.id;
+    if (uid == null) return;
+
+    try {
+      String convId;
+      if (conversationId == null) {
+        // Create a new conversation
+        final row = await supabase.from(Tables.aiConversations).insert({
+          'patient_id': uid,
+          'title': text.length > 50 ? '${text.substring(0, 50)}...' : text,
+        }).select('id').single();
+        convId = row['id'] as String;
+        setState(() => _activeConversationId = convId);
+        ref.invalidate(aiConversationsProvider);
+      } else {
+        convId = conversationId;
+      }
+
+      // Insert the user message
+      await supabase.from(Tables.aiMessages).insert({
+        'conversation_id': convId,
+        'role': 'user',
+        'content': text,
+      });
+
+      _controller.clear();
+      ref.invalidate(aiMessagesProvider(convId));
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error sending message: $e'), backgroundColor: AppColors.error),
+        );
+      }
+    }
   }
 }
 
