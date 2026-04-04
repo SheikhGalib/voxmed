@@ -140,7 +140,9 @@ final appRouter = GoRouter(
     GoRoute(
       path: AppRoutes.doctorBooking,
       parentNavigatorKey: _rootNavigatorKey,
-      builder: (context, state) => const DoctorBookingDetailScreen(),
+      builder: (context, state) => DoctorBookingDetailScreen(
+        doctorId: state.uri.queryParameters['doctorId'],
+      ),
     ),
     GoRoute(
       path: AppRoutes.scanRecords,
