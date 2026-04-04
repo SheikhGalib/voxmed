@@ -1,13 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../core/theme/app_colors.dart';
+import '../providers/prescription_provider.dart';
 import '../widgets/voxmed_card.dart';
 
-class CollaborativeHubScreen extends StatelessWidget {
+class CollaborativeHubScreen extends ConsumerWidget {
   const CollaborativeHubScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final sessionsAsync = ref.watch(consultationSessionsProvider);
+
     return Scaffold(
       backgroundColor: AppColors.surface,
       appBar: AppBar(
@@ -20,29 +24,57 @@ class CollaborativeHubScreen extends StatelessWidget {
         ),
         title: Text('VoxMed', style: GoogleFonts.manrope(fontSize: 22, fontWeight: FontWeight.w800, color: AppColors.primary)),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildPatientCard(),
-            const SizedBox(height: 16),
-            _buildVitalsRow(),
-            const SizedBox(height: 20),
-            _buildCollaborativeExchange(),
-            const SizedBox(height: 20),
-            _buildClinicalHistory(),
-            const SizedBox(height: 20),
-            _buildAssignedSpecialists(),
-            const SizedBox(height: 20),
-            _buildTreatmentThread(),
-          ],
-        ),
+      body: sessionsAsync.when(
+        data: (sessions) {
+          if (sessions.isEmpty) {
+            return Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.group_off, size: 48, color: AppColors.onSurfaceVariant.withValues(alpha: 0.5)),
+                  const SizedBox(height: 12),
+                  Text('No active consultations', style: GoogleFonts.manrope(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.onSurfaceVariant)),
+                ],
+              ),
+            );
+          }
+
+          // Use the first session as the active one
+          final session = sessions.first;
+          final cs = session['consultation_sessions'] as Map<String, dynamic>? ?? {};
+          final patientName = (cs['profiles'] as Map<String, dynamic>?)?['full_name'] ?? 'Unknown Patient';
+          final patientId = cs['id']?.toString() ?? '';
+          final sessionTitle = cs['title'] ?? 'Consultation';
+          final notes = cs['notes'] ?? '';
+          final soapNote = cs['soap_note'] as Map<String, dynamic>? ?? {};
+
+          return SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildPatientCard(patientName, patientId),
+                const SizedBox(height: 16),
+                _buildVitalsRow(ref, cs),
+                const SizedBox(height: 20),
+                _buildCollaborativeExchange(),
+                const SizedBox(height: 20),
+                _buildClinicalHistory(sessionTitle, soapNote),
+                const SizedBox(height: 20),
+                _buildAssignedSpecialists(soapNote),
+                const SizedBox(height: 20),
+                _buildTreatmentThread(notes),
+              ],
+            ),
+          );
+        },
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (_, __) => Center(child: Text('Failed to load consultations', style: GoogleFonts.inter(color: AppColors.error))),
       ),
     );
   }
 
-  Widget _buildPatientCard() {
+  Widget _buildPatientCard(String name, String patientId) {
     return VoxmedCard(
       child: Column(
         children: [
@@ -58,9 +90,9 @@ class CollaborativeHubScreen extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Eleanor Vance',
+                    Text(name,
                         style: GoogleFonts.manrope(fontSize: 20, fontWeight: FontWeight.w800, color: AppColors.onSurface)),
-                    Text('Patient ID: 864184350',
+                    Text('Session: ${patientId.length > 8 ? patientId.substring(0, 8) : patientId}',
                         style: GoogleFonts.inter(fontSize: 12, color: AppColors.onSurfaceVariant)),
                   ],
                 ),
@@ -80,7 +112,14 @@ class CollaborativeHubScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildVitalsRow() {
+  Widget _buildVitalsRow(WidgetRef ref, Map<String, dynamic> cs) {
+    // Show vitals from the consultation session if available
+    final soapNote = cs['soap_note'] as Map<String, dynamic>? ?? {};
+    final vitals = soapNote['vitals'] as Map<String, dynamic>? ?? {};
+    final hr = vitals['heart_rate']?.toString() ?? '—';
+    final bp = vitals['blood_pressure']?.toString() ?? '—';
+    final spo2 = vitals['spo2']?.toString() ?? '—';
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -95,11 +134,11 @@ class CollaborativeHubScreen extends StatelessWidget {
           const SizedBox(height: 12),
           Row(
             children: [
-              Expanded(child: _VitalChip(label: 'HR', value: '72', unit: 'bpm')),
+              Expanded(child: _VitalChip(label: 'HR', value: hr, unit: 'bpm')),
               const SizedBox(width: 8),
-              Expanded(child: _VitalChip(label: 'BP', value: '118/74', unit: '')),
+              Expanded(child: _VitalChip(label: 'BP', value: bp, unit: '')),
               const SizedBox(width: 8),
-              Expanded(child: _VitalChip(label: 'SpO₂', value: '98.6', unit: '%')),
+              Expanded(child: _VitalChip(label: 'SpO₂', value: spo2, unit: '%')),
             ],
           ),
         ],
@@ -136,7 +175,8 @@ class CollaborativeHubScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildClinicalHistory() {
+  Widget _buildClinicalHistory(String title, Map<String, dynamic> soapNote) {
+    final diagnosis = soapNote['assessment']?.toString() ?? title;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -158,10 +198,10 @@ class CollaborativeHubScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Type 2 Diabetes Mellitus',
+              Text(diagnosis,
                   style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.onSurface)),
               const SizedBox(height: 4),
-              Text('Prescriber: LJones',
+              Text('Active consultation',
                   style: GoogleFonts.inter(fontSize: 12, color: AppColors.onSurfaceVariant)),
             ],
           ),
@@ -170,7 +210,8 @@ class CollaborativeHubScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildAssignedSpecialists() {
+  Widget _buildAssignedSpecialists(Map<String, dynamic> soapNote) {
+    final plan = soapNote['plan']?.toString() ?? 'No lab data available';
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -192,14 +233,15 @@ class CollaborativeHubScreen extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('HbA1c', style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.onSurface)),
-                  Text('Latest reading', style: GoogleFonts.inter(fontSize: 11, color: AppColors.onSurfaceVariant)),
-                ],
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Treatment Plan', style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.onSurface)),
+                    Text(plan, style: GoogleFonts.inter(fontSize: 11, color: AppColors.onSurfaceVariant), maxLines: 2, overflow: TextOverflow.ellipsis),
+                  ],
+                ),
               ),
-              Text('0.9 mg/L', style: GoogleFonts.manrope(fontSize: 18, fontWeight: FontWeight.w800, color: AppColors.primary)),
             ],
           ),
         ),
@@ -207,7 +249,11 @@ class CollaborativeHubScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildTreatmentThread() {
+  Widget _buildTreatmentThread(String notes) {
+    final displayText = notes.isNotEmpty
+        ? notes
+        : 'No treatment collaboration notes yet. Start a discussion to coordinate care.';
+
     return VoxmedCard(
       color: AppColors.primaryContainer.withValues(alpha: 0.2),
       border: Border.all(color: AppColors.primary.withValues(alpha: 0.1)),
@@ -224,24 +270,8 @@ class CollaborativeHubScreen extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Text(
-            'Based on the latest lab results, we should consider adjusting the medication protocol. The HbA1c results are trending in a positive direction, though we should monitor the patient closely.',
+            displayText,
             style: GoogleFonts.inter(fontSize: 13, color: AppColors.onSurfaceVariant, height: 1.5),
-          ),
-          const SizedBox(height: 12),
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: AppColors.surfaceContainerLowest,
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Row(
-              children: [
-                const Icon(Icons.bookmark_border, color: AppColors.primary, size: 16),
-                const SizedBox(width: 8),
-                Text('Send baseline to endocrinologist',
-                    style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.primary)),
-              ],
-            ),
           ),
         ],
       ),
