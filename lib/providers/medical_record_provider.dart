@@ -132,3 +132,9 @@ final medicalRecordDetailProvider =
   final repository = ref.watch(medicalRecordRepositoryProvider);
   return repository.getRecord(recordId);
 });
+
+/// Recent medical records for the current patient (for dashboard / passport).
+final recentMedicalRecordsProvider = FutureProvider<List<MedicalRecord>>((ref) async {
+  final repository = ref.read(medicalRecordRepositoryProvider);
+  return repository.listByUser(limit: 10);
+});
