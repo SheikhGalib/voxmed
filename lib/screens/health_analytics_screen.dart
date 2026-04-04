@@ -1,13 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../core/theme/app_colors.dart';
+import '../providers/prescription_provider.dart';
 import '../widgets/voxmed_card.dart';
 
-class HealthAnalyticsScreen extends StatelessWidget {
+class HealthAnalyticsScreen extends ConsumerWidget {
   const HealthAnalyticsScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final adherenceAsync = ref.watch(adherenceStatsProvider);
+    final wearableAsync = ref.watch(wearableDataProvider);
+
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
       child: Column(
@@ -19,21 +24,27 @@ class HealthAnalyticsScreen extends StatelessWidget {
           Text('Real-time analysis of your physiological data and treatment compliance.',
               style: GoogleFonts.inter(fontSize: 14, color: AppColors.onSurfaceVariant, height: 1.5)),
           const SizedBox(height: 24),
-          _buildMedicationAdherence(),
+          _buildMedicationAdherence(adherenceAsync),
           const SizedBox(height: 16),
-          _buildOuraRingCard(),
+          _buildOuraRingCard(wearableAsync),
           const SizedBox(height: 16),
-          _buildBloodPressureTrends(),
+          _buildBloodPressureTrends(wearableAsync),
           const SizedBox(height: 16),
-          _buildVitalsIntegrity(),
+          _buildVitalsIntegrity(adherenceAsync),
           const SizedBox(height: 16),
-          _buildHeartRateSummary(),
+          _buildHeartRateSummary(wearableAsync),
         ],
       ),
     );
   }
 
-  Widget _buildMedicationAdherence() {
+  Widget _buildMedicationAdherence(AsyncValue<Map<String, dynamic>> adherenceAsync) {
+    final rate = adherenceAsync.when(
+      data: (stats) => (stats['rate'] as int?) ?? 0,
+      loading: () => 0,
+      error: (_, __) => 0,
+    );
+
     return VoxmedCard(
       child: Row(
         children: [
@@ -44,7 +55,7 @@ class HealthAnalyticsScreen extends StatelessWidget {
                 Text('Medication Adherence',
                     style: GoogleFonts.manrope(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.onSurface)),
                 const SizedBox(height: 4),
-                Text('Last 7-Day Compliance',
+                Text('Last 30-Day Compliance',
                     style: GoogleFonts.inter(fontSize: 12, color: AppColors.onSurfaceVariant)),
               ],
             ),
@@ -56,14 +67,14 @@ class HealthAnalyticsScreen extends StatelessWidget {
                 width: 70,
                 height: 70,
                 child: CircularProgressIndicator(
-                  value: 0.92,
+                  value: rate / 100.0,
                   strokeWidth: 6,
                   backgroundColor: AppColors.surfaceContainerHigh,
                   valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primary),
                   strokeCap: StrokeCap.round,
                 ),
               ),
-              Text('92%',
+              Text('$rate%',
                   style: GoogleFonts.manrope(fontSize: 18, fontWeight: FontWeight.w800, color: AppColors.primary)),
             ],
           ),
@@ -72,7 +83,19 @@ class HealthAnalyticsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildOuraRingCard() {
+  Widget _buildOuraRingCard(AsyncValue<Map<String, dynamic>> wearableAsync) {
+    final sleepScore = wearableAsync.when(
+      data: (data) {
+        final sleepList = data['sleep'] as List? ?? [];
+        if (sleepList.isEmpty) return 0;
+        final val = sleepList.first['value'];
+        if (val is Map) return val['score'] ?? 0;
+        return 0;
+      },
+      loading: () => 0,
+      error: (_, __) => 0,
+    );
+
     return VoxmedCard(
       color: AppColors.surfaceContainerLow,
       child: Column(
@@ -97,7 +120,7 @@ class HealthAnalyticsScreen extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Text('84',
+              Text('$sleepScore',
                   style: GoogleFonts.manrope(fontSize: 48, fontWeight: FontWeight.w800, color: AppColors.onSurface, height: 1)),
               const SizedBox(width: 4),
               Padding(
@@ -114,7 +137,7 @@ class HealthAnalyticsScreen extends StatelessWidget {
           ClipRRect(
             borderRadius: BorderRadius.circular(8),
             child: LinearProgressIndicator(
-              value: 0.84,
+              value: sleepScore / 100.0,
               minHeight: 8,
               backgroundColor: AppColors.surfaceContainerHighest,
               valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primary),
@@ -125,7 +148,27 @@ class HealthAnalyticsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildBloodPressureTrends() {
+  Widget _buildBloodPressureTrends(AsyncValue<Map<String, dynamic>> wearableAsync) {
+    String systolic = '--';
+    String diastolic = '--';
+    String pulse = '--';
+
+    wearableAsync.whenData((data) {
+      final bpList = data['blood_pressure'] as List? ?? [];
+      if (bpList.isNotEmpty) {
+        final latest = bpList.first['value'];
+        if (latest is Map) {
+          systolic = '${latest['systolic'] ?? '--'}';
+          diastolic = '${latest['diastolic'] ?? '--'}';
+        }
+      }
+      final hrList = data['heart_rate'] as List? ?? [];
+      if (hrList.isNotEmpty) {
+        final latest = hrList.first['value'];
+        if (latest is Map) pulse = '${latest['bpm'] ?? '--'}';
+      }
+    });
+
     return VoxmedCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -149,11 +192,11 @@ class HealthAnalyticsScreen extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _BPReading(label: 'SYSTOLIC', value: '118', unit: 'mmHg', color: AppColors.primary),
+              _BPReading(label: 'SYSTOLIC', value: systolic, unit: 'mmHg', color: AppColors.primary),
               Container(height: 40, width: 1, color: AppColors.outlineVariant.withValues(alpha: 0.2)),
-              _BPReading(label: 'DIASTOLIC', value: '76', unit: 'mmHg', color: AppColors.secondary),
+              _BPReading(label: 'DIASTOLIC', value: diastolic, unit: 'mmHg', color: AppColors.secondary),
               Container(height: 40, width: 1, color: AppColors.outlineVariant.withValues(alpha: 0.2)),
-              _BPReading(label: 'PULSE', value: '72', unit: 'bpm', color: AppColors.tertiary),
+              _BPReading(label: 'PULSE', value: pulse, unit: 'bpm', color: AppColors.tertiary),
             ],
           ),
         ],
@@ -161,7 +204,14 @@ class HealthAnalyticsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildVitalsIntegrity() {
+  Widget _buildVitalsIntegrity(AsyncValue<Map<String, dynamic>> adherenceAsync) {
+    final rate = adherenceAsync.when(
+      data: (stats) => (stats['rate'] as int?) ?? 0,
+      loading: () => 0,
+      error: (_, __) => 0,
+    );
+    final grade = rate >= 90 ? 'A+' : rate >= 80 ? 'A' : rate >= 70 ? 'B+' : rate >= 60 ? 'B' : 'C';
+
     return VoxmedCard(
       color: AppColors.primaryContainer.withValues(alpha: 0.3),
       border: Border.all(color: AppColors.primary.withValues(alpha: 0.1)),
@@ -170,7 +220,7 @@ class HealthAnalyticsScreen extends StatelessWidget {
         children: [
           Row(
             children: [
-              Text('A+',
+              Text(grade,
                   style: GoogleFonts.manrope(fontSize: 48, fontWeight: FontWeight.w800, color: AppColors.primary, height: 1)),
               const SizedBox(width: 16),
               Expanded(
@@ -192,7 +242,26 @@ class HealthAnalyticsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildHeartRateSummary() {
+  Widget _buildHeartRateSummary(AsyncValue<Map<String, dynamic>> wearableAsync) {
+    final restingHr = wearableAsync.when(
+      data: (data) {
+        final hrList = data['heart_rate'] as List? ?? [];
+        if (hrList.isEmpty) return '--';
+        // Find lowest (resting) heart rate
+        int minBpm = 999;
+        for (final hr in hrList) {
+          final val = hr['value'];
+          if (val is Map) {
+            final bpm = val['bpm'] as int? ?? 999;
+            if (bpm < minBpm) minBpm = bpm;
+          }
+        }
+        return minBpm == 999 ? '--' : '$minBpm';
+      },
+      loading: () => '...',
+      error: (_, __) => '--',
+    );
+
     return VoxmedCard(
       color: AppColors.surfaceContainerLow,
       child: Row(
@@ -214,7 +283,7 @@ class HealthAnalyticsScreen extends StatelessWidget {
               Row(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  Text('62',
+                  Text(restingHr,
                       style: GoogleFonts.manrope(fontSize: 32, fontWeight: FontWeight.w800, color: AppColors.onSurface, height: 1.1)),
                   const SizedBox(width: 4),
                   Padding(
