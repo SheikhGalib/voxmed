@@ -118,11 +118,13 @@ class MedicalRecordRepository {
         'gemini-ocr',
         body: {'fileUrl': fileUrl},
       );
-
       final payload = response.data;
-      if (payload is Map<String, dynamic>) {
-        if (payload['success'] == true && payload['data'] is Map<String, dynamic>) {
-          return payload['data'] as Map<String, dynamic>;
+
+      // FunctionResponse returns data as dynamic, handle gracefully
+      if (payload is Map && payload['success'] == true) {
+        final data = payload['data'];
+        if (data is Map<String, dynamic>) {
+          return data;
         }
         return payload;
       }
