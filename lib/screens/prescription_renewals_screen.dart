@@ -1,13 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../core/theme/app_colors.dart';
+import '../core/constants/app_constants.dart';
+import '../providers/prescription_provider.dart';
 import '../widgets/voxmed_card.dart';
 
-class PrescriptionRenewalsScreen extends StatelessWidget {
+class PrescriptionRenewalsScreen extends ConsumerWidget {
   const PrescriptionRenewalsScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final prescriptionsAsync = ref.watch(patientPrescriptionsProvider);
+
     return Scaffold(
       backgroundColor: AppColors.surface,
       appBar: AppBar(
@@ -35,31 +40,49 @@ class PrescriptionRenewalsScreen extends StatelessWidget {
             const SizedBox(height: 24),
             Text('Current Medications', style: GoogleFonts.manrope(fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.onSurface)),
             const SizedBox(height: 16),
-            _MedicationCard(
-              name: 'Lisinopril',
-              dosage: '10mg • 1x daily',
-              nextRefill: 'Oct 12',
-              progress: 0.65,
-              status: 'Active',
-              isAutomated: true,
-            ),
-            const SizedBox(height: 12),
-            _MedicationCard(
-              name: 'Metformin',
-              dosage: '500mg • 2x daily',
-              nextRefill: 'Nov 04',
-              progress: 0.85,
-              status: '23 Days',
-              isAutomated: false,
-            ),
-            const SizedBox(height: 12),
-            _MedicationCard(
-              name: 'Atorvastatin',
-              dosage: '20mg • 1x nightly',
-              nextRefill: 'Nov 28',
-              progress: 0.92,
-              status: '',
-              isAutomated: true,
+            prescriptionsAsync.when(
+              data: (prescriptions) {
+                final active = prescriptions.where((rx) => rx.status == PrescriptionStatus.active).toList();
+                if (active.isEmpty) {
+                  return Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(32),
+                      child: Text('No active prescriptions', style: GoogleFonts.inter(fontSize: 14, color: AppColors.onSurfaceVariant)),
+                    ),
+                  );
+                }
+                return Column(
+                  children: active.expand((rx) {
+                    return (rx.items ?? []).map((item) {
+                      final totalDays = item.durationDays ?? 180;
+                      final remaining = item.remaining ?? item.quantity ?? totalDays;
+                      final total = item.quantity ?? totalDays;
+                      final progress = total > 0 ? remaining / total : 0.0;
+                      final daysLeft = remaining;
+
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: _MedicationCard(
+                          name: item.medicationName,
+                          dosage: '${item.dosage} • ${item.frequency}',
+                          nextRefill: '$daysLeft left',
+                          progress: progress.clamp(0.0, 1.0),
+                          status: rx.status == PrescriptionStatus.active ? 'Active' : '',
+                          isAutomated: true,
+                          onRequestRenewal: () {
+                            ref.read(prescriptionRepositoryProvider).requestRenewal(rx.id);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Renewal requested')),
+                            );
+                          },
+                        ),
+                      );
+                    });
+                  }).toList(),
+                );
+              },
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (e, _) => Text('Error: $e'),
             ),
           ],
         ),
@@ -142,6 +165,7 @@ class _MedicationCard extends StatelessWidget {
   final double progress;
   final String status;
   final bool isAutomated;
+  final VoidCallback? onRequestRenewal;
 
   const _MedicationCard({
     required this.name,
@@ -150,6 +174,7 @@ class _MedicationCard extends StatelessWidget {
     required this.progress,
     required this.status,
     required this.isAutomated,
+    this.onRequestRenewal,
   });
 
   @override
@@ -219,7 +244,7 @@ class _MedicationCard extends StatelessWidget {
             SizedBox(
               width: double.infinity,
               child: OutlinedButton(
-                onPressed: () {},
+                onPressed: onRequestRenewal,
                 style: OutlinedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 10),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),

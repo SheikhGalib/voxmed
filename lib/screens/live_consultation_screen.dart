@@ -1,13 +1,23 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../core/theme/app_colors.dart';
+import '../providers/prescription_provider.dart';
 import '../widgets/voxmed_card.dart';
 
-class LiveConsultationScreen extends StatelessWidget {
+class LiveConsultationScreen extends ConsumerWidget {
   const LiveConsultationScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final scheduleAsync = ref.watch(doctorTodayAppointmentsProvider);
+
+    // Pick the first in-progress or upcoming appointment as the active patient
+    final appointments = scheduleAsync.valueOrNull ?? [];
+    final active = appointments.isNotEmpty ? appointments.first : null;
+    final patientName = active?['profiles']?['full_name'] ?? 'No Patient';
+    final reason = active?['reason'] ?? active?['type'] ?? 'Consultation';
+
     return Scaffold(
       backgroundColor: AppColors.surface,
       appBar: AppBar(
@@ -28,11 +38,11 @@ class LiveConsultationScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildPatientHeader(),
+                  _buildPatientHeader(patientName, reason),
                   const SizedBox(height: 16),
                   _buildVitalsDashboard(),
                   const SizedBox(height: 20),
-                  _buildPatientComplaint(),
+                  _buildPatientComplaint(reason),
                   const SizedBox(height: 20),
                   _buildAIDifferentials(),
                 ],
@@ -45,7 +55,7 @@ class LiveConsultationScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildPatientHeader() {
+  Widget _buildPatientHeader(String name, String reason) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -67,9 +77,9 @@ class LiveConsultationScreen extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Elena Rodriguez',
+                    Text(name,
                         style: GoogleFonts.manrope(fontSize: 20, fontWeight: FontWeight.w800, color: AppColors.onSurface)),
-                    Text('45 y/o • Female • In-office visit',
+                    Text(reason,
                         style: GoogleFonts.inter(fontSize: 12, color: AppColors.onSurfaceVariant)),
                   ],
                 ),
@@ -140,7 +150,7 @@ class LiveConsultationScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildPatientComplaint() {
+  Widget _buildPatientComplaint(String reason) {
     return VoxmedCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -160,7 +170,7 @@ class LiveConsultationScreen extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Text(
-            'Patient reports persistent lower back pain for 1 month, history of hypertension.',
+            'Patient visit reason: $reason',
             style: GoogleFonts.inter(fontSize: 14, color: AppColors.onSurface, height: 1.5),
           ),
           const SizedBox(height: 12),
