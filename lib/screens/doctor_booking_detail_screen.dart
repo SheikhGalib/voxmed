@@ -1,28 +1,57 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
+
+import '../core/constants/app_constants.dart';
 import '../core/theme/app_colors.dart';
+import '../core/utils/error_handler.dart';
+import '../models/doctor.dart';
+import '../models/doctor_schedule.dart';
+import '../providers/appointment_provider.dart';
+import '../providers/doctor_provider.dart';
+import '../widgets/empty_state_widget.dart';
+import '../widgets/error_widget.dart';
+import '../widgets/loading_indicator.dart';
 import '../widgets/voxmed_card.dart';
 
-class DoctorBookingDetailScreen extends StatefulWidget {
-  const DoctorBookingDetailScreen({super.key});
+class DoctorBookingDetailScreen extends ConsumerStatefulWidget {
+  final String? doctorId;
+
+  const DoctorBookingDetailScreen({super.key, this.doctorId});
 
   @override
-  State<DoctorBookingDetailScreen> createState() => _DoctorBookingDetailScreenState();
+  ConsumerState<DoctorBookingDetailScreen> createState() => _DoctorBookingDetailScreenState();
 }
 
-class _DoctorBookingDetailScreenState extends State<DoctorBookingDetailScreen> {
-  int _selectedDay = 0;
-  int _selectedTime = 1;
-  final _days = [
-    {'day': 'MON', 'date': '22'},
-    {'day': 'TUE', 'date': '23'},
-    {'day': 'WED', 'date': '24'},
-    {'day': 'THU', 'date': '25'},
-  ];
-  final _times = ['09:00 AM', '10:30 AM', '11:45 AM', '02:15 PM', '03:30 PM', '04:45 PM'];
+class _DoctorBookingDetailScreenState extends ConsumerState<DoctorBookingDetailScreen> {
+  final TextEditingController _reasonController = TextEditingController();
+  DateTime _selectedDate = DateTime.now();
+  DateTime? _selectedSlot;
+
+  @override
+  void dispose() {
+    _reasonController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
+    final doctorId = widget.doctorId;
+    if (doctorId == null || doctorId.isEmpty) {
+      return const Scaffold(
+        body: EmptyStateWidget(
+          icon: Icons.person_off,
+          title: 'Doctor not found',
+          subtitle: 'Please choose a doctor again from Find Care.',
+        ),
+      );
+    }
+
+    final doctorAsync = ref.watch(doctorDetailProvider(doctorId));
+    final scheduleAsync = ref.watch(doctorScheduleProvider(doctorId));
+
     return Scaffold(
       backgroundColor: AppColors.surface,
       appBar: AppBar(
@@ -31,115 +60,148 @@ class _DoctorBookingDetailScreenState extends State<DoctorBookingDetailScreen> {
           icon: const Icon(Icons.arrow_back, color: AppColors.onSurface),
           onPressed: () => Navigator.maybePop(context),
         ),
-        title: Text('Doctor Details', style: GoogleFonts.manrope(fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.onSurface)),
-        actions: [
-          IconButton(icon: const Icon(Icons.bookmark_border, color: AppColors.onSurfaceVariant), onPressed: () {}),
-        ],
+        title: Text(
+          'Book Appointment',
+          style: GoogleFonts.manrope(
+            fontSize: 18,
+            fontWeight: FontWeight.w700,
+            color: AppColors.onSurface,
+          ),
+        ),
       ),
-      body: Column(
-        children: [
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildDoctorHeader(),
-                  const SizedBox(height: 20),
-                  _buildSmartAssistant(),
-                  const SizedBox(height: 24),
-                  Text('Select Date & Time', style: GoogleFonts.manrope(fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.onSurface)),
-                  const SizedBox(height: 16),
-                  _buildDateSelector(),
-                  const SizedBox(height: 16),
-                  _buildTimeSlots(),
-                  const SizedBox(height: 24),
-                  Text('About Dr. Elena', style: GoogleFonts.manrope(fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.onSurface)),
-                  const SizedBox(height: 10),
+      body: doctorAsync.when(
+        loading: () => const VoxmedLoadingIndicator(message: 'Loading doctor details...'),
+        error: (error, _) => VoxmedErrorWidget(
+          message: error.toString(),
+          onRetry: () => ref.invalidate(doctorDetailProvider(doctorId)),
+        ),
+        data: (doctor) {
+          return scheduleAsync.when(
+            loading: () => const VoxmedLoadingIndicator(message: 'Loading available slots...'),
+            error: (error, _) => VoxmedErrorWidget(
+              message: error.toString(),
+              onRetry: () => ref.invalidate(doctorScheduleProvider(doctorId)),
+            ),
+            data: (schedules) {
+              final slots = _buildSlotsForDate(_selectedDate, schedules);
+              return _buildContent(doctor, schedules, slots);
+            },
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildContent(Doctor doctor, List<DoctorSchedule> schedules, List<DateTime> slots) {
+    final appointmentState = ref.watch(appointmentProvider);
+
+    return Column(
+      children: [
+        Expanded(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildDoctorCard(doctor),
+                const SizedBox(height: 20),
+                _buildDateSelector(),
+                const SizedBox(height: 20),
+                if (schedules.isEmpty)
+                  const EmptyStateWidget(
+                    icon: Icons.schedule,
+                    title: 'No schedule slots available',
+                    subtitle: 'This doctor has not published available slots yet.',
+                  )
+                else if (slots.isEmpty)
+                  const EmptyStateWidget(
+                    icon: Icons.event_busy,
+                    title: 'No slots for selected date',
+                    subtitle: 'Try another date to see available times.',
+                  )
+                else
+                  _buildSlots(slots),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: _reasonController,
+                  maxLines: 3,
+                  decoration: const InputDecoration(
+                    labelText: 'Reason for visit (optional)',
+                    hintText: 'Briefly describe your concern',
+                  ),
+                ),
+                if (appointmentState.error != null) ...[
+                  const SizedBox(height: 12),
                   Text(
-                    'Specializing in cardiovascular health with over a decade of experience in clinical cardiology and vascular surgery. Known for a patient-centric approach and utilizing the latest diagnostic technologies.',
-                    style: GoogleFonts.inter(fontSize: 14, color: AppColors.onSurfaceVariant, height: 1.6),
+                    appointmentState.error!.message,
+                    style: GoogleFonts.inter(
+                      fontSize: 13,
+                      color: AppColors.error,
+                    ),
                   ),
                 ],
-              ),
+              ],
             ),
           ),
-          _buildBottomBar(),
-        ],
-      ),
+        ),
+        _buildBottomBar(doctor, appointmentState.isLoading, schedules.isNotEmpty && slots.isNotEmpty),
+      ],
     );
   }
 
-  Widget _buildDoctorHeader() {
-    return Center(
-      child: Column(
-        children: [
-          Stack(
-            alignment: Alignment.topRight,
-            children: [
-              CircleAvatar(
-                radius: 48,
-                backgroundColor: AppColors.surfaceContainerHigh,
-                child: Icon(Icons.person, size: 48, color: AppColors.onSurfaceVariant),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: AppColors.tertiaryContainer,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(Icons.star, size: 12, color: AppColors.onTertiaryContainer),
-                    const SizedBox(width: 2),
-                    Text('4.9',
-                        style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w700, color: AppColors.onTertiaryContainer)),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          Text('Dr. Elena Rodriguez', style: GoogleFonts.manrope(fontSize: 22, fontWeight: FontWeight.w800, color: AppColors.onSurface)),
-          const SizedBox(height: 4),
-          Text('Senior Cardiologist • 12 yrs exp.', style: GoogleFonts.inter(fontSize: 13, color: AppColors.onSurfaceVariant)),
-          const SizedBox(height: 16),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              _InfoChip(label: 'PATIENTS', value: '2.4k+'),
-              const SizedBox(width: 32),
-              _InfoChip(label: 'REVIEWS', value: '850'),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSmartAssistant() {
+  Widget _buildDoctorCard(Doctor doctor) {
     return VoxmedCard(
-      color: AppColors.tertiaryContainer.withValues(alpha: 0.4),
-      border: Border.all(color: AppColors.tertiary.withValues(alpha: 0.1)),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      color: AppColors.surfaceContainerLow,
+      child: Row(
         children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-            decoration: BoxDecoration(
-              color: AppColors.primary.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Text('SMART ASSISTANT',
-                style: GoogleFonts.inter(fontSize: 9, fontWeight: FontWeight.w700, letterSpacing: 1, color: AppColors.primary)),
+          CircleAvatar(
+            radius: 34,
+            backgroundColor: AppColors.surfaceContainer,
+            backgroundImage: (doctor.avatarUrl != null && doctor.avatarUrl!.isNotEmpty)
+                ? NetworkImage(doctor.avatarUrl!)
+                : null,
+            child: (doctor.avatarUrl == null || doctor.avatarUrl!.isEmpty)
+                ? const Icon(Icons.person, size: 32, color: AppColors.onSurfaceVariant)
+                : null,
           ),
-          const SizedBox(height: 12),
-          Text('Autonomous Rescheduling', style: GoogleFonts.manrope(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.onSurface)),
-          const SizedBox(height: 6),
-          Text(
-            'Dr. Smith your previous choice is unavailable today. We\'ve optimized your schedule by matching you with Dr. Rodriguez for a similar slot.',
-            style: GoogleFonts.inter(fontSize: 13, color: AppColors.onSurfaceVariant, height: 1.5),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  doctor.displayName,
+                  style: GoogleFonts.manrope(
+                    fontSize: 19,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.onSurface,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  doctor.specialty,
+                  style: GoogleFonts.inter(fontSize: 13, color: AppColors.onSurfaceVariant),
+                ),
+                if (doctor.hospitalName != null) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    doctor.hospitalName!,
+                    style: GoogleFonts.inter(fontSize: 12, color: AppColors.onSurfaceVariant),
+                  ),
+                ],
+                const SizedBox(height: 8),
+                Text(
+                  doctor.consultationFee == null
+                      ? 'Consultation fee unavailable'
+                      : 'Consultation fee: \$${doctor.consultationFee!.toStringAsFixed(0)}',
+                  style: GoogleFonts.inter(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.primary,
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -147,116 +209,199 @@ class _DoctorBookingDetailScreenState extends State<DoctorBookingDetailScreen> {
   }
 
   Widget _buildDateSelector() {
-    return Row(
-      children: List.generate(_days.length, (i) {
-        final isActive = _selectedDay == i;
-        return Expanded(
-          child: GestureDetector(
-            onTap: () => setState(() => _selectedDay = i),
-            child: Container(
-              margin: EdgeInsets.only(right: i < _days.length - 1 ? 8 : 0),
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              decoration: BoxDecoration(
-                color: isActive ? AppColors.primary : AppColors.surfaceContainerLow,
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Column(
-                children: [
-                  Text(_days[i]['day']!,
-                      style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w700, letterSpacing: 1,
-                          color: isActive ? Colors.white.withValues(alpha: 0.7) : AppColors.onSurfaceVariant)),
-                  const SizedBox(height: 4),
-                  Text(_days[i]['date']!,
-                      style: GoogleFonts.manrope(fontSize: 22, fontWeight: FontWeight.w800,
-                          color: isActive ? Colors.white : AppColors.onSurface)),
-                ],
-              ),
-            ),
-          ),
-        );
-      }),
-    );
-  }
+    final days = List.generate(7, (index) {
+      final now = DateTime.now();
+      return DateTime(now.year, now.month, now.day).add(Duration(days: index));
+    });
 
-  Widget _buildTimeSlots() {
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: List.generate(_times.length, (i) {
-        final isActive = _selectedTime == i;
-        return GestureDetector(
-          onTap: () => setState(() => _selectedTime = i),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-            decoration: BoxDecoration(
-              color: isActive ? AppColors.primary : AppColors.surfaceContainerLow,
-              borderRadius: BorderRadius.circular(12),
-              border: isActive ? null : Border.all(color: AppColors.outlineVariant.withValues(alpha: 0.15)),
-            ),
-            child: Text(_times[i],
-                style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600,
-                    color: isActive ? Colors.white : AppColors.onSurfaceVariant)),
-          ),
-        );
-      }),
-    );
-  }
-
-  Widget _buildBottomBar() {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceContainerLowest,
-        border: Border(top: BorderSide(color: AppColors.outlineVariant.withValues(alpha: 0.15))),
-      ),
-      child: Row(
-        children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text('CONSULTATION FEE', style: GoogleFonts.inter(fontSize: 9, fontWeight: FontWeight.w700, letterSpacing: 1, color: AppColors.onSurfaceVariant)),
-              Text('\$120.00', style: GoogleFonts.manrope(fontSize: 22, fontWeight: FontWeight.w800, color: AppColors.onSurface)),
-            ],
-          ),
-          const SizedBox(width: 20),
-          Expanded(
-            child: ElevatedButton(
-              onPressed: () {},
-              style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 16),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text('Confirm Appointment', style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.onPrimary)),
-                  const SizedBox(width: 8),
-                  Icon(Icons.arrow_forward, size: 18, color: AppColors.onPrimary),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _InfoChip extends StatelessWidget {
-  final String label;
-  final String value;
-
-  const _InfoChip({required this.label, required this.value});
-
-  @override
-  Widget build(BuildContext context) {
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label,
-            style: GoogleFonts.inter(fontSize: 9, fontWeight: FontWeight.w700, letterSpacing: 1, color: AppColors.onSurfaceVariant)),
-        const SizedBox(height: 4),
-        Text(value, style: GoogleFonts.manrope(fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.onSurface)),
+        Text(
+          'Select Date',
+          style: GoogleFonts.manrope(
+            fontSize: 17,
+            fontWeight: FontWeight.w700,
+            color: AppColors.onSurface,
+          ),
+        ),
+        const SizedBox(height: 10),
+        SizedBox(
+          height: 86,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            itemCount: days.length,
+            separatorBuilder: (_, _) => const SizedBox(width: 8),
+            itemBuilder: (context, index) {
+              final day = days[index];
+              final isSelected = DateUtils.isSameDay(day, _selectedDate);
+              return GestureDetector(
+                onTap: () {
+                  setState(() {
+                    _selectedDate = day;
+                    _selectedSlot = null;
+                  });
+                },
+                child: Container(
+                  width: 76,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(16),
+                    color: isSelected ? AppColors.primary : AppColors.surfaceContainerLow,
+                  ),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        DateFormat('EEE').format(day).toUpperCase(),
+                        style: GoogleFonts.inter(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: isSelected
+                              ? Colors.white.withValues(alpha: 0.85)
+                              : AppColors.onSurfaceVariant,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        DateFormat('d').format(day),
+                        style: GoogleFonts.manrope(
+                          fontSize: 24,
+                          fontWeight: FontWeight.w800,
+                          color: isSelected ? Colors.white : AppColors.onSurface,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
       ],
     );
+  }
+
+  Widget _buildSlots(List<DateTime> slots) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Available Time Slots',
+          style: GoogleFonts.manrope(
+            fontSize: 17,
+            fontWeight: FontWeight.w700,
+            color: AppColors.onSurface,
+          ),
+        ),
+        const SizedBox(height: 10),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: slots.map((slot) {
+            final isSelected = _selectedSlot == slot;
+            return ChoiceChip(
+              selected: isSelected,
+              label: Text(DateFormat('hh:mm a').format(slot)),
+              onSelected: (_) => setState(() => _selectedSlot = slot),
+            );
+          }).toList(),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildBottomBar(Doctor doctor, bool isSubmitting, bool hasSchedule) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceContainerLowest,
+        border: Border(top: BorderSide(color: AppColors.outlineVariant.withValues(alpha: 0.2))),
+      ),
+      child: SizedBox(
+        width: double.infinity,
+        child: ElevatedButton(
+          onPressed: isSubmitting || !hasSchedule || _selectedSlot == null
+              ? null
+              : () => _confirmBooking(doctor),
+          child: isSubmitting
+              ? const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Text('Confirm Appointment'),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _confirmBooking(Doctor doctor) async {
+    final selectedSlot = _selectedSlot;
+    if (selectedSlot == null) return;
+
+    final startAt = selectedSlot;
+    final endAt = selectedSlot.add(const Duration(minutes: 30));
+
+    final created = await ref.read(appointmentProvider.notifier).createAppointment(
+          doctorId: doctor.id,
+          hospitalId: doctor.hospitalId,
+          startAt: startAt,
+          endAt: endAt,
+          type: AppointmentType.inPerson,
+          reason: _reasonController.text.trim().isEmpty ? null : _reasonController.text.trim(),
+        );
+
+    if (!mounted) return;
+
+    if (created == null) {
+      final errorMessage = ref.read(appointmentProvider).error?.message ??
+          'Unable to complete booking. Please try again.';
+      showErrorSnackBar(context, errorMessage);
+      return;
+    }
+
+    showSuccessSnackBar(context, 'Appointment booked successfully.');
+    ref.invalidate(upcomingAppointmentsProvider);
+    context.pop();
+  }
+
+  List<DateTime> _buildSlotsForDate(DateTime date, List<DoctorSchedule> schedules) {
+    final weekday = date.weekday % 7;
+    final daySchedules = schedules.where((s) => s.dayOfWeek == weekday && s.isActive).toList();
+    if (daySchedules.isEmpty) return const [];
+
+    final slots = <DateTime>[];
+    for (final schedule in daySchedules) {
+      final startParts = schedule.startTime.split(':');
+      final endParts = schedule.endTime.split(':');
+      if (startParts.length < 2 || endParts.length < 2) {
+        continue;
+      }
+
+      DateTime slot = DateTime(
+        date.year,
+        date.month,
+        date.day,
+        int.tryParse(startParts[0]) ?? 0,
+        int.tryParse(startParts[1]) ?? 0,
+      );
+      final end = DateTime(
+        date.year,
+        date.month,
+        date.day,
+        int.tryParse(endParts[0]) ?? 0,
+        int.tryParse(endParts[1]) ?? 0,
+      );
+
+      while (slot.isBefore(end)) {
+        if (slot.isAfter(DateTime.now())) {
+          slots.add(slot);
+        }
+        slot = slot.add(Duration(minutes: schedule.slotDurationMinutes));
+      }
+    }
+
+    return slots;
   }
 }

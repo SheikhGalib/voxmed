@@ -1,13 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
 import '../core/theme/app_colors.dart';
+import '../providers/prescription_provider.dart';
 import '../widgets/voxmed_card.dart';
 
-class ClinicalDashboardScreen extends StatelessWidget {
+class ClinicalDashboardScreen extends ConsumerWidget {
   const ClinicalDashboardScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final statsAsync = ref.watch(doctorStatsProvider);
+    final scheduleAsync = ref.watch(doctorTodayAppointmentsProvider);
+    final renewalsAsync = ref.watch(pendingRenewalsProvider);
+
     return Scaffold(
       backgroundColor: AppColors.surface,
       appBar: AppBar(
@@ -42,20 +49,30 @@ class ClinicalDashboardScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildDarkStatsBar(),
+            _buildDarkStatsBar(statsAsync, scheduleAsync),
             const SizedBox(height: 20),
-            _buildDailySchedule(),
+            _buildDailySchedule(scheduleAsync),
             const SizedBox(height: 20),
-            _buildComplianceTrends(),
+            _buildComplianceTrends(statsAsync),
             const SizedBox(height: 20),
-            _buildApprovalsRequired(),
+            _buildApprovalsRequired(renewalsAsync),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildDarkStatsBar() {
+  Widget _buildDarkStatsBar(AsyncValue<Map<String, dynamic>> statsAsync, AsyncValue<List<Map<String, dynamic>>> scheduleAsync) {
+    final stats = statsAsync.valueOrNull ?? {};
+    final schedule = scheduleAsync.valueOrNull ?? [];
+    final patientsCount = stats['patients_count'] ?? 0;
+    final pendingRenewals = stats['pending_renewals'] ?? 0;
+    final pendingLabs = stats['pending_labs'] ?? 0;
+    final complianceRate = pendingRenewals == 0 ? 100 : (patientsCount > 0 ? ((patientsCount - pendingRenewals) / patientsCount * 100).round() : 0);
+    final nextPatient = schedule.isNotEmpty ? schedule.first : null;
+    final nextName = nextPatient != null ? (nextPatient['profiles']?['full_name'] ?? 'Unknown') : '—';
+    final nextReason = nextPatient != null ? (nextPatient['reason'] ?? nextPatient['type'] ?? '') : '';
+
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
       decoration: const BoxDecoration(
@@ -66,15 +83,15 @@ class ClinicalDashboardScreen extends StatelessWidget {
         children: [
           Row(
             children: [
-              Expanded(child: _StatCard(label: 'ACTIVE PATIENTS', value: '12', color: Colors.cyanAccent)),
+              Expanded(child: _StatCard(label: 'ACTIVE PATIENTS', value: '$patientsCount', color: Colors.cyanAccent)),
               const SizedBox(width: 12),
-              Expanded(child: _StatCard(label: 'COMPLIANCE', value: '88%', color: Colors.greenAccent)),
+              Expanded(child: _StatCard(label: 'COMPLIANCE', value: '$complianceRate%', color: Colors.greenAccent)),
             ],
           ),
           const SizedBox(height: 12),
           Row(
             children: [
-              Expanded(child: _StatCard(label: 'PENDING LAB REVIEW', value: '04', color: Colors.orangeAccent)),
+              Expanded(child: _StatCard(label: 'PENDING LAB REVIEW', value: pendingLabs.toString().padLeft(2, '0'), color: Colors.orangeAccent)),
               const SizedBox(width: 12),
               Expanded(
                 child: Container(
@@ -91,12 +108,14 @@ class ClinicalDashboardScreen extends StatelessWidget {
                         child: const Icon(Icons.person, color: Colors.white70, size: 18),
                       ),
                       const SizedBox(width: 10),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Sarah Jenkins', style: GoogleFonts.manrope(fontSize: 12, fontWeight: FontWeight.w700, color: Colors.white)),
-                          Text('Cardiology', style: GoogleFonts.inter(fontSize: 10, color: Colors.white54)),
-                        ],
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(nextName, style: GoogleFonts.manrope(fontSize: 12, fontWeight: FontWeight.w700, color: Colors.white), overflow: TextOverflow.ellipsis),
+                            Text(nextReason, style: GoogleFonts.inter(fontSize: 10, color: Colors.white54), overflow: TextOverflow.ellipsis),
+                          ],
+                        ),
                       ),
                     ],
                   ),
@@ -109,20 +128,56 @@ class ClinicalDashboardScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildDailySchedule() {
+  Widget _buildDailySchedule(AsyncValue<List<Map<String, dynamic>>> scheduleAsync) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text('Daily Schedule', style: GoogleFonts.manrope(fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.onSurface)),
         const SizedBox(height: 14),
-        _ScheduleItem(time: '09:00', name: 'Sarah Jenkins', type: 'F/U Cardiology Consult', duration: '30 min'),
-        _ScheduleItem(time: '10:30', name: 'Marcus Thorne', type: 'Chronic Pain Management', duration: '45 min'),
-        _ScheduleItem(time: '01:00', name: 'Elena Rodriguez', type: 'Blood Work Analysis', duration: '20 min', hasImage: true),
+        scheduleAsync.when(
+          data: (appointments) {
+            if (appointments.isEmpty) {
+              return Padding(
+                padding: const EdgeInsets.all(20),
+                child: Center(child: Text('No appointments today', style: GoogleFonts.inter(fontSize: 14, color: AppColors.onSurfaceVariant))),
+              );
+            }
+            return Column(
+              children: appointments.map((apt) {
+                final start = DateTime.tryParse(apt['scheduled_start_at'] ?? '');
+                final end = DateTime.tryParse(apt['scheduled_end_at'] ?? '');
+                final time = start != null ? DateFormat('hh:mm').format(start.toLocal()) : '--:--';
+                final name = apt['profiles']?['full_name'] ?? 'Unknown';
+                final reason = apt['reason'] ?? apt['type'] ?? 'Consultation';
+                final durationMin = (start != null && end != null) ? end.difference(start).inMinutes : 30;
+                return _ScheduleItem(time: time, name: name, type: reason, duration: '$durationMin min');
+              }).toList(),
+            );
+          },
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (_, __) => Text('Failed to load schedule', style: GoogleFonts.inter(color: AppColors.error)),
+        ),
       ],
     );
   }
 
-  Widget _buildComplianceTrends() {
+  Widget _buildComplianceTrends(AsyncValue<Map<String, dynamic>> statsAsync) {
+    final stats = statsAsync.valueOrNull ?? {};
+    final rating = (stats['rating'] ?? 0.0) as num;
+    final ratingPct = (rating / 5.0).clamp(0.0, 1.0).toDouble();
+    String grade;
+    if (rating >= 4.5) {
+      grade = 'A+';
+    } else if (rating >= 4.0) {
+      grade = 'A';
+    } else if (rating >= 3.5) {
+      grade = 'B+';
+    } else if (rating >= 3.0) {
+      grade = 'B';
+    } else {
+      grade = 'C';
+    }
+
     return VoxmedCard(
       child: Column(
         children: [
@@ -136,7 +191,7 @@ class ClinicalDashboardScreen extends StatelessWidget {
                   width: 120,
                   height: 120,
                   child: CircularProgressIndicator(
-                    value: 0.93,
+                    value: ratingPct,
                     strokeWidth: 10,
                     backgroundColor: AppColors.surfaceContainerHigh,
                     valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primary),
@@ -145,7 +200,7 @@ class ClinicalDashboardScreen extends StatelessWidget {
                 ),
                 Column(
                   children: [
-                    Text('A+', style: GoogleFonts.manrope(fontSize: 36, fontWeight: FontWeight.w800, color: AppColors.primary)),
+                    Text(grade, style: GoogleFonts.manrope(fontSize: 36, fontWeight: FontWeight.w800, color: AppColors.primary)),
                     Text('Average', style: GoogleFonts.inter(fontSize: 11, color: AppColors.onSurfaceVariant)),
                   ],
                 ),
@@ -153,15 +208,15 @@ class ClinicalDashboardScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 16),
-          Text('MONTHLY ADHERENCY: 12.9%', style: GoogleFonts.inter(fontSize: 9, fontWeight: FontWeight.w700, letterSpacing: 1, color: AppColors.onSurfaceVariant)),
+          Text('RATING: ${rating.toStringAsFixed(1)} / 5.0', style: GoogleFonts.inter(fontSize: 9, fontWeight: FontWeight.w700, letterSpacing: 1, color: AppColors.onSurfaceVariant)),
           const SizedBox(height: 6),
           ClipRRect(
             borderRadius: BorderRadius.circular(6),
-            child: const LinearProgressIndicator(
-              value: 0.88,
+            child: LinearProgressIndicator(
+              value: ratingPct,
               minHeight: 6,
               backgroundColor: AppColors.surfaceContainerHigh,
-              valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+              valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primary),
             ),
           ),
         ],
@@ -169,15 +224,35 @@ class ClinicalDashboardScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildApprovalsRequired() {
+  Widget _buildApprovalsRequired(AsyncValue<List<Map<String, dynamic>>> renewalsAsync) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text('Approvals Required', style: GoogleFonts.manrope(fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.onSurface)),
         const SizedBox(height: 14),
-        _ApprovalItem(name: 'Marcus Thorne', drug: 'Cardiology', hasAction: true),
-        const SizedBox(height: 10),
-        _ApprovalItem(name: 'Elena Rodriguez', drug: 'Metformin', hasAction: true),
+        renewalsAsync.when(
+          data: (renewals) {
+            if (renewals.isEmpty) {
+              return Padding(
+                padding: const EdgeInsets.all(20),
+                child: Center(child: Text('No pending approvals', style: GoogleFonts.inter(fontSize: 14, color: AppColors.onSurfaceVariant))),
+              );
+            }
+            return Column(
+              children: renewals.take(3).map((r) {
+                final patientName = r['profiles']?['full_name'] ?? 'Unknown';
+                final items = r['prescriptions']?['prescription_items'] as List? ?? [];
+                final drug = items.isNotEmpty ? items.first['medication_name'] ?? 'Medication' : 'Medication';
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: _ApprovalItem(name: patientName, drug: drug, hasAction: true),
+                );
+              }).toList(),
+            );
+          },
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (_, __) => Text('Failed to load approvals', style: GoogleFonts.inter(color: AppColors.error)),
+        ),
       ],
     );
   }
@@ -215,9 +290,8 @@ class _ScheduleItem extends StatelessWidget {
   final String name;
   final String type;
   final String duration;
-  final bool hasImage;
 
-  const _ScheduleItem({required this.time, required this.name, required this.type, required this.duration, this.hasImage = false});
+  const _ScheduleItem({required this.time, required this.name, required this.type, required this.duration});
 
   @override
   Widget build(BuildContext context) {

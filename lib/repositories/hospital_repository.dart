@@ -6,16 +6,32 @@ import '../models/hospital.dart';
 
 /// Repository for hospital data access.
 class HospitalRepository {
+  static const String _hospitalColumns =
+      'id, name, description, address, city, state, country, zip_code, latitude, longitude, '
+      'phone, email, website, logo_url, cover_image_url, operating_hours, services, rating, is_active, '
+      'created_at, updated_at';
+
+  List<Hospital>? _hospitalCache;
+  final Map<String, List<Hospital>> _searchCache = {};
+
   /// List all active hospitals.
   Future<List<Hospital>> listHospitals({int limit = 20, int offset = 0}) async {
+    if (offset == 0 && _hospitalCache != null && _hospitalCache!.isNotEmpty) {
+      return _hospitalCache!;
+    }
+
     try {
       final data = await supabase
           .from(Tables.hospitals)
-          .select()
+          .select(_hospitalColumns)
           .eq('is_active', true)
           .order('rating', ascending: false)
           .range(offset, offset + limit - 1);
-      return (data as List).map((e) => Hospital.fromJson(e)).toList();
+      final hospitals = (data as List).map((e) => Hospital.fromJson(e)).toList();
+      if (offset == 0) {
+        _hospitalCache = hospitals;
+      }
+      return hospitals;
     } on PostgrestException catch (e) {
       throw AppException.fromPostgrestException(e);
     } catch (e) {
@@ -28,7 +44,7 @@ class HospitalRepository {
     try {
       final data = await supabase
           .from(Tables.hospitals)
-          .select()
+          .select(_hospitalColumns)
           .eq('id', id)
           .single();
       return Hospital.fromJson(data);
@@ -41,15 +57,25 @@ class HospitalRepository {
 
   /// Search hospitals by name or city.
   Future<List<Hospital>> searchHospitals(String query) async {
+    final normalized = query.trim().toLowerCase();
+    if (normalized.isEmpty) {
+      return listHospitals();
+    }
+    if (_searchCache.containsKey(normalized)) {
+      return _searchCache[normalized]!;
+    }
+
     try {
       final data = await supabase
           .from(Tables.hospitals)
-          .select()
+          .select(_hospitalColumns)
           .eq('is_active', true)
-          .or('name.ilike.%$query%,city.ilike.%$query%')
+          .or('name.ilike.%$normalized%,city.ilike.%$normalized%')
           .order('rating', ascending: false)
           .limit(20);
-      return (data as List).map((e) => Hospital.fromJson(e)).toList();
+      final results = (data as List).map((e) => Hospital.fromJson(e)).toList();
+      _searchCache[normalized] = results;
+      return results;
     } on PostgrestException catch (e) {
       throw AppException.fromPostgrestException(e);
     } catch (e) {

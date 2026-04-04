@@ -1,39 +1,77 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
+import '../core/constants/app_constants.dart';
 import '../core/theme/app_colors.dart';
+import '../models/appointment.dart';
+import '../providers/appointment_provider.dart';
+import '../providers/auth_provider.dart';
+import '../providers/prescription_provider.dart';
+import '../providers/medical_record_provider.dart';
+import '../widgets/empty_state_widget.dart';
+import '../widgets/error_widget.dart';
+import '../widgets/loading_indicator.dart';
 import '../widgets/voxmed_card.dart';
 
-class DashboardScreen extends StatelessWidget {
+class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final profileAsync = ref.watch(currentUserProfileProvider);
+    final adherenceAsync = ref.watch(adherenceStatsProvider);
+    final wearableAsync = ref.watch(wearableDataProvider);
+    final recordsState = ref.watch(medicalRecordsProvider);
+
+    final firstName = profileAsync.when(
+      data: (p) => p?.fullName.split(' ').first ?? 'User',
+      loading: () => '...',
+      error: (_, __) => 'User',
+    );
+
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildWelcomeBanner(),
+          _buildWelcomeBanner(firstName, ref),
           const SizedBox(height: 24),
-          _buildVoiceAdherenceTracker(),
+          _buildVoiceAdherenceTracker(adherenceAsync),
           const SizedBox(height: 16),
-          _buildAppointments(),
+          _buildUpcomingAppointments(context, ref),
           const SizedBox(height: 16),
           Row(
             children: [
-              Expanded(child: _buildHealthPulse()),
+              Expanded(child: _buildHealthPulse(wearableAsync)),
               const SizedBox(width: 12),
               Expanded(child: _buildDigitalPassport()),
             ],
           ),
           const SizedBox(height: 24),
-          _buildRecentReports(),
+          _buildRecentReports(recordsState),
+
         ],
       ),
     );
   }
 
-  Widget _buildWelcomeBanner() {
+  Widget _buildWelcomeBanner(String firstName, WidgetRef ref) {
+    final appointmentsAsync = ref.watch(upcomingAppointmentsProvider);
+    final nextApptText = appointmentsAsync.when(
+      data: (appts) {
+        if (appts.isEmpty) return 'No upcoming appointments.';
+        final next = appts.first;
+        final diff = next.scheduledStartAt.difference(DateTime.now());
+        if (diff.inDays == 0) return 'You have an appointment today.';
+        if (diff.inDays == 1) return 'You have an appointment tomorrow.';
+        return 'Next appointment in ${diff.inDays} days.';
+      },
+      loading: () => '',
+      error: (_, __) => '',
+    );
+
     return Container(
       padding: const EdgeInsets.all(28),
       decoration: BoxDecoration(
@@ -62,7 +100,7 @@ class DashboardScreen extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Welcome back, Adrian.',
+                'Welcome back, $firstName.',
                 style: GoogleFonts.manrope(
                   fontSize: 30,
                   fontWeight: FontWeight.w800,
@@ -72,7 +110,7 @@ class DashboardScreen extends StatelessWidget {
               ),
               const SizedBox(height: 12),
               Text(
-                'Your recovery is on track. You have 2 health tasks remaining for today and an appointment tomorrow morning.',
+                'Your recovery is on track. $nextApptText',
                 style: GoogleFonts.inter(
                   fontSize: 14,
                   color: AppColors.onPrimary.withValues(alpha: 0.85),
@@ -95,7 +133,13 @@ class DashboardScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildVoiceAdherenceTracker() {
+  Widget _buildVoiceAdherenceTracker(AsyncValue<Map<String, dynamic>> adherenceAsync) {
+    final rate = adherenceAsync.when(
+      data: (stats) => '${stats['rate'] ?? 0}%',
+      loading: () => '...',
+      error: (_, __) => '—',
+    );
+
     return VoxmedCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -145,7 +189,7 @@ class DashboardScreen extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text(
-                    '94%',
+                    rate,
                     style: GoogleFonts.manrope(
                       fontSize: 36,
                       fontWeight: FontWeight.w800,
@@ -244,56 +288,101 @@ class DashboardScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildAppointments() {
+  Widget _buildUpcomingAppointments(BuildContext context, WidgetRef ref) {
+    final appointmentsAsync = ref.watch(upcomingAppointmentsProvider);
+
     return VoxmedCard(
       color: AppColors.surfaceContainerLow,
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Appointments', style: GoogleFonts.manrope(
-                fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.onSurface)),
-              const Icon(Icons.event, color: AppColors.onSurfaceVariant, size: 22),
+              Text(
+                'Upcoming Appointments',
+                style: GoogleFonts.manrope(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.onSurface,
+                ),
+              ),
+              IconButton(
+                onPressed: () => ref.invalidate(upcomingAppointmentsProvider),
+                icon: const Icon(Icons.refresh, color: AppColors.onSurfaceVariant, size: 20),
+              ),
             ],
           ),
-          const SizedBox(height: 16),
-          _AppointmentTile(
-            name: 'Dr. Sarah Jenkins',
-            specialty: 'Cardiology',
-            icon: Icons.person,
-            date: 'Tomorrow',
-            time: '09:30 AM',
-            highlight: true,
-          ),
           const SizedBox(height: 12),
-          _AppointmentTile(
-            name: 'Mental Wellness',
-            specialty: 'Video Call',
-            icon: Icons.video_chat,
-            date: 'Oct 14',
-            time: '02:00 PM',
-            highlight: false,
-          ),
-          const SizedBox(height: 16),
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton(
-              onPressed: () {},
-              style: OutlinedButton.styleFrom(
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                side: BorderSide(color: AppColors.primary.withValues(alpha: 0.1), width: 2),
-              ),
-              child: Text('Book New', style: GoogleFonts.inter(
-                fontWeight: FontWeight.w700, color: AppColors.primary)),
+          appointmentsAsync.when(
+            loading: () => const SizedBox(
+              height: 100,
+              child: VoxmedLoadingIndicator(message: 'Loading appointments...'),
             ),
+            error: (error, _) => VoxmedErrorWidget(
+              message: error.toString(),
+              onRetry: () => ref.invalidate(upcomingAppointmentsProvider),
+            ),
+            data: (appointments) {
+              if (appointments.isEmpty) {
+                return EmptyStateWidget(
+                  icon: Icons.event_busy,
+                  title: 'No upcoming appointments',
+                  subtitle: 'Book a consultation from Find Care.',
+                  buttonText: 'Find Care',
+                  onButtonPressed: () => context.go(AppRoutes.findCare),
+                );
+              }
+
+              return Column(
+                children: [
+                  for (int index = 0; index < appointments.take(3).length; index++) ...[
+                    _UpcomingAppointmentTile(
+                      appointment: appointments[index],
+                      highlight: index == 0,
+                    ),
+                    if (index < appointments.take(3).length - 1) const SizedBox(height: 10),
+                  ],
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton(
+                      onPressed: () => context.go(AppRoutes.findCare),
+                      style: OutlinedButton.styleFrom(
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        side: BorderSide(color: AppColors.primary.withValues(alpha: 0.15), width: 1.5),
+                      ),
+                      child: Text(
+                        'Book New Appointment',
+                        style: GoogleFonts.inter(
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              );
+            },
           ),
         ],
       ),
     );
   }
 
-  Widget _buildHealthPulse() {
+  Widget _buildHealthPulse(AsyncValue<Map<String, dynamic>> wearableAsync) {
+    final bpm = wearableAsync.when(
+      data: (data) {
+        final hrList = data['heart_rate'] as List? ?? [];
+        if (hrList.isEmpty) return '--';
+        final val = hrList.first['value'];
+        if (val is Map) return '${val['bpm'] ?? '--'}';
+        return '--';
+      },
+      loading: () => '...',
+      error: (_, __) => '--',
+    );
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -315,7 +404,7 @@ class DashboardScreen extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Text('72', style: GoogleFonts.manrope(
+              Text(bpm, style: GoogleFonts.manrope(
                 fontSize: 40, fontWeight: FontWeight.w800, color: AppColors.onSecondaryFixed)),
               const SizedBox(width: 4),
               Padding(
@@ -368,46 +457,76 @@ class DashboardScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildRecentReports() {
+  Widget _buildRecentReports(MedicalRecordsState recordsState) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text('Recent Reports', style: GoogleFonts.manrope(
           fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.onSurface)),
         const SizedBox(height: 16),
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: AppColors.surfaceContainerLow,
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Icon(Icons.description, color: AppColors.onSurfaceVariant, size: 22),
+        Builder(builder: (context) {
+          final records = recordsState.records;
+
+          if (records.isEmpty) {
+            return Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppColors.surfaceContainerLow,
+                borderRadius: BorderRadius.circular(16),
               ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Annual Blood Panel', style: GoogleFonts.inter(
-                      fontWeight: FontWeight.w700, color: AppColors.onSurface, fontSize: 14)),
-                    const SizedBox(height: 2),
-                    Text('Analyzed by VoxMed AI • 2 days ago', style: GoogleFonts.inter(
-                      fontSize: 11, color: AppColors.onSurfaceVariant)),
-                  ],
-                ),
+              child: Center(
+                child: Text('No recent reports', style: GoogleFonts.inter(
+                  fontSize: 13, color: AppColors.onSurfaceVariant)),
               ),
-              const Icon(Icons.download, color: AppColors.onSurfaceVariant, size: 22),
-            ],
-          ),
-        ),
+            );
+          }
+
+          return Column(
+            children: records.take(3).map<Widget>((record) {
+              final daysAgo = record.recordDate != null ? DateTime.now().difference(record.recordDate!).inDays : 0;
+              final timeText = daysAgo == 0 ? 'Today' : daysAgo == 1 ? 'Yesterday' : '$daysAgo days ago';
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: AppColors.surfaceContainerLow,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Icon(
+                          record.recordType == RecordType.labResult ? Icons.biotech : Icons.description,
+                          color: AppColors.onSurfaceVariant, size: 22),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(record.title, style: GoogleFonts.inter(
+                              fontWeight: FontWeight.w700, color: AppColors.onSurface, fontSize: 14)),
+                            const SizedBox(height: 2),
+                            Text('Analyzed by VoxMed AI • $timeText', style: GoogleFonts.inter(
+                              fontSize: 11, color: AppColors.onSurfaceVariant)),
+                          ],
+                        ),
+                      ),
+                      if (record.fileUrl != null)
+                        const Icon(Icons.download, color: AppColors.onSurfaceVariant, size: 22),
+                    ],
+                  ),
+                ),
+              );
+            }).toList(),
+          );
+        }),
       ],
     );
   }
@@ -447,20 +566,12 @@ class _BannerButton extends StatelessWidget {
   }
 }
 
-class _AppointmentTile extends StatelessWidget {
-  final String name;
-  final String specialty;
-  final IconData icon;
-  final String date;
-  final String time;
+class _UpcomingAppointmentTile extends StatelessWidget {
+  final Appointment appointment;
   final bool highlight;
 
-  const _AppointmentTile({
-    required this.name,
-    required this.specialty,
-    required this.icon,
-    required this.date,
-    required this.time,
+  const _UpcomingAppointmentTile({
+    required this.appointment,
     required this.highlight,
   });
 
@@ -482,14 +593,28 @@ class _AppointmentTile extends StatelessWidget {
               CircleAvatar(
                 radius: 20,
                 backgroundColor: highlight ? AppColors.secondaryContainer : AppColors.surfaceContainer,
-                child: Icon(icon, color: highlight ? AppColors.onSecondaryContainer : AppColors.onSurfaceVariant, size: 20),
+                child: Icon(
+                  Icons.medical_services,
+                  color: highlight ? AppColors.onSecondaryContainer : AppColors.onSurfaceVariant,
+                  size: 20,
+                ),
               ),
               const SizedBox(width: 12),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(name, style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 13, color: AppColors.onSurface)),
-                  Text(specialty, style: GoogleFonts.inter(fontSize: 11, color: AppColors.onSurfaceVariant)),
+                  Text(
+                    appointment.doctorName ?? 'Doctor',
+                    style: GoogleFonts.inter(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 13,
+                      color: AppColors.onSurface,
+                    ),
+                  ),
+                  Text(
+                    appointment.doctorSpecialty ?? 'General consultation',
+                    style: GoogleFonts.inter(fontSize: 11, color: AppColors.onSurfaceVariant),
+                  ),
                 ],
               ),
             ],
@@ -504,11 +629,23 @@ class _AppointmentTile extends StatelessWidget {
                   color: highlight ? AppColors.tertiaryContainer : AppColors.surfaceContainer,
                   borderRadius: BorderRadius.circular(6),
                 ),
-                child: Text(date, style: GoogleFonts.inter(
-                  fontSize: 10, fontWeight: FontWeight.w700,
-                  color: highlight ? AppColors.onTertiaryContainer : AppColors.onSurfaceVariant)),
+                child: Text(
+                  DateFormat('MMM d').format(appointment.scheduledStartAt.toLocal()),
+                  style: GoogleFonts.inter(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    color: highlight ? AppColors.onTertiaryContainer : AppColors.onSurfaceVariant,
+                  ),
+                ),
               ),
-              Text(time, style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w500, color: AppColors.onSurfaceVariant)),
+              Text(
+                DateFormat('hh:mm a').format(appointment.scheduledStartAt.toLocal()),
+                style: GoogleFonts.inter(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w500,
+                  color: AppColors.onSurfaceVariant,
+                ),
+              ),
             ],
           ),
         ],

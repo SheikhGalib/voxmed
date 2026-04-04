@@ -1,13 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../core/theme/app_colors.dart';
+import '../core/constants/app_constants.dart';
+import '../providers/prescription_provider.dart';
 import '../widgets/voxmed_card.dart';
 
-class ApprovalQueueScreen extends StatelessWidget {
+class ApprovalQueueScreen extends ConsumerWidget {
   const ApprovalQueueScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final renewalsAsync = ref.watch(pendingRenewalsProvider);
+
     return Scaffold(
       backgroundColor: AppColors.surface,
       appBar: AppBar(
@@ -31,50 +36,18 @@ class ApprovalQueueScreen extends StatelessWidget {
             Text('Review and authorize renewal requests from patients in your care.',
                 style: GoogleFonts.inter(fontSize: 14, color: AppColors.onSurfaceVariant, height: 1.5)),
             const SizedBox(height: 24),
-            _buildQueueStats(),
+            _buildQueueStats(renewalsAsync),
             const SizedBox(height: 24),
-            _buildApprovalCard(
-              name: 'Matt Park',
-              status: 'Priority',
-              statusColor: AppColors.error,
-              medication: 'Lisinopril 10mg',
-              reason: 'Routine Renewal',
-              avatar: Icons.person,
-            ),
-            const SizedBox(height: 12),
-            _buildApprovalCard(
-              name: 'Marcus Thorne',
-              status: 'Routine',
-              statusColor: AppColors.secondary,
-              medication: 'Lisinopril 10mg',
-              reason: 'Routine Renewal',
-              avatar: Icons.person,
-            ),
-            const SizedBox(height: 12),
-            _buildApprovalCard(
-              name: 'Elena Rodriguez',
-              status: 'Follow-up',
-              statusColor: AppColors.tertiary,
-              medication: 'Berberine 50mg',
-              reason: 'Dosage adjustment',
-              avatar: Icons.person,
-            ),
-            const SizedBox(height: 12),
-            _buildApprovalCard(
-              name: 'Samuel Wu',
-              status: 'New',
-              statusColor: AppColors.primary,
-              medication: 'Metformin 500mg',
-              reason: 'New prescription',
-              avatar: Icons.person,
-            ),
+            _buildRenewalsList(context, ref, renewalsAsync),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildQueueStats() {
+  Widget _buildQueueStats(AsyncValue<List<Map<String, dynamic>>> renewalsAsync) {
+    final count = renewalsAsync.valueOrNull?.length ?? 0;
+
     return Row(
       children: [
         Expanded(
@@ -86,13 +59,13 @@ class ApprovalQueueScreen extends StatelessWidget {
                 Text('PRIORITY QUEUE',
                     style: GoogleFonts.inter(fontSize: 9, fontWeight: FontWeight.w700, letterSpacing: 1, color: AppColors.onSurfaceVariant)),
                 const SizedBox(height: 8),
-                Text('12', style: GoogleFonts.manrope(fontSize: 42, fontWeight: FontWeight.w800, color: AppColors.onSurface)),
+                Text('$count', style: GoogleFonts.manrope(fontSize: 42, fontWeight: FontWeight.w800, color: AppColors.onSurface)),
                 const SizedBox(height: 4),
                 Row(
                   children: [
-                    Icon(Icons.trending_up, size: 14, color: AppColors.primary),
+                    Icon(Icons.pending_actions, size: 14, color: AppColors.primary),
                     const SizedBox(width: 4),
-                    Text('+3 today', style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.primary)),
+                    Text('pending', style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.primary)),
                   ],
                 ),
               ],
@@ -112,7 +85,7 @@ class ApprovalQueueScreen extends StatelessWidget {
                     Text('APPROVAL RATE',
                         style: GoogleFonts.inter(fontSize: 9, fontWeight: FontWeight.w700, letterSpacing: 1, color: AppColors.onSurfaceVariant)),
                     const SizedBox(height: 4),
-                    Text('88%', style: GoogleFonts.manrope(fontSize: 24, fontWeight: FontWeight.w800, color: AppColors.primary)),
+                    Text('—', style: GoogleFonts.manrope(fontSize: 24, fontWeight: FontWeight.w800, color: AppColors.primary)),
                   ],
                 ),
               ),
@@ -123,10 +96,10 @@ class ApprovalQueueScreen extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('COMPLIANCE',
+                    Text('STATUS',
                         style: GoogleFonts.inter(fontSize: 9, fontWeight: FontWeight.w700, letterSpacing: 1, color: AppColors.onSurfaceVariant)),
                     const SizedBox(height: 4),
-                    Text('Ha', style: GoogleFonts.manrope(fontSize: 24, fontWeight: FontWeight.w800, color: AppColors.tertiary)),
+                    Text(count > 0 ? 'Active' : 'Clear', style: GoogleFonts.manrope(fontSize: 24, fontWeight: FontWeight.w800, color: AppColors.tertiary)),
                   ],
                 ),
               ),
@@ -137,7 +110,58 @@ class ApprovalQueueScreen extends StatelessWidget {
     );
   }
 
+  Widget _buildRenewalsList(BuildContext context, WidgetRef ref, AsyncValue<List<Map<String, dynamic>>> renewalsAsync) {
+    return renewalsAsync.when(
+      data: (renewals) {
+        if (renewals.isEmpty) {
+          return Padding(
+            padding: const EdgeInsets.all(32),
+            child: Center(
+              child: Column(
+                children: [
+                  Icon(Icons.check_circle_outline, size: 48, color: AppColors.primary.withValues(alpha: 0.5)),
+                  const SizedBox(height: 12),
+                  Text('All caught up!', style: GoogleFonts.manrope(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.onSurfaceVariant)),
+                  Text('No pending renewal requests.', style: GoogleFonts.inter(fontSize: 13, color: AppColors.onSurfaceVariant)),
+                ],
+              ),
+            ),
+          );
+        }
+        return Column(
+          children: renewals.map((r) {
+            final patientName = r['profiles']?['full_name'] ?? 'Unknown';
+            final items = r['prescriptions']?['prescription_items'] as List? ?? [];
+            final medication = items.isNotEmpty ? '${items.first['medication_name']} ${items.first['dosage'] ?? ''}' : 'Medication';
+            final reason = r['reason'] ?? 'Renewal request';
+            final renewalId = r['id'] as String;
+
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: _buildApprovalCard(
+                context: context,
+                ref: ref,
+                renewalId: renewalId,
+                name: patientName,
+                status: 'Pending',
+                statusColor: AppColors.secondary,
+                medication: medication,
+                reason: reason,
+                avatar: Icons.person,
+              ),
+            );
+          }).toList(),
+        );
+      },
+      loading: () => const Center(child: Padding(padding: EdgeInsets.all(32), child: CircularProgressIndicator())),
+      error: (_, __) => Center(child: Text('Failed to load renewals', style: GoogleFonts.inter(color: AppColors.error))),
+    );
+  }
+
   Widget _buildApprovalCard({
+    required BuildContext context,
+    required WidgetRef ref,
+    required String renewalId,
     required String name,
     required String status,
     required Color statusColor,
@@ -183,7 +207,7 @@ class ApprovalQueueScreen extends StatelessWidget {
             children: [
               Expanded(
                 child: OutlinedButton(
-                  onPressed: () {},
+                  onPressed: () => _handleAction(context, ref, renewalId, 'rejected'),
                   style: OutlinedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 10),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -195,7 +219,7 @@ class ApprovalQueueScreen extends StatelessWidget {
               const SizedBox(width: 10),
               Expanded(
                 child: ElevatedButton(
-                  onPressed: () {},
+                  onPressed: () => _handleAction(context, ref, renewalId, 'approved'),
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 10),
                   ),
@@ -207,5 +231,25 @@ class ApprovalQueueScreen extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  Future<void> _handleAction(BuildContext context, WidgetRef ref, String renewalId, String status) async {
+    try {
+      final repo = ref.read(prescriptionRepositoryProvider);
+      final renewalStatus = status == 'approved' ? RenewalStatus.approved : RenewalStatus.rejected;
+      await repo.updateRenewalStatus(renewalId, renewalStatus);
+      ref.invalidate(pendingRenewalsProvider);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Renewal ${status == 'approved' ? 'approved' : 'denied'} successfully')),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e'), backgroundColor: AppColors.error),
+        );
+      }
+    }
   }
 }

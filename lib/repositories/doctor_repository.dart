@@ -7,16 +7,37 @@ import '../models/doctor_schedule.dart';
 
 /// Repository for doctor data access.
 class DoctorRepository {
+  static const String _doctorColumns =
+      'id, profile_id, hospital_id, specialty, sub_specialty, qualifications, experience_years, '
+      'bio, consultation_fee, patients_count, reviews_count, rating, is_available, chamber_address, '
+      'chamber_city, created_at, updated_at, profiles!inner(full_name, avatar_url, email), hospitals(name)';
+
+  static const String _scheduleColumns =
+      'id, doctor_id, day_of_week, start_time, end_time, slot_duration_minutes, is_active, created_at';
+
+  List<Doctor>? _doctorCache;
+  final Map<String, List<Doctor>> _specialtyCache = {};
+  final Map<String, List<Doctor>> _hospitalDoctorCache = {};
+  final Map<String, List<DoctorSchedule>> _scheduleCache = {};
+
   /// List all available doctors with joined profile data.
   Future<List<Doctor>> listDoctors({int limit = 20, int offset = 0}) async {
+    if (offset == 0 && _doctorCache != null && _doctorCache!.isNotEmpty) {
+      return _doctorCache!;
+    }
+
     try {
       final data = await supabase
           .from(Tables.doctors)
-          .select('*, profiles!inner(full_name, avatar_url, email), hospitals(name)')
+          .select(_doctorColumns)
           .eq('is_available', true)
           .order('rating', ascending: false)
           .range(offset, offset + limit - 1);
-      return (data as List).map((e) => Doctor.fromJson(e)).toList();
+      final doctors = (data as List).map((e) => Doctor.fromJson(e)).toList();
+      if (offset == 0) {
+        _doctorCache = doctors;
+      }
+      return doctors;
     } on PostgrestException catch (e) {
       throw AppException.fromPostgrestException(e);
     } catch (e) {
@@ -29,7 +50,7 @@ class DoctorRepository {
     try {
       final data = await supabase
           .from(Tables.doctors)
-          .select('*, profiles!inner(full_name, avatar_url, email), hospitals(name)')
+          .select(_doctorColumns)
           .eq('id', id)
           .single();
       return Doctor.fromJson(data);
@@ -45,7 +66,7 @@ class DoctorRepository {
     try {
       final data = await supabase
           .from(Tables.doctors)
-          .select('*, profiles!inner(full_name, avatar_url, email), hospitals(name)')
+          .select(_doctorColumns)
           .eq('profile_id', profileId)
           .maybeSingle();
       if (data == null) return null;
@@ -59,19 +80,53 @@ class DoctorRepository {
 
   /// Filter doctors by specialty.
   Future<List<Doctor>> filterBySpecialty(String specialty) async {
+    final normalized = specialty.trim().toLowerCase();
+    if (normalized.isEmpty || normalized == 'all specialties') {
+      return listDoctors();
+    }
+    if (_specialtyCache.containsKey(normalized)) {
+      return _specialtyCache[normalized]!;
+    }
+
     try {
       final data = await supabase
           .from(Tables.doctors)
-          .select('*, profiles!inner(full_name, avatar_url, email), hospitals(name)')
+          .select(_doctorColumns)
           .eq('is_available', true)
-          .ilike('specialty', '%$specialty%')
+          .ilike('specialty', '%$normalized%')
           .order('rating', ascending: false)
           .limit(20);
-      return (data as List).map((e) => Doctor.fromJson(e)).toList();
+      final results = (data as List).map((e) => Doctor.fromJson(e)).toList();
+      _specialtyCache[normalized] = results;
+      return results;
     } on PostgrestException catch (e) {
       throw AppException.fromPostgrestException(e);
     } catch (e) {
       throw AppException(message: 'Failed to filter doctors: $e');
+    }
+  }
+
+  /// Get doctors by hospital.
+  Future<List<Doctor>> getByHospital(String hospitalId) async {
+    if (_hospitalDoctorCache.containsKey(hospitalId)) {
+      return _hospitalDoctorCache[hospitalId]!;
+    }
+
+    try {
+      final data = await supabase
+          .from(Tables.doctors)
+          .select(_doctorColumns)
+          .eq('is_available', true)
+          .eq('hospital_id', hospitalId)
+          .order('rating', ascending: false)
+          .limit(50);
+      final results = (data as List).map((e) => Doctor.fromJson(e)).toList();
+      _hospitalDoctorCache[hospitalId] = results;
+      return results;
+    } on PostgrestException catch (e) {
+      throw AppException.fromPostgrestException(e);
+    } catch (e) {
+      throw AppException(message: 'Failed to load hospital doctors: $e');
     }
   }
 
@@ -81,7 +136,7 @@ class DoctorRepository {
       final result = await supabase
           .from(Tables.doctors)
           .insert(data)
-          .select('*, profiles!inner(full_name, avatar_url, email), hospitals(name)')
+          .select(_doctorColumns)
           .single();
       return Doctor.fromJson(result);
     } on PostgrestException catch (e) {
@@ -92,19 +147,30 @@ class DoctorRepository {
   }
 
   /// Get schedule for a doctor.
-  Future<List<DoctorSchedule>> getDoctorSchedule(String doctorId) async {
+  Future<List<DoctorSchedule>> getSchedule(String doctorId) async {
+    if (_scheduleCache.containsKey(doctorId)) {
+      return _scheduleCache[doctorId]!;
+    }
+
     try {
       final data = await supabase
           .from(Tables.doctorSchedules)
-          .select()
+          .select(_scheduleColumns)
           .eq('doctor_id', doctorId)
           .eq('is_active', true)
           .order('day_of_week');
-      return (data as List).map((e) => DoctorSchedule.fromJson(e)).toList();
+      final schedules = (data as List).map((e) => DoctorSchedule.fromJson(e)).toList();
+      _scheduleCache[doctorId] = schedules;
+      return schedules;
     } on PostgrestException catch (e) {
       throw AppException.fromPostgrestException(e);
     } catch (e) {
       throw AppException(message: 'Failed to load schedule: $e');
     }
+  }
+
+  /// Backward-compatible alias.
+  Future<List<DoctorSchedule>> getDoctorSchedule(String doctorId) {
+    return getSchedule(doctorId);
   }
 }
