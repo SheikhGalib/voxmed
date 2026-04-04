@@ -51,8 +51,15 @@ class MedicalRecordRepository {
 
       final toInsert = {
         'patient_id': userId,
+        'doctor_id': ?doctorId,
+        'appointment_id': ?appointmentId,
         'record_type': recordType.value,
         'title': title,
+        'description': ?description,
+        'file_url': ?fileUrl,
+        'data': ?extractedData,
+        if (recordDate != null)
+          'record_date': recordDate.toIso8601String().split('T').first,
         'ocr_extracted': extractedData != null,
       };
 
@@ -110,10 +117,11 @@ class MedicalRecordRepository {
         'gemini-ocr',
         body: {'fileUrl': fileUrl},
       );
+      final payload = response.data;
 
       // FunctionResponse returns data as dynamic, handle gracefully
-      if (response is Map && response['success'] == true) {
-        final data = response['data'];
+      if (payload is Map && payload['success'] == true) {
+        final data = payload['data'];
         if (data is Map<String, dynamic>) {
           return data;
         }
@@ -171,24 +179,3 @@ class MedicalRecordRepository {
     }
   }
 }
-
-'doctor_id': doctorId,
-'appointment_id': appointmentId,
-'description': description,
-'file_url': fileUrl,
-'data': extractedData,
-'record_date': recordDate?.toIso8601String().split('T').first,
-
-      final toInsert =<String, dynamic>{
-        'patient_id': userId,
-        if (doctorId != null) 'doctor_id': doctorId,
-        if (appointmentId != null) 'appointment_id': appointmentId,
-        'record_type': recordType.value,
-        'title': title,
-        if (description != null) 'description': description,
-        if (fileUrl != null) 'file_url': fileUrl,
-        if (extractedData != null) 'data': extractedData,
-        if (recordDate != null)
-          'record_date': recordDate.toIso8601String().split('T').first,
-        'ocr_extracted': extractedData != null,
-      };
