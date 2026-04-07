@@ -3,6 +3,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../repositories/auth_repository.dart';
 import '../repositories/profile_repository.dart';
 import '../models/user_profile.dart';
+import '../providers/doctor_provider.dart';
+import '../core/constants/app_constants.dart';
 
 /// Provides the AuthRepository instance.
 final authRepositoryProvider = Provider<AuthRepository>((ref) {
@@ -29,7 +31,13 @@ final currentUserProfileProvider = FutureProvider<UserProfile?>((ref) async {
     data: (state) async {
       if (state.session == null) return null;
       try {
-        return await ref.read(profileRepositoryProvider).getCurrentUserProfile();
+        final profile = await ref.read(profileRepositoryProvider).getCurrentUserProfile();
+        if (profile?.role == UserRole.doctor) {
+          await ref.read(doctorRepositoryProvider).ensureDoctorProfile(
+                profileId: profile!.id,
+              );
+        }
+        return profile;
       } catch (e) {
         return null;
       }

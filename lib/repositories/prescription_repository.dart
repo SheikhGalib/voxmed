@@ -88,13 +88,17 @@ class PrescriptionRepository {
   /// Approve or reject a renewal.
   Future<void> updateRenewalStatus(String renewalId, RenewalStatus status, {String? notes}) async {
     try {
+      final updates = <String, dynamic>{
+        'status': status.value,
+        'reviewed_at': DateTime.now().toUtc().toIso8601String(),
+      };
+      if (notes != null) {
+        updates['doctor_notes'] = notes;
+      }
+
       await supabase
           .from(Tables.prescriptionRenewals)
-          .update({
-            'status': status.value,
-            'reviewed_at': DateTime.now().toUtc().toIso8601String(),
-            if (notes != null) 'doctor_notes': notes,
-          })
+          .update(updates)
           .eq('id', renewalId);
     } on PostgrestException catch (e) {
       throw AppException.fromPostgrestException(e);

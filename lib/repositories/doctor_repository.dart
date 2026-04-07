@@ -20,6 +20,13 @@ class DoctorRepository {
   final Map<String, List<Doctor>> _hospitalDoctorCache = {};
   final Map<String, List<DoctorSchedule>> _scheduleCache = {};
 
+  void _clearCaches() {
+    _doctorCache = null;
+    _specialtyCache.clear();
+    _hospitalDoctorCache.clear();
+    _scheduleCache.clear();
+  }
+
   /// List all available doctors with joined profile data.
   Future<List<Doctor>> listDoctors({int limit = 20, int offset = 0}) async {
     if (offset == 0 && _doctorCache != null && _doctorCache!.isNotEmpty) {
@@ -138,11 +145,45 @@ class DoctorRepository {
           .insert(data)
           .select(_doctorColumns)
           .single();
+      _clearCaches();
       return Doctor.fromJson(result);
     } on PostgrestException catch (e) {
       throw AppException.fromPostgrestException(e);
     } catch (e) {
       throw AppException(message: 'Failed to create doctor profile: $e');
+    }
+  }
+
+  /// Ensure a doctor-role profile has a corresponding doctors row.
+  Future<Doctor> ensureDoctorProfile({
+    required String profileId,
+    String specialty = 'General Medicine',
+  }) async {
+    final existing = await getDoctorByProfileId(profileId);
+    if (existing != null) {
+      return existing;
+    }
+
+    try {
+      final result = await supabase
+          .from(Tables.doctors)
+          .insert({
+            'profile_id': profileId,
+            'specialty': specialty,
+            'is_available': true,
+          })
+          .select(_doctorColumns)
+          .single();
+      _clearCaches();
+      return Doctor.fromJson(result);
+    } on PostgrestException catch (e) {
+      if (e.code == '23505') {
+        final doctor = await getDoctorByProfileId(profileId);
+        if (doctor != null) return doctor;
+      }
+      throw AppException.fromPostgrestException(e);
+    } catch (e) {
+      throw AppException(message: 'Failed to ensure doctor profile: $e');
     }
   }
 
