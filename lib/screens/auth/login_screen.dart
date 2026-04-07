@@ -7,6 +7,7 @@ import '../../core/constants/app_constants.dart';
 import '../../core/utils/validators.dart';
 import '../../core/utils/error_handler.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/doctor_provider.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -46,6 +47,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       // Fetch user profile to determine role
       final profileRepo = ref.read(profileRepositoryProvider);
       final profile = await profileRepo.getCurrentUserProfile();
+
+      if (profile?.role == UserRole.doctor) {
+        await ref.read(doctorRepositoryProvider).ensureDoctorProfile(
+          profileId: profile!.id,
+        );
+      }
 
       if (!mounted) return;
 

@@ -7,6 +7,7 @@ import '../../core/constants/app_constants.dart';
 import '../../core/utils/validators.dart';
 import '../../core/utils/error_handler.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/doctor_provider.dart';
 
 class RegisterScreen extends ConsumerStatefulWidget {
   const RegisterScreen({super.key});
@@ -21,6 +22,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
+  final _specialtyController = TextEditingController();
   bool _isLoading = false;
   bool _obscurePassword = true;
   bool _obscureConfirm = true;
@@ -32,6 +34,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     _emailController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
+    _specialtyController.dispose();
     super.dispose();
   }
 
@@ -42,12 +45,27 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
     try {
       final authRepo = ref.read(authRepositoryProvider);
-      await authRepo.signUp(
+      final authResponse = await authRepo.signUp(
         email: _emailController.text.trim(),
         password: _passwordController.text,
         fullName: _nameController.text.trim(),
         role: _selectedRole.value,
       );
+
+      if (_selectedRole == UserRole.doctor) {
+        final doctorRepo = ref.read(doctorRepositoryProvider);
+        final profileId = authResponse.user?.id ?? authRepo.currentUser?.id;
+        if (profileId == null) {
+          throw AppException(message: 'Doctor account created, but user session was unavailable. Please sign in again.');
+        }
+
+        await doctorRepo.ensureDoctorProfile(
+          profileId: profileId,
+          specialty: _specialtyController.text.trim().isEmpty
+              ? 'General Medicine'
+              : _specialtyController.text.trim(),
+        );
+      }
 
       if (!mounted) return;
 
@@ -240,6 +258,27 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
               ),
             ),
           ),
+          if (_selectedRole == UserRole.doctor) ...[
+            const SizedBox(height: 20),
+            Text('Specialty', style: _labelStyle),
+            const SizedBox(height: 8),
+            TextFormField(
+              controller: _specialtyController,
+              textInputAction: TextInputAction.done,
+              validator: (value) {
+                if (_selectedRole != UserRole.doctor) return null;
+                if (value == null || value.trim().isEmpty) {
+                  return 'Please enter your specialty';
+                }
+                return null;
+              },
+              onFieldSubmitted: (_) => _handleRegister(),
+              decoration: const InputDecoration(
+                hintText: 'Cardiology',
+                prefixIcon: Icon(Icons.medical_services_outlined, size: 20),
+              ),
+            ),
+          ],
         ],
       ),
     );
