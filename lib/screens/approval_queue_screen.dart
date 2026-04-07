@@ -154,7 +154,7 @@ class ApprovalQueueScreen extends ConsumerWidget {
         );
       },
       loading: () => const Center(child: Padding(padding: EdgeInsets.all(32), child: CircularProgressIndicator())),
-      error: (_, __) => Center(child: Text('Failed to load renewals', style: GoogleFonts.inter(color: AppColors.error))),
+      error: (_, _) => Center(child: Text('Failed to load renewals', style: GoogleFonts.inter(color: AppColors.error))),
     );
   }
 

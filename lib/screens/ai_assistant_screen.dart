@@ -146,7 +146,7 @@ class _AiAssistantScreenState extends ConsumerState<AiAssistantScreen> {
         );
       },
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (_, __) => Center(child: Text('Failed to load messages', style: GoogleFonts.inter(color: AppColors.error))),
+      error: (_, _) => Center(child: Text('Failed to load messages', style: GoogleFonts.inter(color: AppColors.error))),
     );
   }
 
