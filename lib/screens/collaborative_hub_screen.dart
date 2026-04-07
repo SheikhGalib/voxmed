@@ -69,7 +69,7 @@ class CollaborativeHubScreen extends ConsumerWidget {
           );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (_, __) => Center(child: Text('Failed to load consultations', style: GoogleFonts.inter(color: AppColors.error))),
+        error: (_, _) => Center(child: Text('Failed to load consultations', style: GoogleFonts.inter(color: AppColors.error))),
       ),
     );
   }

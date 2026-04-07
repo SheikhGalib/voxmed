@@ -155,7 +155,7 @@ class ClinicalDashboardScreen extends ConsumerWidget {
             );
           },
           loading: () => const Center(child: CircularProgressIndicator()),
-          error: (_, __) => Text('Failed to load schedule', style: GoogleFonts.inter(color: AppColors.error)),
+          error: (_, _) => Text('Failed to load schedule', style: GoogleFonts.inter(color: AppColors.error)),
         ),
       ],
     );
@@ -251,7 +251,7 @@ class ClinicalDashboardScreen extends ConsumerWidget {
             );
           },
           loading: () => const Center(child: CircularProgressIndicator()),
-          error: (_, __) => Text('Failed to load approvals', style: GoogleFonts.inter(color: AppColors.error)),
+          error: (_, _) => Text('Failed to load approvals', style: GoogleFonts.inter(color: AppColors.error)),
         ),
       ],
     );
