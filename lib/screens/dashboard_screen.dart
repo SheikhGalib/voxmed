@@ -28,7 +28,7 @@ class DashboardScreen extends ConsumerWidget {
     final firstName = profileAsync.when(
       data: (p) => p?.fullName.split(' ').first ?? 'User',
       loading: () => '...',
-      error: (_, __) => 'User',
+      error: (_, _) => 'User',
     );
 
     return SingleChildScrollView(
@@ -69,7 +69,7 @@ class DashboardScreen extends ConsumerWidget {
         return 'Next appointment in ${diff.inDays} days.';
       },
       loading: () => '',
-      error: (_, __) => '',
+      error: (_, _) => '',
     );
 
     return Container(
@@ -137,7 +137,7 @@ class DashboardScreen extends ConsumerWidget {
     final rate = adherenceAsync.when(
       data: (stats) => '${stats['rate'] ?? 0}%',
       loading: () => '...',
-      error: (_, __) => '—',
+      error: (_, _) => '—',
     );
 
     return VoxmedCard(
@@ -380,7 +380,7 @@ class DashboardScreen extends ConsumerWidget {
         return '--';
       },
       loading: () => '...',
-      error: (_, __) => '--',
+      error: (_, _) => '--',
     );
 
     return Container(

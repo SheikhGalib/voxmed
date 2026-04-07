@@ -52,7 +52,7 @@ class _FindCareScreenState extends ConsumerState<FindCareScreen> {
           ),
           const SizedBox(height: 8),
           Text(
-            'Search hospitals and discover specialists with real-time availability.',
+            'Search hospitals, doctors, and discover specialists with real-time availability.',
             style: GoogleFonts.inter(
               fontSize: 14,
               color: AppColors.onSurfaceVariant,
@@ -108,7 +108,7 @@ class _FindCareScreenState extends ConsumerState<FindCareScreen> {
             child: TextField(
               controller: _searchController,
               decoration: InputDecoration(
-                hintText: 'Search hospital by name or city',
+                hintText: 'Search hospitals or doctors',
                 hintStyle: GoogleFonts.inter(
                   fontSize: 14,
                   color: AppColors.onSurfaceVariant,
@@ -118,6 +118,9 @@ class _FindCareScreenState extends ConsumerState<FindCareScreen> {
               onChanged: (value) {
                 setState(() {
                   _searchQuery = value.trim();
+                  if (_searchQuery.isNotEmpty) {
+                    _selectedHospitalId = null;
+                  }
                 });
               },
             ),
@@ -279,19 +282,32 @@ class _FindCareScreenState extends ConsumerState<FindCareScreen> {
             ),
           ),
           data: (doctors) {
-            final filteredDoctors = _selectedSpecialty == 'All Specialties'
+            var filteredDoctors = _selectedSpecialty == 'All Specialties'
                 ? doctors
                 : doctors.where((doctor) {
                     return doctor.specialty.toLowerCase() == _selectedSpecialty.toLowerCase();
                   }).toList();
 
+            if (_searchQuery.isNotEmpty) {
+              final query = _searchQuery.toLowerCase();
+              filteredDoctors = filteredDoctors.where((doctor) {
+                return doctor.displayName.toLowerCase().contains(query) ||
+                    doctor.specialty.toLowerCase().contains(query) ||
+                    (doctor.subSpecialty?.toLowerCase().contains(query) ?? false) ||
+                    (doctor.hospitalName?.toLowerCase().contains(query) ?? false) ||
+                    (doctor.chamberCity?.toLowerCase().contains(query) ?? false);
+              }).toList();
+            }
+
             if (filteredDoctors.isEmpty) {
-              return const SizedBox(
+              return SizedBox(
                 height: 180,
                 child: EmptyStateWidget(
                   icon: Icons.person_search,
                   title: 'No doctors available',
-                  subtitle: 'Try another specialty or hospital.',
+                  subtitle: _searchQuery.isNotEmpty
+                      ? 'Try a different doctor name, specialty, or hospital.'
+                      : 'Try another specialty or hospital.',
                 ),
               );
             }
