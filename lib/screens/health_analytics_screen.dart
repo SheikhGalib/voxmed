@@ -42,7 +42,7 @@ class HealthAnalyticsScreen extends ConsumerWidget {
     final rate = adherenceAsync.when(
       data: (stats) => (stats['rate'] as int?) ?? 0,
       loading: () => 0,
-      error: (_, __) => 0,
+      error: (_, _) => 0,
     );
 
     return VoxmedCard(
@@ -93,7 +93,7 @@ class HealthAnalyticsScreen extends ConsumerWidget {
         return 0;
       },
       loading: () => 0,
-      error: (_, __) => 0,
+      error: (_, _) => 0,
     );
 
     return VoxmedCard(
@@ -208,7 +208,7 @@ class HealthAnalyticsScreen extends ConsumerWidget {
     final rate = adherenceAsync.when(
       data: (stats) => (stats['rate'] as int?) ?? 0,
       loading: () => 0,
-      error: (_, __) => 0,
+      error: (_, _) => 0,
     );
     final grade = rate >= 90 ? 'A+' : rate >= 80 ? 'A' : rate >= 70 ? 'B+' : rate >= 60 ? 'B' : 'C';
 
@@ -259,7 +259,7 @@ class HealthAnalyticsScreen extends ConsumerWidget {
         return minBpm == 999 ? '--' : '$minBpm';
       },
       loading: () => '...',
-      error: (_, __) => '--',
+      error: (_, _) => '--',
     );
 
     return VoxmedCard(

@@ -46,7 +46,7 @@ class HealthPassportScreen extends ConsumerWidget {
                   );
                 },
                 loading: () => _buildQuickCard('Prescriptions', '...', 'Loading', Icons.medication, false),
-                error: (_, __) => _buildQuickCard('Prescriptions', '—', 'Error', Icons.medication, false),
+                error: (_, _) => _buildQuickCard('Prescriptions', '—', 'Error', Icons.medication, false),
               )),
               const SizedBox(width: 12),
               Expanded(child: recordsAsync.when(
@@ -63,7 +63,7 @@ class HealthPassportScreen extends ConsumerWidget {
                   );
                 },
                 loading: () => _buildQuickCard('Lab Results', '...', 'Loading', Icons.science, false),
-                error: (_, __) => _buildQuickCard('Lab Results', '—', 'Error', Icons.science, false),
+                error: (_, _) => _buildQuickCard('Lab Results', '—', 'Error', Icons.science, false),
               )),
             ],
           ),
