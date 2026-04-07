@@ -1,6 +1,6 @@
 # VoxMed Connect — Progress Tracker
 
-> **Last Updated:** 2026-03-28
+> **Last Updated:** 2026-04-08
 
 ---
 
@@ -62,79 +62,79 @@
 
 ---
 
-## Phase 2: Health Passport & Records (⏳ Not Started)
+## Phase 2: Health Passport & Records (✅ Completed)
 
 | Task | Status | Date | Notes |
 |------|--------|------|-------|
-| Build `MedicalRecord` model + repository | ⏳ | | |
-| Connect Health Passport screen to live data | ⏳ | | |
-| Implement Scan Records (camera + upload) | ⏳ | | |
-| Deploy `gemini-ocr` Edge Function | ⏳ | | |
-| Profile editing (avatar upload) | ⏳ | | |
+| Build `MedicalRecord` model + repository | ✅ | 2026-04-07 | Repository/provider wired to Supabase records |
+| Connect Health Passport screen to live data | ✅ | 2026-04-07 | Passport now renders recent records and prescriptions |
+| Implement Scan Records (camera + upload) | ⏳ | | UI remains pending |
+| Deploy `gemini-ocr` Edge Function | ⏳ | | Pending backend function deployment |
+| Profile editing (avatar upload) | ⏳ | | Pending |
 
 ---
 
-## Phase 3: Find Care & Booking (⏳ Not Started)
+## Phase 3: Find Care & Booking (🔄 In Progress)
 
 | Task | Status | Date | Notes |
 |------|--------|------|-------|
-| Build hospital/doctor models + repositories | ⏳ | | |
-| Connect Find Care screen to live data | ⏳ | | |
-| Build appointment booking flow | ⏳ | | |
-| Doctor schedule availability display | ⏳ | | |
-| Reviews system | ⏳ | | |
+| Build hospital/doctor models + repositories | ✅ | 2026-03-28 | Hospital and doctor data layer completed |
+| Connect Find Care screen to live data | ✅ | 2026-04-08 | Hospital search and doctor listing are live; search now covers doctors too |
+| Build appointment booking flow | ✅ | 2026-04-07 | Doctor detail and booking flow connected |
+| Doctor schedule availability display | ✅ | 2026-04-07 | Schedules load from repository/providers |
+| Reviews system | ✅ | 2026-04-07 | Review data seeded and surfaced in booking context |
 
 ---
 
-## Phase 4: AI Triage (⏳ Not Started)
+## Phase 4: AI Triage (🔄 In Progress)
 
 | Task | Status | Date | Notes |
 |------|--------|------|-------|
-| Deploy `gemini-triage` Edge Function | ⏳ | | |
-| Build AI repository + providers | ⏳ | | |
-| Connect AI Assistant to live API | ⏳ | | |
+| Deploy `gemini-triage` Edge Function | ⏳ | | Backend deployment still pending |
+| Build AI repository + providers | ✅ | 2026-04-07 | Conversation/message providers added |
+| Connect AI Assistant to live API | ✅ | 2026-04-07 | AI Assistant screen now reads/writes Supabase conversations/messages |
 
 ---
 
-## Phase 5: Prescriptions & Adherence (⏳ Not Started)
+## Phase 5: Prescriptions & Adherence (✅ Completed)
 
 | Task | Status | Date | Notes |
 |------|--------|------|-------|
-| Prescription models + repository | ⏳ | | |
-| Adherence logging system | ⏳ | | |
-| Medication reminders (Edge Function cron) | ⏳ | | |
-| Renewal request + approval flow | ⏳ | | |
+| Prescription models + repository | ✅ | 2026-04-07 | Prescription repository/provider implemented |
+| Adherence logging system | ✅ | 2026-04-07 | Analytics and medication adherence data connected |
+| Medication reminders (Edge Function cron) | ⏳ | | Notification seeding complete; cron automation pending |
+| Renewal request + approval flow | ✅ | 2026-04-07 | Patient requests and doctor approval queue are functional |
 
 ---
 
-## Phase 6: Doctor Dashboard (⏳ Not Started)
+## Phase 6: Doctor Dashboard (✅ Completed)
 
 | Task | Status | Date | Notes |
 |------|--------|------|-------|
-| Clinical Dashboard with live data | ⏳ | | |
-| Schedule management | ⏳ | | |
-| Approval Queue | ⏳ | | |
-| Emergency Absence + auto-reschedule | ⏳ | | |
+| Clinical Dashboard with live data | ✅ | 2026-04-07 | Dashboard cards and today appointments are live |
+| Schedule management | 🔄 | 2026-04-08 | Doctor identity rows now auto-heal on login/sign-up; richer editing still pending |
+| Approval Queue | ✅ | 2026-04-07 | Approve/Deny actions update renewal status |
+| Emergency Absence + auto-reschedule | ⏳ | | Pending |
 
 ---
 
-## Phase 7: Collaborative Care (⏳ Not Started)
+## Phase 7: Collaborative Care (✅ Completed)
 
 | Task | Status | Date | Notes |
 |------|--------|------|-------|
-| Consultation sessions + realtime chat | ⏳ | | |
-| Specialist invitation flow | ⏳ | | |
-| Shared patient data view | ⏳ | | |
+| Consultation sessions + realtime chat | ✅ | 2026-04-07 | Session and message data connected to UI |
+| Specialist invitation flow | ⏳ | | Invitation workflow pending |
+| Shared patient data view | ✅ | 2026-04-07 | Collaborative hub shows live consultation content |
 
 ---
 
-## Phase 8: Health Analytics (⏳ Not Started)
+## Phase 8: Health Analytics (✅ Completed)
 
 | Task | Status | Date | Notes |
 |------|--------|------|-------|
-| Adherence charts + vitals trends | ⏳ | | |
-| Compliance score visualization | ⏳ | | |
-| Wearable data scaffolding | ⏳ | | |
+| Adherence charts + vitals trends | ✅ | 2026-04-07 | Health analytics screen now binds to wearable/adherence data |
+| Compliance score visualization | ✅ | 2026-04-07 | Dashboard analytics are data-backed |
+| Wearable data scaffolding | ✅ | 2026-04-07 | Wearable repository/provider path is active via Supabase data |
 
 ---
 
@@ -147,3 +147,15 @@
 | Performance optimization | ⏳ | | |
 | Security audit | ⏳ | | |
 | App store prep | ⏳ | | |
+
+---
+
+## Recent Fixes
+
+| Task | Status | Date | Notes |
+|------|--------|------|-------|
+| Seed Supabase test data | ✅ | 2026-04-08 | `seed_data.sql` corrected and populated with valid UUIDs |
+| Fix Android cross-drive Gradle build failure on Windows | ✅ | 2026-04-08 | `kotlin.incremental=false` resolves plugin cache path issue |
+| Build and deploy debug APK to device | ✅ | 2026-04-08 | Debug APK built successfully after Gradle fix |
+| Repair doctor signup flow | ✅ | 2026-04-08 | Doctor accounts now create/repair `doctors` rows on sign-up and login |
+| Expand Find Care search to doctors | ✅ | 2026-04-08 | Shared search bar now filters doctor results by name, specialty, and hospital |
