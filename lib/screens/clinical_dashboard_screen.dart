@@ -15,49 +15,19 @@ class ClinicalDashboardScreen extends ConsumerWidget {
     final scheduleAsync = ref.watch(doctorTodayAppointmentsProvider);
     final renewalsAsync = ref.watch(pendingRenewalsProvider);
 
-    return Scaffold(
-      backgroundColor: AppColors.surface,
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF1A2332),
-        leading: Row(
-          children: [
-            const SizedBox(width: 8),
-            Icon(Icons.medical_information_outlined, color: Colors.white, size: 24),
-          ],
-        ),
-        title: Text('VoxMed', style: GoogleFonts.manrope(fontSize: 22, fontWeight: FontWeight.w800, color: Colors.white)),
-        actions: [
-          Container(
-            margin: const EdgeInsets.only(right: 12),
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: AppColors.error,
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Row(
-              children: [
-                const Icon(Icons.warning_amber, color: Colors.white, size: 14),
-                const SizedBox(width: 4),
-                Text('Emergency Attention', style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w700, color: Colors.white)),
-              ],
-            ),
-          ),
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildDarkStatsBar(statsAsync, scheduleAsync),
+          const SizedBox(height: 20),
+          _buildDailySchedule(scheduleAsync),
+          const SizedBox(height: 20),
+          _buildComplianceTrends(statsAsync),
+          const SizedBox(height: 20),
+          _buildApprovalsRequired(renewalsAsync),
         ],
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildDarkStatsBar(statsAsync, scheduleAsync),
-            const SizedBox(height: 20),
-            _buildDailySchedule(scheduleAsync),
-            const SizedBox(height: 20),
-            _buildComplianceTrends(statsAsync),
-            const SizedBox(height: 20),
-            _buildApprovalsRequired(renewalsAsync),
-          ],
-        ),
       ),
     );
   }

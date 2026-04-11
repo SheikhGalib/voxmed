@@ -1,6 +1,6 @@
 # VoxMed Connect — Progress Tracker
 
-> **Last Updated:** 2026-04-08
+> **Last Updated:** 2026-04-10
 
 ---
 
@@ -62,19 +62,21 @@
 
 ---
 
-## Phase 2: Health Passport & Records (✅ Completed)
+## Phase 2: Health Passport & Records (🔄 In Progress)
 
 | Task | Status | Date | Notes |
 |------|--------|------|-------|
 | Build `MedicalRecord` model + repository | ✅ | 2026-04-07 | Repository/provider wired to Supabase records |
 | Connect Health Passport screen to live data | ✅ | 2026-04-07 | Passport now renders recent records and prescriptions |
-| Implement Scan Records (camera + upload) | ⏳ | | UI remains pending |
+| Implement Scan Records (camera + upload) | ✅ | 2026-04-10 | Camera/gallery pick → Supabase Storage → DB record; null FK guard fix |
 | Deploy `gemini-ocr` Edge Function | ⏳ | | Pending backend function deployment |
 | Profile editing (avatar upload) | ⏳ | | Pending |
+| Dashboard digital passport card routing | ✅ | 2026-04-10 | Card now navigates to Health Passport panel |
+| Dashboard recent reports auto-fetch | ✅ | 2026-04-08 | Switched to `recentMedicalRecordsProvider` (auto-fetches) |
 
 ---
 
-## Phase 3: Find Care & Booking (🔄 In Progress)
+## Phase 3: Find Care & Booking (✅ Completed)
 
 | Task | Status | Date | Notes |
 |------|--------|------|-------|
@@ -83,6 +85,7 @@
 | Build appointment booking flow | ✅ | 2026-04-07 | Doctor detail and booking flow connected |
 | Doctor schedule availability display | ✅ | 2026-04-07 | Schedules load from repository/providers |
 | Reviews system | ✅ | 2026-04-07 | Review data seeded and surfaced in booking context |
+| Fix RenderFlex overflow on doctor filter row | ✅ | 2026-04-10 | Wrapped title in `Flexible` widget |
 
 ---
 
@@ -112,6 +115,7 @@
 | Task | Status | Date | Notes |
 |------|--------|------|-------|
 | Clinical Dashboard with live data | ✅ | 2026-04-07 | Dashboard cards and today appointments are live |
+| Fix double AppBar on doctor screens | ✅ | 2026-04-08 | Removed inner Scaffold from ClinicalDashboard + ApprovalQueue |
 | Schedule management | 🔄 | 2026-04-08 | Doctor identity rows now auto-heal on login/sign-up; richer editing still pending |
 | Approval Queue | ✅ | 2026-04-07 | Approve/Deny actions update renewal status |
 | Emergency Absence + auto-reschedule | ⏳ | | Pending |
@@ -159,3 +163,65 @@
 | Build and deploy debug APK to device | ✅ | 2026-04-08 | Debug APK built successfully after Gradle fix |
 | Repair doctor signup flow | ✅ | 2026-04-08 | Doctor accounts now create/repair `doctors` rows on sign-up and login |
 | Expand Find Care search to doctors | ✅ | 2026-04-08 | Shared search bar now filters doctor results by name, specialty, and hospital |
+
+---
+
+## Phase A: Code Review Fixes (✅ 2026-04-08 → 2026-04-10)
+
+Comprehensive code audit identified and fixed 13 consistency issues:
+
+| Task | Status | Date | Notes |
+|------|--------|------|-------|
+| Fix double AppBar on doctor screens | ✅ | 2026-04-08 | Removed inner Scaffold from ClinicalDashboard + ApprovalQueue |
+| Fix `responded_at` column name | ✅ | 2026-04-08 | Was `reviewed_at`, didn't match DB schema |
+| Fix storage bucket mismatch | ✅ | 2026-04-08 | Hardcoded `medical-records` → `Buckets.reports` |
+| Fix dashboard records auto-fetch | ✅ | 2026-04-08 | Switched to `recentMedicalRecordsProvider` |
+| Fix booking slot duration | ✅ | 2026-04-08 | Uses actual `slotDurationMinutes` instead of hardcoded 30 |
+| Add patient profile join to appointments | ✅ | 2026-04-08 | Added FK join for patient name + avatar on both sides |
+| Wire dashboard banner buttons | ✅ | 2026-04-08 | "Health Passport" + "Vitals Summary" now navigate to real routes |
+| Route digital passport card | ✅ | 2026-04-10 | Card now taps through to Health Passport panel |
+| Fix RenderFlex overflow — Find Care | ✅ | 2026-04-10 | Wrapped doctor title text in `Flexible` widget |
+| Fix medical record insert map | ✅ | 2026-04-10 | Replaced `?key` null-aware → explicit `if` guards (avoids sending null to FK columns) |
+| Invalidate providers after upload | ✅ | 2026-04-08 | `recentMedicalRecordsProvider` refreshed after record upload |
+| **RLS policy for `medical_records` INSERT** | 🔧 | 2026-04-10 | **Requires SQL in Supabase** — see below |
+| **Storage bucket `reports` creation** | 🔧 | 2026-04-10 | **Requires SQL in Supabase** — see below |
+
+### ⚠️ Supabase Actions Required
+
+Run the following SQL in the **Supabase SQL Editor** to fix the RLS violation on record upload:
+
+```sql
+-- 1. Ensure RLS is enabled on medical_records
+ALTER TABLE medical_records ENABLE ROW LEVEL SECURITY;
+
+-- 2. Create INSERT policy for patients (if not already present)
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE tablename = 'medical_records' AND policyname = 'Patients insert own records'
+  ) THEN
+    CREATE POLICY "Patients insert own records" ON medical_records
+      FOR INSERT WITH CHECK (patient_id = auth.uid());
+  END IF;
+END $$;
+
+-- 3. Ensure the reports storage bucket exists
+INSERT INTO storage.buckets (id, name, public)
+  VALUES ('reports', 'reports', true)
+  ON CONFLICT (id) DO NOTHING;
+
+-- 4. Storage policy: allow authenticated users to upload to their own folder
+CREATE POLICY "Users upload own reports" ON storage.objects
+  FOR INSERT WITH CHECK (
+    bucket_id = 'reports' AND
+    auth.role() = 'authenticated' AND
+    (storage.foldername(name))[1] = auth.uid()::text
+  );
+
+-- 5. Storage policy: allow authenticated users to read their own files
+CREATE POLICY "Users read own reports" ON storage.objects
+  FOR SELECT USING (
+    bucket_id = 'reports' AND
+    auth.role() = 'authenticated'
+  );
+```

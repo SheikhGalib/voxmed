@@ -47,7 +47,7 @@ class Appointment {
     // Handle joined doctor data
     final doctor = json['doctors'] as Map<String, dynamic>?;
     final doctorProfile = doctor?['profiles'] as Map<String, dynamic>?;
-    final patient = json['patient_profile'] as Map<String, dynamic>?;
+    final patient = json['profiles'] as Map<String, dynamic>?;
     final hospital = json['hospitals'] as Map<String, dynamic>?;
 
     return Appointment(

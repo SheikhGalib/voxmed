@@ -250,15 +250,18 @@ class _FindCareScreenState extends ConsumerState<FindCareScreen> {
       children: [
         Row(
           children: [
-            Text(
-              _selectedHospitalId == null ? 'Doctors' : 'Doctors in Selected Hospital',
-              style: GoogleFonts.manrope(
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
-                color: AppColors.onSurface,
+            Flexible(
+              child: Text(
+                _selectedHospitalId == null ? 'Doctors' : 'Doctors in Selected Hospital',
+                style: GoogleFonts.manrope(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.onSurface,
+                ),
+                overflow: TextOverflow.ellipsis,
               ),
             ),
-            const Spacer(),
+            const SizedBox(width: 8),
             _buildSpecialtyFilter(),
           ],
         ),

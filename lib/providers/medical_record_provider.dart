@@ -66,7 +66,7 @@ class MedicalRecordsNotifier extends StateNotifier<MedicalRecordsState> {
       final fileUrl = await _repository.uploadRecordFile(
         file: file,
         fileName: fileName,
-        bucket: 'medical-records',
+        bucket: Buckets.reports,
       );
 
       // Extract data via OCR (async, non-blocking)

@@ -89,6 +89,7 @@ class _ScanRecordsScreenState extends ConsumerState<ScanRecordsScreen> {
       }
 
       showSuccessSnackBar(context, 'Record uploaded successfully.');
+      ref.invalidate(recentMedicalRecordsProvider);
       context.go(AppRoutes.passport);
     } finally {
       if (mounted) {

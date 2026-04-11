@@ -13,34 +13,21 @@ class ApprovalQueueScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final renewalsAsync = ref.watch(pendingRenewalsProvider);
 
-    return Scaffold(
-      backgroundColor: AppColors.surface,
-      appBar: AppBar(
-        backgroundColor: AppColors.surface,
-        leading: Row(
-          children: [
-            const SizedBox(width: 8),
-            Icon(Icons.medical_information_outlined, color: AppColors.primary, size: 24),
-          ],
-        ),
-        title: Text('VoxMed', style: GoogleFonts.manrope(fontSize: 22, fontWeight: FontWeight.w800, color: AppColors.primary)),
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Approvals',
-                style: GoogleFonts.manrope(fontSize: 28, fontWeight: FontWeight.w800, color: AppColors.onSurface)),
-            const SizedBox(height: 8),
-            Text('Review and authorize renewal requests from patients in your care.',
-                style: GoogleFonts.inter(fontSize: 14, color: AppColors.onSurfaceVariant, height: 1.5)),
-            const SizedBox(height: 24),
-            _buildQueueStats(renewalsAsync),
-            const SizedBox(height: 24),
-            _buildRenewalsList(context, ref, renewalsAsync),
-          ],
-        ),
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Approvals',
+              style: GoogleFonts.manrope(fontSize: 28, fontWeight: FontWeight.w800, color: AppColors.onSurface)),
+          const SizedBox(height: 8),
+          Text('Review and authorize renewal requests from patients in your care.',
+              style: GoogleFonts.inter(fontSize: 14, color: AppColors.onSurfaceVariant, height: 1.5)),
+          const SizedBox(height: 24),
+          _buildQueueStats(renewalsAsync),
+          const SizedBox(height: 24),
+          _buildRenewalsList(context, ref, renewalsAsync),
+        ],
       ),
     );
   }

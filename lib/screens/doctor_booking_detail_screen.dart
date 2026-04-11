@@ -29,6 +29,7 @@ class _DoctorBookingDetailScreenState extends ConsumerState<DoctorBookingDetailS
   final TextEditingController _reasonController = TextEditingController();
   DateTime _selectedDate = DateTime.now();
   DateTime? _selectedSlot;
+  int _slotDurationMinutes = 30;
 
   @override
   void dispose() {
@@ -84,6 +85,11 @@ class _DoctorBookingDetailScreenState extends ConsumerState<DoctorBookingDetailS
             ),
             data: (schedules) {
               final slots = _buildSlotsForDate(_selectedDate, schedules);
+              // Track current slot duration for booking
+              final daySchedules = schedules.where((s) => s.dayOfWeek == _selectedDate.weekday % 7 && s.isActive);
+              if (daySchedules.isNotEmpty) {
+                _slotDurationMinutes = daySchedules.first.slotDurationMinutes;
+              }
               return _buildContent(doctor, schedules, slots);
             },
           );
@@ -341,7 +347,7 @@ class _DoctorBookingDetailScreenState extends ConsumerState<DoctorBookingDetailS
     if (selectedSlot == null) return;
 
     final startAt = selectedSlot;
-    final endAt = selectedSlot.add(const Duration(minutes: 30));
+    final endAt = selectedSlot.add(Duration(minutes: _slotDurationMinutes));
 
     final created = await ref.read(appointmentProvider.notifier).createAppointment(
           doctorId: doctor.id,

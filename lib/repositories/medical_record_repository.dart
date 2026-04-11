@@ -1,3 +1,4 @@
+// ignore_for_file: use_null_aware_elements
 import 'dart:io';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../core/config/supabase_config.dart';
@@ -49,18 +50,18 @@ class MedicalRecordRepository {
         throw AppException(message: 'User not authenticated');
       }
 
-      final toInsert = {
+      final toInsert = <String, dynamic>{
         'patient_id': userId,
-        'doctor_id': ?doctorId,
-        'appointment_id': ?appointmentId,
         'record_type': recordType.value,
         'title': title,
-        'description': ?description,
-        'file_url': ?fileUrl,
-        'data': ?extractedData,
+        'ocr_extracted': extractedData != null,
+        if (doctorId != null) 'doctor_id': doctorId,
+        if (appointmentId != null) 'appointment_id': appointmentId,
+        if (description != null) 'description': description,
+        if (fileUrl != null) 'file_url': fileUrl,
+        if (extractedData != null) 'data': extractedData,
         if (recordDate != null)
           'record_date': recordDate.toIso8601String().split('T').first,
-        'ocr_extracted': extractedData != null,
       };
 
       final result = await supabase

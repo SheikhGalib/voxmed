@@ -8,7 +8,8 @@ import '../models/appointment.dart';
 class AppointmentRepository {
   static const String _appointmentColumns =
       'id, patient_id, doctor_id, hospital_id, scheduled_start_at, scheduled_end_at, status, type, reason, notes, '
-      'rescheduled_from, created_at, updated_at, doctors(specialty, profiles(full_name, avatar_url)), hospitals(name)';
+      'rescheduled_from, created_at, updated_at, doctors(specialty, profiles(full_name, avatar_url)), hospitals(name), '
+      'profiles!appointments_patient_id_fkey(full_name, avatar_url)';
 
   /// Create a new appointment.
   Future<Appointment> createAppointment({

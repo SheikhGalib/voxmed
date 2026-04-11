@@ -90,7 +90,7 @@ class PrescriptionRepository {
     try {
       final updates = <String, dynamic>{
         'status': status.value,
-        'reviewed_at': DateTime.now().toUtc().toIso8601String(),
+        'responded_at': DateTime.now().toUtc().toIso8601String(),
       };
       if (notes != null) {
         updates['doctor_notes'] = notes;
