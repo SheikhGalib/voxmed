@@ -14,7 +14,8 @@ class AiAssistantScreen extends ConsumerStatefulWidget {
   ConsumerState<AiAssistantScreen> createState() => _AiAssistantScreenState();
 }
 
-class _AiAssistantScreenState extends ConsumerState<AiAssistantScreen> {
+class _AiAssistantScreenState extends ConsumerState<AiAssistantScreen>
+    with TickerProviderStateMixin {
   final _controller = TextEditingController();
   String? _activeConversationId;
 
@@ -26,6 +27,9 @@ class _AiAssistantScreenState extends ConsumerState<AiAssistantScreen> {
   bool _isListening = false;
   bool _isSending = false;
   String? _lastSpokenAssistantMessageId;
+  bool _isSpeaking = false;
+  late final AnimationController _pulseController;
+  late final Animation<double> _pulseAnimation;
 
   static const String _initialPrompt =
       'Hello! I\'m your medical assistant. To help you best, could you describe what symptoms you\'re experiencing and when they started?';
@@ -33,6 +37,13 @@ class _AiAssistantScreenState extends ConsumerState<AiAssistantScreen> {
   @override
   void initState() {
     super.initState();
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+    );
+    _pulseAnimation = Tween<double>(begin: 1.0, end: 1.12).animate(
+      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
+    );
     _initVoice();
   }
 
@@ -50,8 +61,51 @@ class _AiAssistantScreenState extends ConsumerState<AiAssistantScreen> {
 
     try {
       await _tts.setLanguage('en-US');
-      await _tts.setSpeechRate(0.48);
-      await _tts.setPitch(1.05);
+      await _tts.setSpeechRate(0.45);
+      await _tts.setPitch(0.85);
+      // Attempt to select a male English voice
+      final voicesRaw = await _tts.getVoices;
+      if (voicesRaw is List) {
+        final maleVoice = voicesRaw.whereType<Map>().where((v) {
+          final name = (v['name']?.toString() ?? '').toLowerCase();
+          final locale = (v['locale']?.toString() ?? '').toLowerCase();
+          return locale.contains('en') &&
+              (name.contains('male') ||
+                  name.contains('deep') ||
+                  name.contains('david') ||
+                  name.contains('james'));
+        }).firstOrNull;
+        if (maleVoice != null) {
+          await _tts.setVoice({
+            'name': maleVoice['name']?.toString() ?? '',
+            'locale': maleVoice['locale']?.toString() ?? '',
+          });
+        }
+      }
+      _tts.setStartHandler(() {
+        if (mounted) {
+          setState(() {
+            _isSpeaking = true;
+            _pulseController.repeat(reverse: true);
+          });
+        }
+      });
+      _tts.setCompletionHandler(() {
+        if (mounted) {
+          setState(() {
+            _isSpeaking = false;
+            if (!_isListening) _pulseController.stop();
+          });
+        }
+      });
+      _tts.setCancelHandler(() {
+        if (mounted) {
+          setState(() {
+            _isSpeaking = false;
+            if (!_isListening) _pulseController.stop();
+          });
+        }
+      });
     } catch (_) {
       // Non-critical; TTS availability varies by device.
     }
@@ -66,6 +120,7 @@ class _AiAssistantScreenState extends ConsumerState<AiAssistantScreen> {
 
   @override
   void dispose() {
+    _pulseController.dispose();
     _speech.stop();
     _tts.stop();
     _controller.dispose();
@@ -114,7 +169,10 @@ class _AiAssistantScreenState extends ConsumerState<AiAssistantScreen> {
 
     if (_isListening) {
       await _speech.stop();
-      setState(() => _isListening = false);
+      setState(() {
+        _isListening = false;
+        if (!_isSpeaking) _pulseController.stop();
+      });
       if (_controller.text.trim().isNotEmpty) {
         await _sendMessage(conversationId);
       }
@@ -122,7 +180,10 @@ class _AiAssistantScreenState extends ConsumerState<AiAssistantScreen> {
     }
 
     _controller.clear();
-    setState(() => _isListening = true);
+    setState(() {
+      _isListening = true;
+      _pulseController.repeat(reverse: true);
+    });
 
     // Prevent TTS output from being captured by speech recognition.
     await _tts.stop();
@@ -142,7 +203,10 @@ class _AiAssistantScreenState extends ConsumerState<AiAssistantScreen> {
         if (result.finalResult) {
           await _speech.stop();
           if (!mounted) return;
-          setState(() => _isListening = false);
+          setState(() {
+            _isListening = false;
+            if (!_isSpeaking) _pulseController.stop();
+          });
           if (_controller.text.trim().isNotEmpty) {
             await _sendMessage(conversationId);
           }
@@ -237,14 +301,288 @@ class _AiAssistantScreenState extends ConsumerState<AiAssistantScreen> {
           ),
         ],
       ),
-      body: Column(
-        children: [
-          Expanded(
-            child: conversationId == null
-                ? _buildEmptyState()
-                : _buildMessages(conversationId),
+      body: _voiceMode
+          ? _buildVoiceModeBody(conversationId)
+          : Column(
+              children: [
+                Expanded(
+                  child: conversationId == null
+                      ? _buildEmptyState()
+                      : _buildMessages(conversationId),
+                ),
+                _buildInputBar(conversationId),
+              ],
+            ),
+    );
+  }
+
+  Widget _buildVoiceModeBody(String? conversationId) {
+    return Column(
+      children: [
+        Expanded(
+          child: Column(
+            children: [
+              const SizedBox(height: 32),
+              // Animated pulsing circle with panda avatar
+              AnimatedBuilder(
+                animation: _pulseController,
+                builder: (context, child) {
+                  final isActive = _isListening || _isSpeaking;
+                  final scale = isActive ? _pulseAnimation.value : 1.0;
+                  return Transform.scale(
+                    scale: scale,
+                    child: Container(
+                      width: 200,
+                      height: 200,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          if (isActive)
+                            BoxShadow(
+                              color: (_isListening
+                                      ? AppColors.secondary
+                                      : AppColors.primary)
+                                  .withValues(alpha: 0.3),
+                              blurRadius: 30,
+                              spreadRadius: 8,
+                            ),
+                        ],
+                      ),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.white,
+                          border: Border.all(
+                            color: isActive
+                                ? (_isListening
+                                    ? AppColors.secondary
+                                    : AppColors.primary)
+                                : AppColors.outlineVariant
+                                    .withValues(alpha: 0.3),
+                            width: isActive ? 3 : 1.5,
+                          ),
+                        ),
+                        child: child,
+                      ),
+                    ),
+                  );
+                },
+                child: const Padding(
+                  padding: EdgeInsets.all(24),
+                  child: _PandaMedicalAvatar(size: 140),
+                ),
+              ),
+              const SizedBox(height: 24),
+              // Status text
+              Text(
+                _isListening
+                    ? 'Listening…'
+                    : _isSpeaking
+                        ? 'Dr. Panda is speaking…'
+                        : _isSending
+                            ? 'Thinking…'
+                            : 'Tap the mic to speak',
+                style: GoogleFonts.inter(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: _isListening
+                      ? AppColors.secondary
+                      : _isSpeaking
+                          ? AppColors.primary
+                          : AppColors.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 16),
+              // Transcript area (scrollable)
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: Column(
+                    children: [
+                      // Live listening preview
+                      if (_isListening && _controller.text.isNotEmpty)
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 20, vertical: 12),
+                          decoration: BoxDecoration(
+                            color: AppColors.surfaceContainerLow,
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: Text(
+                            _controller.text,
+                            textAlign: TextAlign.center,
+                            style: GoogleFonts.inter(
+                              fontSize: 14,
+                              color: AppColors.onSurface,
+                              height: 1.5,
+                            ),
+                          ),
+                        ),
+                      // Initial prompt when no conversation
+                      if (conversationId == null && !_isListening)
+                        Container(
+                          margin: const EdgeInsets.only(top: 4),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 20, vertical: 12),
+                          decoration: BoxDecoration(
+                            color: AppColors.surfaceContainerLowest,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: AppColors.outlineVariant
+                                  .withValues(alpha: 0.1),
+                            ),
+                          ),
+                          child: Text(
+                            _initialPrompt,
+                            textAlign: TextAlign.center,
+                            style: GoogleFonts.inter(
+                              fontSize: 13,
+                              color: AppColors.onSurfaceVariant,
+                              height: 1.4,
+                            ),
+                          ),
+                        ),
+                      // Conversation transcript
+                      if (conversationId != null)
+                        _buildVoiceTranscript(conversationId),
+                      const SizedBox(height: 16),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ),
-          _buildInputBar(conversationId),
+        ),
+        _buildVoiceMicBar(conversationId),
+      ],
+    );
+  }
+
+  Widget _buildVoiceTranscript(String conversationId) {
+    final messagesAsync = ref.watch(aiMessagesProvider(conversationId));
+    return messagesAsync.when(
+      data: (messages) {
+        // Auto-speak latest assistant message
+        final assistant =
+            messages.where((m) => (m['role'] as String?) != 'user').toList();
+        if (assistant.isNotEmpty) {
+          final last = assistant.last;
+          final id = last['id'] as String?;
+          final content = last['content'] as String? ?? '';
+          if (id != null &&
+              id != _lastSpokenAssistantMessageId &&
+              content.trim().isNotEmpty) {
+            _lastSpokenAssistantMessageId = id;
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (!mounted || !_voiceMode) return;
+              _speak(content);
+            });
+          }
+        }
+
+        if (messages.isEmpty) return const SizedBox.shrink();
+
+        // Show last 3 messages
+        final recent = messages.length > 3
+            ? messages.sublist(messages.length - 3)
+            : messages;
+        return Column(
+          children: recent.map((msg) {
+            final role = msg['role'] as String? ?? 'assistant';
+            final content = msg['content'] as String? ?? '';
+            final isUser = role == 'user';
+            return Container(
+              width: double.infinity,
+              margin: const EdgeInsets.only(bottom: 8),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              decoration: BoxDecoration(
+                color: isUser
+                    ? AppColors.tertiaryContainer.withValues(alpha: 0.5)
+                    : AppColors.surfaceContainerLowest,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                    color: AppColors.outlineVariant.withValues(alpha: 0.1)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    isUser ? 'You' : 'Dr. Panda',
+                    style: GoogleFonts.inter(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: isUser
+                          ? AppColors.onTertiaryContainer
+                          : AppColors.primary,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    content,
+                    maxLines: 4,
+                    overflow: TextOverflow.ellipsis,
+                    style: GoogleFonts.inter(
+                      fontSize: 13,
+                      color: AppColors.onSurface,
+                      height: 1.4,
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }).toList(),
+        );
+      },
+      loading: () => const SizedBox.shrink(),
+      error: (_, __) => const SizedBox.shrink(),
+    );
+  }
+
+  Widget _buildVoiceMicBar(String? conversationId) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+      child: Column(
+        children: [
+          GestureDetector(
+            onTap: _isSending ? null : () => _toggleListening(conversationId),
+            child: Container(
+              width: 72,
+              height: 72,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: _isSending
+                    ? AppColors.onSurfaceVariant
+                    : (_isListening ? AppColors.secondary : AppColors.primary),
+                boxShadow: [
+                  BoxShadow(
+                    color: (_isListening
+                            ? AppColors.secondary
+                            : AppColors.primary)
+                        .withValues(alpha: 0.3),
+                    blurRadius: 16,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Icon(
+                _isSending
+                    ? Icons.hourglass_top
+                    : (_isListening ? Icons.stop : Icons.mic),
+                color: Colors.white,
+                size: 32,
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            _isListening ? 'Tap to stop' : 'Tap to speak',
+            style: GoogleFonts.inter(
+              fontSize: 12,
+              color: AppColors.onSurfaceVariant,
+            ),
+          ),
         ],
       ),
     );
@@ -943,6 +1281,148 @@ class _AiAssistantScreenState extends ConsumerState<AiAssistantScreen> {
       },
     );
   }
+}
+
+class _PandaMedicalAvatar extends StatelessWidget {
+  final double size;
+  const _PandaMedicalAvatar({this.size = 120});
+
+  @override
+  Widget build(BuildContext context) {
+    return CustomPaint(
+      size: Size(size, size),
+      painter: const _PandaPainter(),
+    );
+  }
+}
+
+class _PandaPainter extends CustomPainter {
+  const _PandaPainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final cx = size.width / 2;
+    final cy = size.height / 2;
+    final r = size.width / 2;
+
+    final darkPaint = Paint()..color = const Color(0xFF2D2D2D);
+    final whitePaint = Paint()..color = Colors.white;
+
+    // Ears
+    canvas.drawCircle(
+        Offset(cx - r * 0.58, cy - r * 0.52), r * 0.28, darkPaint);
+    canvas.drawCircle(
+        Offset(cx + r * 0.58, cy - r * 0.52), r * 0.28, darkPaint);
+    // Inner ears
+    canvas.drawCircle(Offset(cx - r * 0.58, cy - r * 0.52), r * 0.15,
+        Paint()..color = const Color(0xFF555555));
+    canvas.drawCircle(Offset(cx + r * 0.58, cy - r * 0.52), r * 0.15,
+        Paint()..color = const Color(0xFF555555));
+
+    // Face
+    canvas.drawCircle(Offset(cx, cy), r * 0.7, whitePaint);
+    canvas.drawCircle(
+        Offset(cx, cy),
+        r * 0.7,
+        Paint()
+          ..color = const Color(0xFFE8E8E8)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1.2);
+
+    // Eye patches
+    canvas.drawOval(
+      Rect.fromCenter(
+          center: Offset(cx - r * 0.24, cy - r * 0.1),
+          width: r * 0.36,
+          height: r * 0.28),
+      darkPaint,
+    );
+    canvas.drawOval(
+      Rect.fromCenter(
+          center: Offset(cx + r * 0.24, cy - r * 0.1),
+          width: r * 0.36,
+          height: r * 0.28),
+      darkPaint,
+    );
+
+    // Eyes
+    canvas.drawCircle(
+        Offset(cx - r * 0.22, cy - r * 0.1), r * 0.1, whitePaint);
+    canvas.drawCircle(
+        Offset(cx + r * 0.22, cy - r * 0.1), r * 0.1, whitePaint);
+    // Pupils
+    canvas.drawCircle(
+        Offset(cx - r * 0.19, cy - r * 0.1), r * 0.05, darkPaint);
+    canvas.drawCircle(
+        Offset(cx + r * 0.19, cy - r * 0.1), r * 0.05, darkPaint);
+    // Eye highlights
+    canvas.drawCircle(
+        Offset(cx - r * 0.21, cy - r * 0.13), r * 0.025, whitePaint);
+    canvas.drawCircle(
+        Offset(cx + r * 0.21, cy - r * 0.13), r * 0.025, whitePaint);
+
+    // Blush
+    final blushPaint = Paint()
+      ..color = const Color(0xFFFFCDD2).withValues(alpha: 0.6);
+    canvas.drawCircle(
+        Offset(cx - r * 0.38, cy + r * 0.05), r * 0.08, blushPaint);
+    canvas.drawCircle(
+        Offset(cx + r * 0.38, cy + r * 0.05), r * 0.08, blushPaint);
+
+    // Nose
+    canvas.drawOval(
+      Rect.fromCenter(
+          center: Offset(cx, cy + r * 0.1),
+          width: r * 0.14,
+          height: r * 0.1),
+      darkPaint,
+    );
+    // Nose highlight
+    canvas.drawCircle(Offset(cx - r * 0.02, cy + r * 0.08), r * 0.02,
+        Paint()..color = const Color(0xFF555555));
+
+    // Mouth
+    final mouthPaint = Paint()
+      ..color = const Color(0xFF2D2D2D)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.5
+      ..strokeCap = StrokeCap.round;
+    final mouth = Path()
+      ..moveTo(cx - r * 0.06, cy + r * 0.18)
+      ..quadraticBezierTo(cx, cy + r * 0.24, cx + r * 0.06, cy + r * 0.18);
+    canvas.drawPath(mouth, mouthPaint);
+
+    // Stethoscope tube
+    final stethPaint = Paint()
+      ..color = const Color(0xFF4CAF50)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.5
+      ..strokeCap = StrokeCap.round;
+    final stethTube = Path()
+      ..moveTo(cx - r * 0.32, cy + r * 0.35)
+      ..quadraticBezierTo(
+          cx - r * 0.35, cy + r * 0.55, cx - r * 0.1, cy + r * 0.65)
+      ..quadraticBezierTo(
+          cx + r * 0.05, cy + r * 0.72, cx + r * 0.1, cy + r * 0.65)
+      ..quadraticBezierTo(
+          cx + r * 0.35, cy + r * 0.55, cx + r * 0.32, cy + r * 0.35);
+    canvas.drawPath(stethTube, stethPaint);
+
+    // Earpieces
+    canvas.drawCircle(Offset(cx - r * 0.32, cy + r * 0.35), r * 0.035,
+        Paint()..color = const Color(0xFF4CAF50));
+    canvas.drawCircle(Offset(cx + r * 0.32, cy + r * 0.35), r * 0.035,
+        Paint()..color = const Color(0xFF4CAF50));
+
+    // Chest piece
+    canvas.drawCircle(Offset(cx, cy + r * 0.72), r * 0.07,
+        Paint()..color = const Color(0xFF4CAF50));
+    canvas.drawCircle(Offset(cx, cy + r * 0.72), r * 0.04,
+        Paint()..color = const Color(0xFF66BB6A));
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
 class _FollowUpChip extends StatelessWidget {
