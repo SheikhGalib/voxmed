@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../screens/auth/login_screen.dart';
@@ -24,10 +26,14 @@ import '../../core/constants/app_constants.dart';
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
 final _patientShellKey = GlobalKey<NavigatorState>();
 final _doctorShellKey = GlobalKey<NavigatorState>();
+final _authRefreshListenable = _GoRouterRefreshStream(
+  supabase.auth.onAuthStateChange,
+);
 
 final appRouter = GoRouter(
   navigatorKey: _rootNavigatorKey,
   initialLocation: AppRoutes.login,
+  refreshListenable: _authRefreshListenable,
   redirect: (context, state) {
     final isAuthenticated = supabase.auth.currentSession != null;
     final isAuthRoute =
@@ -155,6 +161,22 @@ final appRouter = GoRouter(
     ),
   ],
 );
+
+class _GoRouterRefreshStream extends ChangeNotifier {
+  _GoRouterRefreshStream(Stream<dynamic> stream) {
+    _subscription = stream.asBroadcastStream().listen((_) {
+      notifyListeners();
+    });
+  }
+
+  late final StreamSubscription<dynamic> _subscription;
+
+  @override
+  void dispose() {
+    _subscription.cancel();
+    super.dispose();
+  }
+}
 
 /// Patient shell with AppBar, BottomNav, and AI FAB.
 class _PatientShell extends StatelessWidget {

@@ -2,20 +2,29 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/config/supabase_config.dart';
 import '../core/constants/app_constants.dart';
 import '../models/prescription.dart';
+import '../repositories/ai_repository.dart';
 import '../repositories/prescription_repository.dart';
 
 final prescriptionRepositoryProvider = Provider<PrescriptionRepository>((ref) {
   return PrescriptionRepository();
 });
 
+final aiRepositoryProvider = Provider<AiRepository>((ref) {
+  return AiRepository();
+});
+
 /// Prescriptions for the current patient.
-final patientPrescriptionsProvider = FutureProvider<List<Prescription>>((ref) async {
+final patientPrescriptionsProvider = FutureProvider<List<Prescription>>((
+  ref,
+) async {
   final repo = ref.read(prescriptionRepositoryProvider);
   return repo.listByPatient();
 });
 
 /// Pending renewal requests for the logged-in doctor.
-final pendingRenewalsProvider = FutureProvider<List<Map<String, dynamic>>>((ref) async {
+final pendingRenewalsProvider = FutureProvider<List<Map<String, dynamic>>>((
+  ref,
+) async {
   final repo = ref.read(prescriptionRepositoryProvider);
   // Look up doctor row from profile id
   final uid = supabase.auth.currentUser?.id;
@@ -32,12 +41,17 @@ final pendingRenewalsProvider = FutureProvider<List<Map<String, dynamic>>>((ref)
 });
 
 /// Adherence statistics for the current patient (last 30 days).
-final adherenceStatsProvider = FutureProvider<Map<String, dynamic>>((ref) async {
+final adherenceStatsProvider = FutureProvider<Map<String, dynamic>>((
+  ref,
+) async {
   final uid = supabase.auth.currentUser?.id;
   if (uid == null) return {};
 
   try {
-    final cutoff = DateTime.now().subtract(const Duration(days: 30)).toUtc().toIso8601String();
+    final cutoff = DateTime.now()
+        .subtract(const Duration(days: 30))
+        .toUtc()
+        .toIso8601String();
     final data = await supabase
         .from(Tables.adherenceLogs)
         .select('status')
@@ -114,7 +128,9 @@ final wearableDataProvider = FutureProvider<Map<String, dynamic>>((ref) async {
 });
 
 /// Doctor's appointment list for today (clinical dashboard schedule).
-final doctorTodayAppointmentsProvider = FutureProvider<List<Map<String, dynamic>>>((ref) async {
+final doctorTodayAppointmentsProvider = FutureProvider<List<Map<String, dynamic>>>((
+  ref,
+) async {
   final uid = supabase.auth.currentUser?.id;
   if (uid == null) return [];
 
@@ -127,12 +143,25 @@ final doctorTodayAppointmentsProvider = FutureProvider<List<Map<String, dynamic>
     if (doctorRow == null) return [];
 
     final today = DateTime.now();
-    final startOfDay = DateTime(today.year, today.month, today.day).toUtc().toIso8601String();
-    final endOfDay = DateTime(today.year, today.month, today.day, 23, 59, 59).toUtc().toIso8601String();
+    final startOfDay = DateTime(
+      today.year,
+      today.month,
+      today.day,
+    ).toUtc().toIso8601String();
+    final endOfDay = DateTime(
+      today.year,
+      today.month,
+      today.day,
+      23,
+      59,
+      59,
+    ).toUtc().toIso8601String();
 
     final data = await supabase
         .from(Tables.appointments)
-        .select('id, scheduled_start_at, scheduled_end_at, status, type, reason, profiles!appointments_patient_id_fkey(full_name, avatar_url)')
+        .select(
+          'id, scheduled_start_at, scheduled_end_at, status, type, reason, profiles!appointments_patient_id_fkey(full_name, avatar_url)',
+        )
         .eq('doctor_id', doctorRow['id'])
         .gte('scheduled_start_at', startOfDay)
         .lte('scheduled_start_at', endOfDay)
@@ -186,7 +215,9 @@ final doctorStatsProvider = FutureProvider<Map<String, dynamic>>((ref) async {
 });
 
 /// Consultation sessions for a doctor.
-final consultationSessionsProvider = FutureProvider<List<Map<String, dynamic>>>((ref) async {
+final consultationSessionsProvider = FutureProvider<List<Map<String, dynamic>>>((
+  ref,
+) async {
   final uid = supabase.auth.currentUser?.id;
   if (uid == null) return [];
 
@@ -200,7 +231,9 @@ final consultationSessionsProvider = FutureProvider<List<Map<String, dynamic>>>(
 
     final sessions = await supabase
         .from(Tables.consultationMembers)
-        .select('session_id, role, consultation_sessions(id, title, status, notes, soap_note, created_at, profiles!consultation_sessions_patient_id_fkey(full_name, avatar_url, date_of_birth, gender, blood_group))')
+        .select(
+          'session_id, role, consultation_sessions(id, title, status, notes, soap_note, created_at, profiles!consultation_sessions_patient_id_fkey(full_name, avatar_url, date_of_birth, gender, blood_group))',
+        )
         .eq('doctor_id', doctorRow['id'])
         .order('joined_at', ascending: false);
 
@@ -211,33 +244,27 @@ final consultationSessionsProvider = FutureProvider<List<Map<String, dynamic>>>(
 });
 
 /// AI Conversations for the current patient.
-final aiConversationsProvider = FutureProvider<List<Map<String, dynamic>>>((ref) async {
-  final uid = supabase.auth.currentUser?.id;
-  if (uid == null) return [];
-
+final aiConversationsProvider = FutureProvider<List<Map<String, dynamic>>>((
+  ref,
+) async {
+  final repo = ref.read(aiRepositoryProvider);
   try {
-    final data = await supabase
-        .from(Tables.aiConversations)
-        .select('id, title, triage_result, created_at, updated_at')
-        .eq('patient_id', uid)
-        .order('updated_at', ascending: false)
-        .limit(10);
-    return List<Map<String, dynamic>>.from(data);
-  } catch (e) {
+    return repo.listConversations(limit: 20);
+  } catch (_) {
     return [];
   }
 });
 
 /// AI Messages for a given conversation.
-final aiMessagesProvider = FutureProvider.family<List<Map<String, dynamic>>, String>((ref, conversationId) async {
-  try {
-    final data = await supabase
-        .from(Tables.aiMessages)
-        .select('id, role, content, metadata, created_at')
-        .eq('conversation_id', conversationId)
-        .order('created_at', ascending: true);
-    return List<Map<String, dynamic>>.from(data);
-  } catch (e) {
-    return [];
-  }
-});
+final aiMessagesProvider =
+    FutureProvider.family<List<Map<String, dynamic>>, String>((
+      ref,
+      conversationId,
+    ) async {
+      final repo = ref.read(aiRepositoryProvider);
+      try {
+        return repo.listMessages(conversationId);
+      } catch (_) {
+        return [];
+      }
+    });

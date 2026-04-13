@@ -1,6 +1,6 @@
 # VoxMed Connect — Progress Tracker
 
-> **Last Updated:** 2026-04-10
+> **Last Updated:** 2026-04-14
 
 ---
 
@@ -89,13 +89,27 @@
 
 ---
 
-## Phase 4: AI Triage (🔄 In Progress)
+## Phase 4: AI Assistant (Chat → Voice → Agentic) (🔄 In Progress)
+
+Rollout plan (3 parts):
+
+1) **Chat (text only):** Gemini triage responses stored in `ai_messages`
+2) **Voice:** speech-to-text + text-to-speech on the AI assistant screen
+3) **Agentic workflows:** tool-driven actions (doctor selection, tests, scheduling) with explicit user approval
 
 | Task | Status | Date | Notes |
 |------|--------|------|-------|
-| Deploy `gemini-triage` Edge Function | ⏳ | | Backend deployment still pending |
-| Build AI repository + providers | ✅ | 2026-04-07 | Conversation/message providers added |
-| Connect AI Assistant to live API | ✅ | 2026-04-07 | AI Assistant screen now reads/writes Supabase conversations/messages |
+| Validate AI chat schema for session history + deletion | ✅ | 2026-04-14 | `ai_messages.conversation_id` uses `ON DELETE CASCADE`; RLS policies restrict access to owner sessions/messages |
+| Implement `gemini-triage` source with key fallback | ✅ | 2026-04-14 | Added `supabase/functions/gemini-triage/` with `GEMINI_API_KEY_1..N` fallback on rate limits |
+| Deploy `gemini-triage` Edge Function to Supabase | ✅ | 2026-04-14 | Linked project `jedgnisrjwemhazherro`, uploaded Gemini secrets, deployed function (active) |
+| Wire AI Assistant “Send” → `gemini-triage` response | ✅ | 2026-04-14 | `AiRepository.sendMessage()` now invokes Edge Function and refreshes conversation/message providers |
+| AI conversation/message read providers | ✅ | 2026-04-07 | `aiConversationsProvider` + `aiMessagesProvider` (Supabase tables) |
+| AI Assistant chat persistence (create conversation + insert user messages) | ✅ | 2026-04-07 | Writes to `ai_conversations` + `ai_messages` |
+| Chat session controls (new, resume old, delete old) | ✅ | 2026-04-14 | Added history sheet + session switch + delete flow in AI assistant screen |
+| Editable system prompts for patient/doctor roles | ✅ | 2026-04-14 | Added `supabase/functions/gemini-triage/system_prompts.json` |
+| Foreground voice scaffolding (speech-to-text + TTS) | ✅ | | Implemented via `speech_to_text` + `flutter_tts` in AI assistant screen |
+| Triage result → suggested specialty + doctor list | 🔄 | 2026-04-14 | Edge function now returns structured triage JSON; Find Care deep-link UI still pending |
+| Agentic workflows (appointments/tests/med scheduling) | ⏳ | | Planned: requires safe tool orchestration + audit logging |
 
 ---
 
@@ -163,6 +177,8 @@
 | Build and deploy debug APK to device | ✅ | 2026-04-08 | Debug APK built successfully after Gradle fix |
 | Repair doctor signup flow | ✅ | 2026-04-08 | Doctor accounts now create/repair `doctors` rows on sign-up and login |
 | Expand Find Care search to doctors | ✅ | 2026-04-08 | Shared search bar now filters doctor results by name, specialty, and hospital |
+| Implement AI Chat Part 1 code path | ✅ | 2026-04-14 | Added `gemini-triage` function source, AI repository invocation, and chat session history controls |
+| Configure Supabase CLI + cloud deploy for AI chat | ✅ | 2026-04-14 | Installed local CLI flow (`npx supabase`), linked cloud project, set secrets, verified endpoint no longer returns 404 |
 
 ---
 
