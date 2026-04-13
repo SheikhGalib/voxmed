@@ -30,7 +30,8 @@ final appRouter = GoRouter(
   initialLocation: AppRoutes.login,
   redirect: (context, state) {
     final isAuthenticated = supabase.auth.currentSession != null;
-    final isAuthRoute = state.uri.path == AppRoutes.login ||
+    final isAuthRoute =
+        state.uri.path == AppRoutes.login ||
         state.uri.path == AppRoutes.register;
 
     // If not authenticated and not on auth route, redirect to login
@@ -73,27 +74,23 @@ final appRouter = GoRouter(
       routes: [
         GoRoute(
           path: AppRoutes.dashboard,
-          pageBuilder: (context, state) => const NoTransitionPage(
-            child: DashboardScreen(),
-          ),
+          pageBuilder: (context, state) =>
+              const NoTransitionPage(child: DashboardScreen()),
         ),
         GoRoute(
           path: AppRoutes.findCare,
-          pageBuilder: (context, state) => const NoTransitionPage(
-            child: FindCareScreen(),
-          ),
+          pageBuilder: (context, state) =>
+              const NoTransitionPage(child: FindCareScreen()),
         ),
         GoRoute(
           path: AppRoutes.passport,
-          pageBuilder: (context, state) => const NoTransitionPage(
-            child: HealthPassportScreen(),
-          ),
+          pageBuilder: (context, state) =>
+              const NoTransitionPage(child: HealthPassportScreen()),
         ),
         GoRoute(
           path: AppRoutes.health,
-          pageBuilder: (context, state) => const NoTransitionPage(
-            child: HealthAnalyticsScreen(),
-          ),
+          pageBuilder: (context, state) =>
+              const NoTransitionPage(child: HealthAnalyticsScreen()),
         ),
       ],
     ),
@@ -107,21 +104,18 @@ final appRouter = GoRouter(
       routes: [
         GoRoute(
           path: AppRoutes.clinicalDashboard,
-          pageBuilder: (context, state) => const NoTransitionPage(
-            child: ClinicalDashboardScreen(),
-          ),
+          pageBuilder: (context, state) =>
+              const NoTransitionPage(child: ClinicalDashboardScreen()),
         ),
         GoRoute(
           path: AppRoutes.approvalQueue,
-          pageBuilder: (context, state) => const NoTransitionPage(
-            child: ApprovalQueueScreen(),
-          ),
+          pageBuilder: (context, state) =>
+              const NoTransitionPage(child: ApprovalQueueScreen()),
         ),
         GoRoute(
           path: AppRoutes.collaborativeHub,
-          pageBuilder: (context, state) => const NoTransitionPage(
-            child: CollaborativeHubScreen(),
-          ),
+          pageBuilder: (context, state) =>
+              const NoTransitionPage(child: CollaborativeHubScreen()),
         ),
       ],
     ),
@@ -177,6 +171,8 @@ class _PatientShell extends StatelessWidget {
       appBar: const VoxmedAppBar(),
       body: child,
       floatingActionButton: AiFab(
+        showGreeting: currentIndex == 0,
+        greetingText: 'Hi',
         onPressed: () => context.push(AppRoutes.aiAssistant),
       ),
       bottomNavigationBar: VoxmedBottomNav(
@@ -223,6 +219,11 @@ class _DoctorShell extends StatelessWidget {
     return Scaffold(
       appBar: const VoxmedAppBar(),
       body: child,
+      floatingActionButton: AiFab(
+        showGreeting: currentIndex == 0,
+        greetingText: 'Hi',
+        onPressed: () => context.push(AppRoutes.aiAssistant),
+      ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: currentIndex,
         onDestinationSelected: (index) {
