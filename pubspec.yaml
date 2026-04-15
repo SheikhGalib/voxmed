@@ -18,6 +18,9 @@ dependencies:
   image_picker: ^1.1.2
   speech_to_text: ^7.3.0
   flutter_tts: ^4.2.5
+  zego_uikit_prebuilt_call: ^4.22.0
+  zego_uikit_signaling_plugin: ^2.10.0
+  permission_handler: ^11.3.0
 
 dev_dependencies:
   flutter_test:

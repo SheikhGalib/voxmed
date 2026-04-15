@@ -13,6 +13,7 @@ import '../../screens/doctor_booking_detail_screen.dart';
 import '../../screens/scan_records_screen.dart';
 import '../../screens/prescription_renewals_screen.dart';
 import '../../screens/live_consultation_screen.dart';
+import '../../screens/video_call_screen.dart';
 import '../../screens/clinical_dashboard_screen.dart';
 import '../../screens/collaborative_hub_screen.dart';
 import '../../screens/approval_queue_screen.dart';
@@ -158,6 +159,14 @@ final appRouter = GoRouter(
       path: AppRoutes.liveConsultation,
       parentNavigatorKey: _rootNavigatorKey,
       builder: (context, state) => const LiveConsultationScreen(),
+    ),
+    GoRoute(
+      path: AppRoutes.videoCall,
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (context, state) => VideoCallScreen(
+        roomId: state.uri.queryParameters['roomId'] ?? '',
+        videoCallId: state.uri.queryParameters['videoCallId'],
+      ),
     ),
   ],
 );

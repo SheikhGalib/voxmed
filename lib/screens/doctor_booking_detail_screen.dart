@@ -15,6 +15,7 @@ import '../widgets/empty_state_widget.dart';
 import '../widgets/error_widget.dart';
 import '../widgets/loading_indicator.dart';
 import '../widgets/voxmed_card.dart';
+import '../providers/video_call_provider.dart';
 
 class DoctorBookingDetailScreen extends ConsumerStatefulWidget {
   final String? doctorId;
@@ -30,6 +31,7 @@ class _DoctorBookingDetailScreenState extends ConsumerState<DoctorBookingDetailS
   DateTime _selectedDate = DateTime.now();
   DateTime? _selectedSlot;
   int _slotDurationMinutes = 30;
+  AppointmentType _selectedType = AppointmentType.inPerson;
 
   @override
   void dispose() {
@@ -127,6 +129,8 @@ class _DoctorBookingDetailScreenState extends ConsumerState<DoctorBookingDetailS
                   )
                 else
                   _buildSlots(slots),
+                const SizedBox(height: 16),
+                _buildAppointmentTypeToggle(),
                 const SizedBox(height: 16),
                 TextField(
                   controller: _reasonController,
@@ -354,7 +358,7 @@ class _DoctorBookingDetailScreenState extends ConsumerState<DoctorBookingDetailS
           hospitalId: doctor.hospitalId,
           startAt: startAt,
           endAt: endAt,
-          type: AppointmentType.inPerson,
+          type: _selectedType,
           reason: _reasonController.text.trim().isEmpty ? null : _reasonController.text.trim(),
         );
 
@@ -366,6 +370,19 @@ class _DoctorBookingDetailScreenState extends ConsumerState<DoctorBookingDetailS
       showErrorSnackBar(context, errorMessage);
       return;
     }
+
+    // Auto-create video call room for video appointments
+    if (_selectedType == AppointmentType.video) {
+      final vcRepo = ref.read(videoCallRepositoryProvider);
+      await createVideoCallForAppointment(
+        repo: vcRepo,
+        appointmentId: created.id,
+        patientId: created.patientId,
+        doctorId: created.doctorId,
+      );
+    }
+
+    if (!mounted) return;
 
     showSuccessSnackBar(context, 'Appointment booked successfully.');
     ref.invalidate(upcomingAppointmentsProvider);

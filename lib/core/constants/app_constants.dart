@@ -24,6 +24,7 @@ class AppRoutes {
   static const String approvalQueue = '/approval-queue';
   static const String collaborativeHub = '/collaborative-hub';
   static const String liveConsultation = '/live-consultation';
+  static const String videoCall = '/video-call';
 }
 
 /// Supabase table names — single source of truth.
@@ -49,6 +50,7 @@ class Tables {
   static const String notifications = 'notifications';
   static const String reviews = 'reviews';
   static const String wearableData = 'wearable_data';
+  static const String videoCalls = 'video_calls';
 }
 
 /// Storage bucket names.
@@ -245,6 +247,9 @@ enum NotificationType {
   consultationInvite,
   aiTriageResult,
   doctorAbsence,
+  videoCallScheduled,
+  videoCallStarting,
+  videoCallMissed,
   general;
 
   String get value {
