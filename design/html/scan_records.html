@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Smart Health Passport - Document Scan</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&amp;family=Inter:wght@400;500;600&amp;family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "secondary-container": "#c9e7f7",
+              "surface-container": "#ebeeef",
+              "on-tertiary-container": "#445e4a",
+              "surface": "#f9f9f9",
+              "surface-container-lowest": "#ffffff",
+              "error": "#9e422c",
+              "primary-fixed-dim": "#95e88f",
+              "inverse-surface": "#0c0f0f",
+              "on-primary-fixed-variant": "#176a21",
+              "background": "#f9f9f9",
+              "on-tertiary-fixed": "#324c39",
+              "surface-tint": "#1b6d24",
+              "outline-variant": "#adb3b4",
+              "primary-dim": "#076019",
+              "surface-variant": "#dde4e5",
+              "surface-container-low": "#f2f4f4",
+              "tertiary-container": "#d7f6db",
+              "on-surface": "#2d3435",
+              "on-error-container": "#742410",
+              "on-primary-fixed": "#004b0f",
+              "on-background": "#2d3435",
+              "error-dim": "#5c1202",
+              "on-primary-container": "#065f18",
+              "surface-dim": "#d4dbdd",
+              "secondary-fixed-dim": "#bbd9e9",
+              "on-secondary-fixed": "#264350",
+              "on-secondary": "#f3faff",
+              "outline": "#757c7d",
+              "inverse-on-surface": "#9c9d9d",
+              "secondary": "#466370",
+              "surface-container-high": "#e4e9ea",
+              "surface-bright": "#f9f9f9",
+              "on-error": "#fff7f6",
+              "error-container": "#fe8b70",
+              "on-secondary-container": "#395663",
+              "on-tertiary-fixed-variant": "#4e6954",
+              "secondary-fixed": "#c9e7f7",
+              "on-tertiary": "#e8ffe9",
+              "primary-fixed": "#a3f69c",
+              "on-surface-variant": "#5a6061",
+              "tertiary": "#4b6551",
+              "tertiary-fixed-dim": "#c9e7cd",
+              "surface-container-highest": "#dde4e5",
+              "on-primary": "#e5ffdd",
+              "tertiary-dim": "#3f5945",
+              "inverse-primary": "#9df197",
+              "primary-container": "#a3f69c",
+              "tertiary-fixed": "#d7f6db",
+              "secondary-dim": "#3a5764",
+              "primary": "#1b6d24",
+              "on-secondary-fixed-variant": "#435f6d"
+            },
+            fontFamily: {
+              "headline": ["Manrope"],
+              "body": ["Inter"],
+              "label": ["Inter"]
+            },
+            borderRadius: {"DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem"},
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .scan-line {
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #1b6d24, transparent);
+            box-shadow: 0 0 15px #95e88f;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface font-body text-on-surface min-h-screen pb-24">
+<!-- Top Navigation Anchor -->
+<header class="fixed top-0 left-0 w-full z-50 flex items-center justify-between px-6 py-4 bg-[#f9f9f9]/80 backdrop-blur-lg shadow-[0_24px_24px_-4px_rgba(45,52,53,0.06)]">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full overflow-hidden bg-surface-container-highest">
+<img alt="Patient Avatar" class="w-full h-full object-cover" data-alt="Portrait of a young patient female" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAtUPjZ-8plLT5Anvx30ze_8C5DG1n9C7eh06c84vx-AWjYymSTKUGbPy2Hm1tpxXnYe2F3wpKkSaRudcqoWTZhs3GQVMWHw5sjDcL17AWYNC6MVWuuuo-yXvCdOroDISVt3tgo2R5hhmfJ9e841JYr-vyTv__-sOtVETFg7yHdL6rWardf2oegL4gXzaNakqh5sWwo2IRPwe2_GNsy9D3U3lCpRyk2_f_FzrvMDjUTae5qwUZjnI8auXB8etKTRX5jWAO3nZEk0QQ"/>
+</div>
+<span class="font-headline font-extrabold text-xl tracking-tight text-[#2E7D32]">VoxMed</span>
+</div>
+<button class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-[#ebeeef] transition-colors active:scale-95 duration-200">
+<span class="material-symbols-outlined text-on-surface-variant">notifications</span>
+</button>
+</header>
+<main class="pt-24 px-6 max-w-4xl mx-auto space-y-12">
+<!-- Hero Section: Scan Action -->
+<section class="space-y-6">
+<div class="space-y-2">
+<h1 class="font-headline text-4xl font-extrabold tracking-tight text-on-primary-fixed">Smart Health Passport</h1>
+<p class="text-on-surface-variant body-lg max-w-xl">Digitize your medical history instantly. Our AI extracts key data from prescriptions and reports with surgical precision.</p>
+</div>
+<!-- Bento Grid Scanning Interface -->
+<div class="grid grid-cols-1 md:grid-cols-12 gap-6">
+<!-- Viewfinder / Camera UI -->
+<div class="md:col-span-8 bg-inverse-surface rounded-[2rem] overflow-hidden relative aspect-[4/3] shadow-2xl group">
+<img alt="Medical Document Viewfinder" class="w-full h-full object-cover opacity-60 grayscale-[40%]" data-alt="Close up of a medical prescription paper on a table" src="https://lh3.googleusercontent.com/aida-public/AB6AXuApEvJCdDfUGYDg6gm290T57WwtYju1HFdy4dXM2SrWX4i4Gac9y3Pm8GfborqAvoKzAJ_mV2pLhZwIxPb2d995bYRUhAURW5jLEJldmKKnV3ZfWgpymCON75-nINUsB0N1j0c-XucOISClvKv2mg6U8zdYW8WlzVepgMYCM5GpiHEgD8HjClWm3dmG667IebzxHlvx_G6R00B3IDfRMF_p9cshaFQGp9DFwEXUG6EbtvT3o0l20RM6QWDwxNBFKStSwjNJoBEuHQQ"/>
+<!-- Viewfinder Overlay -->
+<div class="absolute inset-0 border-[24px] border-black/40 pointer-events-none"></div>
+<div class="absolute inset-12 border-2 border-dashed border-white/40 rounded-xl flex flex-col items-center justify-center">
+<div class="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-primary-fixed"></div>
+<div class="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-primary-fixed"></div>
+<div class="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-primary-fixed"></div>
+<div class="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-primary-fixed"></div>
+<div class="flex flex-col items-center gap-4">
+<span class="material-symbols-outlined text-white text-5xl opacity-80">document_scanner</span>
+<span class="text-white/80 font-semibold tracking-wide uppercase text-xs">Align Document within frame</span>
+</div>
+</div>
+<!-- Scanning Processing State (Overlay) -->
+<div class="absolute inset-0 bg-primary/20 backdrop-blur-sm flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+<div class="w-full relative">
+<div class="scan-line absolute w-full top-0"></div>
+</div>
+<div class="bg-surface-container-lowest/90 px-6 py-4 rounded-full shadow-xl flex items-center gap-3">
+<div class="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+<span class="text-on-surface font-semibold text-sm">AI is scanning and extracting data (OCR)...</span>
+</div>
+</div>
+<!-- Camera Control Chips -->
+<div class="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-4">
+<button class="bg-white/20 hover:bg-white/40 backdrop-blur-md p-4 rounded-full text-white transition-all">
+<span class="material-symbols-outlined">flash_on</span>
+</button>
+<button class="bg-gradient-to-br from-primary to-primary-dim p-6 rounded-full text-on-primary shadow-2xl scale-110 active:scale-95 transition-transform">
+<span class="material-symbols-outlined text-3xl">photo_camera</span>
+</button>
+<button class="bg-white/20 hover:bg-white/40 backdrop-blur-md p-4 rounded-full text-white transition-all">
+<span class="material-symbols-outlined">image</span>
+</button>
+</div>
+</div>
+<!-- Guidance & Tips -->
+<div class="md:col-span-4 space-y-6">
+<div class="bg-tertiary-container p-8 rounded-[2rem] flex flex-col justify-between h-full">
+<div class="space-y-4">
+<div class="w-12 h-12 bg-on-tertiary-container/10 rounded-2xl flex items-center justify-center">
+<span class="material-symbols-outlined text-on-tertiary-container">lightbulb</span>
+</div>
+<h3 class="font-headline text-xl font-bold text-on-tertiary-container leading-tight">Pro Tips for Best OCR Accuracy</h3>
+<ul class="space-y-4 pt-2">
+<li class="flex items-start gap-3">
+<span class="material-symbols-outlined text-primary text-sm mt-1">check_circle</span>
+<span class="text-sm text-on-tertiary-fixed-variant leading-relaxed">Ensure bright, natural lighting without harsh shadows.</span>
+</li>
+<li class="flex items-start gap-3">
+<span class="material-symbols-outlined text-primary text-sm mt-1">check_circle</span>
+<span class="text-sm text-on-tertiary-fixed-variant leading-relaxed">Flatten the paper to avoid distortion in the AI model.</span>
+</li>
+<li class="flex items-start gap-3">
+<span class="material-symbols-outlined text-primary text-sm mt-1">check_circle</span>
+<span class="text-sm text-on-tertiary-fixed-variant leading-relaxed">Include headers and date stamps for better categorization.</span>
+</li>
+</ul>
+</div>
+<div class="pt-6">
+<button class="w-full bg-white text-on-tertiary-fixed font-bold py-4 rounded-full hover:bg-surface-bright transition-colors text-sm shadow-sm">
+                                View Help Guide
+                            </button>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Extracted Data View Section -->
+<section class="space-y-8 pb-12">
+<div class="flex items-center justify-between">
+<div class="space-y-1">
+<h2 class="font-headline text-2xl font-bold text-on-surface">Extracted Data View</h2>
+<p class="text-on-surface-variant text-sm">Review digitized information before saving.</p>
+</div>
+<div class="flex items-center gap-2 bg-primary-container px-3 py-1 rounded-full">
+<span class="w-2 h-2 bg-primary rounded-full animate-pulse"></span>
+<span class="text-[10px] font-bold uppercase tracking-widest text-on-primary-container">AI Verified</span>
+</div>
+</div>
+<!-- Asymmetric Data Cards -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+<!-- Prescription Details Card -->
+<div class="md:col-span-2 bg-surface-container-lowest p-8 rounded-[2rem] shadow-[0_24px_48px_-12px_rgba(0,0,0,0.05)] border border-outline-variant/10">
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-8">
+<div class="space-y-6">
+<div class="group">
+<label class="text-[10px] font-bold uppercase tracking-widest text-outline block mb-2">Medication Name</label>
+<div class="bg-surface-container-low px-4 py-3 rounded-xl border border-transparent focus-within:border-primary/30 transition-all">
+<input class="bg-transparent border-none p-0 w-full text-on-surface font-semibold focus:ring-0" type="text" value="Amoxicillin 500mg"/>
+</div>
+</div>
+<div class="group">
+<label class="text-[10px] font-bold uppercase tracking-widest text-outline block mb-2">Dosage / Frequency</label>
+<div class="bg-surface-container-low px-4 py-3 rounded-xl border border-transparent focus-within:border-primary/30 transition-all">
+<input class="bg-transparent border-none p-0 w-full text-on-surface font-semibold focus:ring-0" type="text" value="1 capsule, 3 times a day"/>
+</div>
+</div>
+</div>
+<div class="space-y-6">
+<div class="group">
+<label class="text-[10px] font-bold uppercase tracking-widest text-outline block mb-2">Doctor Name</label>
+<div class="bg-surface-container-low px-4 py-3 rounded-xl border border-transparent focus-within:border-primary/30 transition-all">
+<input class="bg-transparent border-none p-0 w-full text-on-surface font-semibold focus:ring-0" type="text" value="Dr. Elizabeth Harmon"/>
+</div>
+</div>
+<div class="group">
+<label class="text-[10px] font-bold uppercase tracking-widest text-outline block mb-2">Facility</label>
+<div class="bg-surface-container-low px-4 py-3 rounded-xl border border-transparent focus-within:border-primary/30 transition-all">
+<input class="bg-transparent border-none p-0 w-full text-on-surface font-semibold focus:ring-0" type="text" value="City Health Hospital"/>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Action Card -->
+<div class="bg-gradient-to-br from-primary to-primary-dim p-8 rounded-[2rem] text-on-primary flex flex-col justify-between shadow-xl shadow-primary/20">
+<div class="space-y-4">
+<span class="material-symbols-outlined text-4xl" style="font-variation-settings: 'FILL' 1;">verified</span>
+<h3 class="font-headline text-xl font-bold leading-tight">Finalize Passport Entry</h3>
+<p class="text-on-primary/70 text-sm leading-relaxed">Once saved, this data will be encrypted and synced with your universal health profile.</p>
+</div>
+<button class="mt-8 bg-on-primary text-primary font-bold py-4 rounded-full hover:shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2 group">
+<span>Save to Health Passport</span>
+<span class="material-symbols-outlined group-hover:translate-x-1 transition-transform">arrow_forward</span>
+</button>
+</div>
+</div>
+</section>
+</main>
+<!-- Bottom Navigation Shell -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 pb-6 pt-2 bg-white/90 dark:bg-gray-950/90 backdrop-blur-xl rounded-t-[32px] shadow-[0_-8px_24px_rgba(0,0,0,0.04)]">
+<a class="flex flex-col items-center justify-center text-[#757c7d] dark:text-gray-500 p-2 hover:text-[#2E7D32] transition-all active:scale-90 duration-300" href="#">
+<span class="material-symbols-outlined mb-1">dashboard</span>
+<span class="font-manrope text-[11px] font-semibold uppercase tracking-wider">Dashboard</span>
+</a>
+<a class="flex flex-col items-center justify-center text-[#757c7d] dark:text-gray-500 p-2 hover:text-[#2E7D32] transition-all active:scale-90 duration-300" href="#">
+<span class="material-symbols-outlined mb-1">person_search</span>
+<span class="font-manrope text-[11px] font-semibold uppercase tracking-wider">Doctors</span>
+</a>
+<a class="flex flex-col items-center justify-center bg-gradient-to-br from-[#2E7D32] to-[#1b6d24] text-white rounded-full p-3 mb-1 shadow-lg shadow-[#2E7D32]/20 active:scale-90 transition-transform duration-300" href="#">
+<span class="material-symbols-outlined text-2xl">smart_toy</span>
+</a>
+<a class="flex flex-col items-center justify-center text-[#757c7d] dark:text-gray-500 p-2 hover:text-[#2E7D32] transition-all active:scale-90 duration-300" href="#">
+<span class="material-symbols-outlined mb-1">document_scanner</span>
+<span class="font-manrope text-[11px] font-semibold uppercase tracking-wider">Vault</span>
+</a>
+<a class="flex flex-col items-center justify-center text-[#757c7d] dark:text-gray-500 p-2 hover:text-[#2E7D32] transition-all active:scale-90 duration-300" href="#">
+<span class="material-symbols-outlined mb-1">analytics</span>
+<span class="font-manrope text-[11px] font-semibold uppercase tracking-wider">Health</span>
+</a>
+</nav>
+</body></html>

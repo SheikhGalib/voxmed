@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>VoxMed | Hospital &amp; Doctor Discovery</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "secondary-container": "#c9e7f7",
+              "surface-container": "#ebeeef",
+              "on-tertiary-container": "#445e4a",
+              "surface": "#f9f9f9",
+              "surface-container-lowest": "#ffffff",
+              "error": "#9e422c",
+              "primary-fixed-dim": "#95e88f",
+              "inverse-surface": "#0c0f0f",
+              "on-primary-fixed-variant": "#176a21",
+              "background": "#f9f9f9",
+              "on-tertiary-fixed": "#324c39",
+              "surface-tint": "#1b6d24",
+              "outline-variant": "#adb3b4",
+              "primary-dim": "#076019",
+              "surface-variant": "#dde4e5",
+              "surface-container-low": "#f2f4f4",
+              "tertiary-container": "#d7f6db",
+              "on-surface": "#2d3435",
+              "on-error-container": "#742410",
+              "on-primary-fixed": "#004b0f",
+              "on-background": "#2d3435",
+              "error-dim": "#5c1202",
+              "on-primary-container": "#065f18",
+              "surface-dim": "#d4dbdd",
+              "secondary-fixed-dim": "#bbd9e9",
+              "on-secondary-fixed": "#264350",
+              "on-secondary": "#f3faff",
+              "outline": "#757c7d",
+              "inverse-on-surface": "#9c9d9d",
+              "secondary": "#466370",
+              "surface-container-high": "#e4e9ea",
+              "surface-bright": "#f9f9f9",
+              "on-error": "#fff7f6",
+              "error-container": "#fe8b70",
+              "on-secondary-container": "#395663",
+              "on-tertiary-fixed-variant": "#4e6954",
+              "secondary-fixed": "#c9e7f7",
+              "on-tertiary": "#e8ffe9",
+              "primary-fixed": "#a3f69c",
+              "on-surface-variant": "#5a6061",
+              "tertiary": "#4b6551",
+              "tertiary-fixed-dim": "#c9e7cd",
+              "surface-container-highest": "#dde4e5",
+              "on-primary": "#e5ffdd",
+              "tertiary-dim": "#3f5945",
+              "inverse-primary": "#9df197",
+              "primary-container": "#a3f69c",
+              "tertiary-fixed": "#d7f6db",
+              "secondary-dim": "#3a5764",
+              "primary": "#1b6d24",
+              "on-secondary-fixed-variant": "#435f6d"
+            },
+            fontFamily: {
+              "headline": ["Manrope"],
+              "body": ["Inter"],
+              "label": ["Inter"]
+            },
+            borderRadius: {"DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem"},
+          },
+        },
+      }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; background-color: #f9f9f9; color: #2d3435; }
+        .font-manrope { font-family: 'Manrope', sans-serif; }
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface text-on-surface min-h-screen pb-32">
+<!-- TopAppBar -->
+<header class="fixed top-0 left-0 w-full z-50 flex items-center justify-between px-6 py-4 bg-[#f9f9f9]/80 backdrop-blur-lg shadow-[0_24px_24px_-4px_rgba(45,52,53,0.06)]">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full overflow-hidden bg-surface-container-highest">
+<img alt="Patient Profile Photo" class="w-full h-full object-cover" data-alt="Close up portrait of a smiling male patient" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA-cziN9Dhh64_r1IC6fzr9-kK088ZdhYhKngKqyfgdwPSOIb2BYDuC7vhtVX0SHtj3XXrtxDP2DDynE128dGKP3o4VakgV-Yy0bMufh5kMdvI0e3oDhf5SHORFW0LOBvhpt37XzukAU69DeG5byrxH9AF9Tbv6s_qkHgxjEPKBWrcN9kGOCMaO6Jt0CeHZghQcBKV7_ZD5X5qVr50NJGr4smrV587Akpf4i6TVdFl8a_20O49PkX6q-LomMxe_8CVTMOFR36sop1A"/>
+</div>
+<h1 class="text-xl font-manrope font-extrabold tracking-tight text-[#2E7D32]">VoxMed</h1>
+</div>
+<div class="flex items-center gap-4">
+<button class="p-2 rounded-full hover:bg-surface-container transition-colors active:scale-95 duration-200">
+<span class="material-symbols-outlined text-[#5a6061]">notifications</span>
+</button>
+</div>
+</header>
+<main class="pt-24 px-6 max-w-5xl mx-auto">
+<!-- Search & Hero -->
+<section class="mb-12">
+<h2 class="text-4xl font-manrope font-extrabold text-on-surface mb-6 leading-tight">Find your care<br/><span class="text-primary">seamlessly.</span></h2>
+<div class="relative group">
+<div class="absolute inset-y-0 left-4 flex items-center pointer-events-none">
+<span class="material-symbols-outlined text-outline">search</span>
+</div>
+<input class="w-full pl-12 pr-6 py-4 bg-surface-container-low border-none rounded-full focus:ring-2 focus:ring-primary focus:bg-surface-container-lowest transition-all text-body font-medium shadow-sm" placeholder="Search hospital names or health systems..." type="text"/>
+</div>
+</section>
+<!-- Specialties Filters -->
+<section class="mb-12 overflow-hidden">
+<div class="flex gap-3 overflow-x-auto hide-scrollbar pb-2">
+<button class="flex items-center gap-2 px-6 py-3 rounded-full bg-gradient-to-br from-[#1b6d24] to-[#076019] text-white shadow-lg shadow-[#2E7D32]/20 whitespace-nowrap font-semibold tracking-wide text-sm">
+<span class="material-symbols-outlined text-sm">emergency</span>
+                    Available Today
+                </button>
+<button class="flex items-center gap-2 px-6 py-3 rounded-full bg-surface-container-lowest text-on-surface-variant hover:bg-surface-container transition-all whitespace-nowrap font-medium text-sm">Cardiology</button>
+<button class="flex items-center gap-2 px-6 py-3 rounded-full bg-surface-container-lowest text-on-surface-variant hover:bg-surface-container transition-all whitespace-nowrap font-medium text-sm">Dermatology</button>
+<button class="flex items-center gap-2 px-6 py-3 rounded-full bg-surface-container-lowest text-on-surface-variant hover:bg-surface-container transition-all whitespace-nowrap font-medium text-sm">Pediatrics</button>
+<button class="flex items-center gap-2 px-6 py-3 rounded-full bg-surface-container-lowest text-on-surface-variant hover:bg-surface-container transition-all whitespace-nowrap font-medium text-sm">Neurology</button>
+<button class="flex items-center gap-2 px-6 py-3 rounded-full bg-surface-container-lowest text-on-surface-variant hover:bg-surface-container transition-all whitespace-nowrap font-medium text-sm">Orthopedics</button>
+</div>
+</section>
+<!-- Hospitals Bento-ish Grid -->
+<section class="mb-16">
+<div class="flex justify-between items-end mb-8">
+<div>
+<span class="text-primary font-bold uppercase tracking-widest text-xs">Nearby Excellence</span>
+<h3 class="text-2xl font-manrope font-bold text-on-surface mt-1">Hospitals Near You</h3>
+</div>
+<button class="text-primary font-semibold text-sm hover:underline">View all</button>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+<!-- Hospital Card 1 -->
+<div class="group bg-surface-container-lowest rounded-[32px] overflow-hidden shadow-sm hover:shadow-xl transition-shadow duration-300">
+<div class="relative h-48">
+<img alt="Saint Jude Medical Center" class="w-full h-full object-cover" data-alt="Modern glass hospital building exterior with greenery" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDiNcAQ4q2fRe5HQ7w00QizjtVQpV6QGiqd0QnC5tGfQdHEZUttEvGDavOr72uwaMvGdM6rMz8YefdR2VZiDcELsBUr0f2CWrd1BepIZ-fc8-VraX5E0_OoIJUYlJ-YuRRToKP3diQEyr594M4gReTMjFkqzBB76xyOZpBO19Va_mXN2javsDST5SZBrSA3H8Bhv4Ca6Ebsh1LY4oic5NR9TMoDcy-QNU2Dz7OjOgsh9jSWYE50ipnSZfIqM0IiF6aeHzngJhTyjY4"/>
+<div class="absolute top-4 right-4 bg-white/90 backdrop-blur-md px-3 py-1 rounded-full flex items-center gap-1">
+<span class="material-symbols-outlined text-yellow-500 text-sm" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="text-xs font-bold">4.9</span>
+</div>
+</div>
+<div class="p-6">
+<h4 class="text-xl font-manrope font-bold mb-1">Saint Jude Medical Center</h4>
+<div class="flex items-center gap-1 text-on-surface-variant text-sm mb-6">
+<span class="material-symbols-outlined text-sm">location_on</span>
+                            0.8 miles away • Central Park Dr.
+                        </div>
+<button class="w-full py-4 bg-surface-container-low text-primary font-bold rounded-2xl group-hover:bg-primary group-hover:text-white transition-all duration-300 flex items-center justify-center gap-2">
+                            View Doctors
+                            <span class="material-symbols-outlined text-sm">arrow_forward</span>
+</button>
+</div>
+</div>
+<!-- Hospital Card 2 -->
+<div class="group bg-surface-container-lowest rounded-[32px] overflow-hidden shadow-sm hover:shadow-xl transition-shadow duration-300">
+<div class="relative h-48">
+<img alt="Green Valley Clinic" class="w-full h-full object-cover" data-alt="Minimalist clean medical clinic interior reception" src="https://lh3.googleusercontent.com/aida-public/AB6AXuADGQvPe3j9aJK61h6q4cvmtbdFgn-EXcZzfWFMXAPP1ssQVAus6K1zYPfWhhV93xKYaitPdbR8yhzCg4laZcDJsNQ6Up32sP5usXlXg_AVeAKcJRhaSPiHjODLnFvSiOlibwf6vax2o3emC8aeWLd7IqjxU1_hhoKqyYSxj_-0j6JjMfuD_8FKZ66qUIl_KOAwsTDxFEylFzTG3Ktu3qTFdZJp0IIxgYZlhd5jbz6tcXJ1BmhdzX6GGVI5wKOhUFJq3ANGgAdLINc"/>
+<div class="absolute top-4 right-4 bg-white/90 backdrop-blur-md px-3 py-1 rounded-full flex items-center gap-1">
+<span class="material-symbols-outlined text-yellow-500 text-sm" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="text-xs font-bold">4.7</span>
+</div>
+</div>
+<div class="p-6">
+<h4 class="text-xl font-manrope font-bold mb-1">Green Valley Clinic</h4>
+<div class="flex items-center gap-1 text-on-surface-variant text-sm mb-6">
+<span class="material-symbols-outlined text-sm">location_on</span>
+                            1.2 miles away • Oak Valley Blvd.
+                        </div>
+<button class="w-full py-4 bg-surface-container-low text-primary font-bold rounded-2xl group-hover:bg-primary group-hover:text-white transition-all duration-300 flex items-center justify-center gap-2">
+                            View Doctors
+                            <span class="material-symbols-outlined text-sm">arrow_forward</span>
+</button>
+</div>
+</div>
+</div>
+</section>
+<!-- Featured Doctors -->
+<section class="mb-12">
+<div class="flex justify-between items-end mb-8">
+<div>
+<span class="text-primary font-bold uppercase tracking-widest text-xs">Top Rated</span>
+<h3 class="text-2xl font-manrope font-bold text-on-surface mt-1">Specialists for You</h3>
+</div>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+<!-- Doctor Card 1 -->
+<div class="bg-surface-container-lowest p-6 rounded-[32px] shadow-sm flex flex-col items-center text-center">
+<div class="relative mb-4">
+<div class="w-24 h-24 rounded-full border-4 border-surface-container p-1">
+<img alt="Dr. Sarah Jenkins" class="w-full h-full object-cover rounded-full" data-alt="Professional female doctor in white coat smiling" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCsLeQqxNfupqshx-EYc5P7wFYRjx2ig_XlDkOHVIQG6PZgZrkt4vBrftYQLdGIMtVzennxNTibdyoQnCgl3GNEUjyiUUJ2TQTtTKBf99OvSh8QvQE1E0N39wXdIrNdzUWJ9pCdHK6Q3J1TDVCCKiRjwjdiRQQsTm3t8CFlEw0NC81bAFd-BF-mzZC4fk1k_rxj6nrFJMRVKPV4WcilcUE-InkdVj8vCdOICURE1cHC-85pgfC-GlVedUoSkZFnp91ACFcM2mnjTck"/>
+</div>
+<div class="absolute -bottom-1 -right-1 bg-primary text-white p-1 rounded-full border-2 border-white">
+<span class="material-symbols-outlined text-xs" style="font-variation-settings: 'FILL' 1;">verified</span>
+</div>
+</div>
+<h5 class="text-lg font-bold font-manrope">Dr. Sarah Jenkins</h5>
+<p class="text-primary font-medium text-sm mb-2">Cardiology Specialist</p>
+<div class="flex items-center gap-1 mb-6">
+<span class="material-symbols-outlined text-yellow-500 text-sm" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="text-sm font-bold">4.9</span>
+<span class="text-on-surface-variant text-sm">(124 reviews)</span>
+</div>
+<button class="w-full py-3 bg-gradient-to-br from-[#1b6d24] to-[#076019] text-white rounded-full font-bold text-sm shadow-md hover:shadow-lg transition-all active:scale-95">
+                        Book Appointment
+                    </button>
+</div>
+<!-- Doctor Card 2 -->
+<div class="bg-surface-container-lowest p-6 rounded-[32px] shadow-sm flex flex-col items-center text-center">
+<div class="relative mb-4">
+<div class="w-24 h-24 rounded-full border-4 border-surface-container p-1">
+<img alt="Dr. Marcus Thorne" class="w-full h-full object-cover rounded-full" data-alt="Male doctor with stethoscope smiling professionally" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAQAM4-TJEflLrYMVTa4tQd12ue2RaOHaTrsLq6JY9rfRvpz61B7avqOXqHUWnOaErFAtywhUrayE11Ye6G93c5tckq6Sy0d0S0OAP--QXEx4751Ng6i7Vfg2Knwc-ohcyb3VjXGR8Z5MTF_415PhldVYQdgvXbyx4nSxRxQK--IDHtFiFDGyNFyUty2gCqKGAhpDgWzXZA4_tpWNBah8pFCN_ZMw5OvjdxnmDjrqRqgudWHFXsqJA-lvVi4eM5MnB7EJE37xkZeYk"/>
+</div>
+<div class="absolute -bottom-1 -right-1 bg-primary text-white p-1 rounded-full border-2 border-white">
+<span class="material-symbols-outlined text-xs" style="font-variation-settings: 'FILL' 1;">verified</span>
+</div>
+</div>
+<h5 class="text-lg font-bold font-manrope">Dr. Marcus Thorne</h5>
+<p class="text-primary font-medium text-sm mb-2">Dermatology</p>
+<div class="flex items-center gap-1 mb-6">
+<span class="material-symbols-outlined text-yellow-500 text-sm" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="text-sm font-bold">4.8</span>
+<span class="text-on-surface-variant text-sm">(89 reviews)</span>
+</div>
+<button class="w-full py-3 bg-gradient-to-br from-[#1b6d24] to-[#076019] text-white rounded-full font-bold text-sm shadow-md hover:shadow-lg transition-all active:scale-95">
+                        Book Appointment
+                    </button>
+</div>
+<!-- Doctor Card 3 -->
+<div class="bg-surface-container-lowest p-6 rounded-[32px] shadow-sm flex flex-col items-center text-center">
+<div class="relative mb-4">
+<div class="w-24 h-24 rounded-full border-4 border-surface-container p-1">
+<img alt="Dr. Elena Rodriguez" class="w-full h-full object-cover rounded-full" data-alt="Portrait of a friendly female pediatrician" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCscBBzuX1lzB1sRDKePayOkIpJP_ToHCRSUkZa4NgS342nPnx_W9810MKqagetGFGHQUrYbwcM2CbajZ1zIzXgj6HDOd91flmb9IGUsqJshRr_Nox5Rnm3DWPsgW-zE7Jrs6UWXBRXb8Qj3Sc2N0uSSxxMbQsOfWKXlkLknHDKneXd087I45kB2HdOrKwQ60g4F39bihWOLb2Ehidp-jWLIka_9P1eL9QZmBTMaPQ9MGfy7rrwr-LOKCpSQIYtCG9UFZ3ohfX3wqw"/>
+</div>
+<div class="absolute -bottom-1 -right-1 bg-primary text-white p-1 rounded-full border-2 border-white">
+<span class="material-symbols-outlined text-xs" style="font-variation-settings: 'FILL' 1;">verified</span>
+</div>
+</div>
+<h5 class="text-lg font-bold font-manrope">Dr. Elena Rodriguez</h5>
+<p class="text-primary font-medium text-sm mb-2">Pediatrics</p>
+<div class="flex items-center gap-1 mb-6">
+<span class="material-symbols-outlined text-yellow-500 text-sm" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="text-sm font-bold">5.0</span>
+<span class="text-on-surface-variant text-sm">(210 reviews)</span>
+</div>
+<button class="w-full py-3 bg-gradient-to-br from-[#1b6d24] to-[#076019] text-white rounded-full font-bold text-sm shadow-md hover:shadow-lg transition-all active:scale-95">
+                        Book Appointment
+                    </button>
+</div>
+</div>
+</section>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 pb-6 pt-2 bg-white/90 backdrop-blur-xl rounded-t-[32px] shadow-[0_-8px_24px_rgba(0,0,0,0.04)]">
+<div class="flex flex-col items-center justify-center text-[#757c7d] p-2 hover:text-[#2E7D32] transition-all active:scale-90 duration-300 ease-out">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="font-manrope text-[11px] font-semibold uppercase tracking-wider mt-1">Dashboard</span>
+</div>
+<div class="flex flex-col items-center justify-center bg-gradient-to-br from-[#2E7D32] to-[#1b6d24] text-white rounded-full p-3 mb-1 shadow-lg shadow-[#2E7D32]/20 active:scale-90 transition-transform duration-300 ease-out">
+<span class="material-symbols-outlined">person_search</span>
+<span class="font-manrope text-[11px] font-semibold uppercase tracking-wider mt-1">Doctors</span>
+</div>
+<div class="flex flex-col items-center justify-center text-[#757c7d] p-2 hover:text-[#2E7D32] transition-all active:scale-90 duration-300 ease-out">
+<span class="material-symbols-outlined">smart_toy</span>
+<span class="font-manrope text-[11px] font-semibold uppercase tracking-wider mt-1">AI Triage</span>
+</div>
+<div class="flex flex-col items-center justify-center text-[#757c7d] p-2 hover:text-[#2E7D32] transition-all active:scale-90 duration-300 ease-out">
+<span class="material-symbols-outlined">document_scanner</span>
+<span class="font-manrope text-[11px] font-semibold uppercase tracking-wider mt-1">Vault</span>
+</div>
+<div class="flex flex-col items-center justify-center text-[#757c7d] p-2 hover:text-[#2E7D32] transition-all active:scale-90 duration-300 ease-out">
+<span class="material-symbols-outlined">analytics</span>
+<span class="font-manrope text-[11px] font-semibold uppercase tracking-wider mt-1">Health</span>
+</div>
+</nav>
+</body></html>

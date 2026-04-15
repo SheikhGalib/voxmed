@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Health Analytics - VoxMed</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "on-tertiary-container": "#445e4a",
+              "surface": "#f9f9f9",
+              "surface-container-high": "#e4e9ea",
+              "tertiary-container": "#d7f6db",
+              "on-surface": "#2d3435",
+              "surface-dim": "#d4dbdd",
+              "primary": "#1b6d24",
+              "on-error": "#fff7f6",
+              "on-primary-fixed-variant": "#176a21",
+              "background": "#f9f9f9",
+              "tertiary-dim": "#3f5945",
+              "on-secondary-fixed": "#264350",
+              "surface-container-low": "#f2f4f4",
+              "secondary": "#466370",
+              "surface-variant": "#dde4e5",
+              "surface-bright": "#f9f9f9",
+              "on-tertiary": "#e8ffe9",
+              "secondary-dim": "#3a5764",
+              "on-surface-variant": "#5a6061",
+              "tertiary": "#4b6551",
+              "error": "#9e422c",
+              "surface-tint": "#1b6d24",
+              "on-secondary-container": "#395663",
+              "on-tertiary-fixed-variant": "#4e6954",
+              "secondary-fixed": "#c9e7f7",
+              "tertiary-fixed": "#d7f6db",
+              "on-secondary-fixed-variant": "#435f6d",
+              "primary-container": "#a3f69c",
+              "error-container": "#fe8b70",
+              "surface-container-highest": "#dde4e5",
+              "outline-variant": "#adb3b4",
+              "outline": "#757c7d",
+              "on-primary-container": "#065f18",
+              "on-background": "#2d3435",
+              "secondary-container": "#c9e7f7",
+              "on-error-container": "#742410",
+              "primary-dim": "#076019",
+              "inverse-surface": "#0c0f0f",
+              "on-primary": "#e5ffdd",
+              "error-dim": "#5c1202",
+              "inverse-primary": "#9df197",
+              "primary-fixed": "#a3f69c",
+              "on-tertiary-fixed": "#324c39",
+              "inverse-on-surface": "#9c9d9d",
+              "on-secondary": "#f3faff",
+              "primary-fixed-dim": "#95e88f",
+              "secondary-fixed-dim": "#bbd9e9",
+              "on-primary-fixed": "#004b0f",
+              "surface-container-lowest": "#ffffff",
+              "surface-container": "#ebeeef",
+              "tertiary-fixed-dim": "#c9e7cd"
+            },
+            fontFamily: {
+              "headline": ["Manrope"],
+              "body": ["Inter"],
+              "label": ["Inter"]
+            },
+            borderRadius: {"DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem"},
+          },
+        },
+      }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; }
+        .font-manrope { font-family: 'Manrope', sans-serif; }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface text-on-surface min-h-screen pb-32">
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full flex justify-between items-center px-6 py-4 bg-[#f9f9f9]/80 dark:bg-gray-900/80 backdrop-blur-xl z-50">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-green-800 dark:text-green-400 text-2xl">clinical_notes</span>
+<h1 class="text-2xl font-extrabold text-[#1b6d24] dark:text-[#95e88f] tracking-tighter font-manrope">VoxMed</h1>
+</div>
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 rounded-full bg-surface-container-highest overflow-hidden border-2 border-primary-container">
+<img class="w-full h-full object-cover" data-alt="User professional profile portrait photo" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCl-L7RnaHqavXvQHqRiXKnkDlf15H9gaaY_rP7kQKitZ9xPCu_-VVMa4GUwO24DqctEgXuplGMV0HbbluRLkCk8dY2XwLZYiA0M1OqbdwAInbL4il1QBc-8rHqoap1BJo2YSpLCW42bK4uSw6W3HUwFiGqLuuw21WxLOq6nDCgRMKjTpjUl_01GmlUAmtHWpa8U3_4620KtBzj7vgpp_pdZujXIGSG9_KQuGptHDuoN0uOrxNE_Co_uB8unhw9HUDB5DBuvgnO56E"/>
+</div>
+</div>
+</header>
+<main class="pt-24 px-6 max-w-5xl mx-auto space-y-10">
+<!-- Header Section -->
+<section class="space-y-2">
+<h2 class="text-display-lg font-manrope font-extrabold text-on-primary-fixed tracking-tight text-4xl lg:text-5xl">Health Insights</h2>
+<p class="text-on-surface-variant font-body text-lg max-w-2xl">Real-time analysis of your physiological data and treatment compliance.</p>
+</section>
+<!-- Bento Grid Analytics -->
+<div class="grid grid-cols-1 md:grid-cols-12 gap-6">
+<!-- Adherence Bar Chart (Large Card) -->
+<div class="md:col-span-8 bg-surface-container-lowest rounded-full p-8 transition-all hover:shadow-lg border border-outline-variant/10">
+<div class="flex justify-between items-start mb-8">
+<div>
+<h3 class="font-manrope font-bold text-xl text-on-surface">Medication Adherence</h3>
+<p class="text-on-surface-variant text-sm">Last 7 Days Compliance</p>
+</div>
+<div class="flex items-center gap-2 bg-tertiary-container px-3 py-1 rounded-full">
+<span class="w-2 h-2 rounded-full bg-tertiary"></span>
+<span class="text-xs font-bold text-on-tertiary-container">94% PERFECT</span>
+</div>
+</div>
+<div class="flex items-end justify-between h-48 gap-3">
+<div class="flex-1 flex flex-col items-center gap-3">
+<div class="w-full bg-primary-container rounded-t-xl" style="height: 85%"></div>
+<span class="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Mon</span>
+</div>
+<div class="flex-1 flex flex-col items-center gap-3">
+<div class="w-full bg-primary-container rounded-t-xl" style="height: 95%"></div>
+<span class="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Tue</span>
+</div>
+<div class="flex-1 flex flex-col items-center gap-3">
+<div class="w-full bg-primary-container rounded-t-xl" style="height: 100%"></div>
+<span class="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Wed</span>
+</div>
+<div class="flex-1 flex flex-col items-center gap-3">
+<div class="w-full bg-primary rounded-t-xl" style="height: 100%"></div>
+<span class="text-[10px] font-bold text-primary uppercase tracking-widest">Thu</span>
+</div>
+<div class="flex-1 flex flex-col items-center gap-3">
+<div class="w-full bg-surface-container rounded-t-xl" style="height: 40%"></div>
+<span class="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Fri</span>
+</div>
+<div class="flex-1 flex flex-col items-center gap-3">
+<div class="w-full bg-primary-container rounded-t-xl" style="height: 90%"></div>
+<span class="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Sat</span>
+</div>
+<div class="flex-1 flex flex-col items-center gap-3">
+<div class="w-full bg-primary-container rounded-t-xl" style="height: 80%"></div>
+<span class="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Sun</span>
+</div>
+</div>
+</div>
+<!-- Device Sync Status (Square Card) -->
+<div class="md:col-span-4 bg-surface-container-low rounded-full p-8 flex flex-col justify-between overflow-hidden relative group">
+<div class="absolute -top-10 -right-10 w-40 h-40 bg-primary/5 rounded-full blur-3xl group-hover:bg-primary/10 transition-colors"></div>
+<div>
+<span class="material-symbols-outlined text-primary text-3xl mb-4">watch</span>
+<h3 class="font-manrope font-bold text-xl text-on-surface">Oura Ring</h3>
+<p class="text-on-surface-variant text-sm">Last synced 2m ago</p>
+</div>
+<div class="space-y-4">
+<div class="flex justify-between items-end">
+<span class="text-3xl font-manrope font-extrabold text-on-surface">84<span class="text-lg font-medium text-on-surface-variant">/100</span></span>
+<span class="text-sm font-bold text-primary">Active</span>
+</div>
+<div class="w-full h-1.5 bg-surface-container-high rounded-full">
+<div class="h-full bg-primary rounded-full w-4/5"></div>
+</div>
+</div>
+</div>
+<!-- Blood Pressure Line Graph (Wide Card) -->
+<div class="md:col-span-12 bg-surface-container-highest rounded-full p-10 overflow-hidden relative">
+<div class="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
+<div>
+<h3 class="font-manrope font-bold text-2xl text-on-surface">Blood Pressure Trends</h3>
+<p class="text-on-surface-variant">Systolic vs Diastolic (mmHg)</p>
+</div>
+<div class="flex gap-4">
+<div class="flex items-center gap-2">
+<span class="w-3 h-3 rounded-full bg-primary"></span>
+<span class="text-xs font-semibold uppercase tracking-wider text-on-surface-variant">Systolic</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="w-3 h-3 rounded-full bg-secondary"></span>
+<span class="text-xs font-semibold uppercase tracking-wider text-on-surface-variant">Diastolic</span>
+</div>
+</div>
+</div>
+<!-- Custom SVG Line Chart -->
+<div class="relative h-64 w-full">
+<svg class="w-full h-full preserve-3d" viewbox="0 0 1000 300">
+<!-- Systolic Line -->
+<path d="M0,150 Q100,120 200,140 T400,110 T600,130 T800,90 T1000,105" fill="none" stroke="#1b6d24" stroke-linecap="round" stroke-width="4"></path>
+<!-- Diastolic Line -->
+<path d="M0,220 Q100,200 200,210 T400,190 T600,215 T800,185 T1000,200" fill="none" stroke="#466370" stroke-dasharray="8 4" stroke-linecap="round" stroke-width="4"></path>
+<!-- Data Points -->
+<circle cx="400" cy="110" fill="#1b6d24" r="6"></circle>
+<circle cx="800" cy="90" fill="#1b6d24" r="6"></circle>
+<circle cx="400" cy="190" fill="#466370" r="6"></circle>
+<circle cx="800" cy="185" fill="#466370" r="6"></circle>
+</svg>
+<!-- Vertical Grid Labels -->
+<div class="absolute inset-0 flex justify-between items-end pointer-events-none px-2 opacity-40 text-[10px] font-bold uppercase tracking-tighter">
+<span>WK 01</span>
+<span>WK 02</span>
+<span>WK 03</span>
+<span>WK 04</span>
+<span>WK 05</span>
+</div>
+</div>
+<div class="mt-8 pt-8 border-t border-outline-variant/20 flex gap-12">
+<div>
+<p class="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest mb-1">Average Systolic</p>
+<p class="text-2xl font-manrope font-extrabold text-on-surface">118 <span class="text-sm font-normal text-on-surface-variant">mmHg</span></p>
+</div>
+<div>
+<p class="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest mb-1">Average Diastolic</p>
+<p class="text-2xl font-manrope font-extrabold text-on-surface">76 <span class="text-sm font-normal text-on-surface-variant">mmHg</span></p>
+</div>
+<div class="ml-auto flex items-center gap-2 text-primary font-bold">
+<span class="material-symbols-outlined">trending_down</span>
+<span>-4% vs last month</span>
+</div>
+</div>
+</div>
+<!-- Health Score (Small Bento) -->
+<div class="md:col-span-6 bg-gradient-to-br from-secondary-container to-surface-container rounded-full p-8 flex items-center gap-6">
+<div class="w-20 h-20 rounded-full border-4 border-white flex items-center justify-center text-3xl font-extrabold font-manrope text-on-secondary-container bg-white/20">
+                    A+
+                </div>
+<div>
+<h4 class="font-manrope font-bold text-xl text-on-surface">Vitals Integrity</h4>
+<p class="text-on-surface-variant text-sm">Your overall health score is in the top 5% for your age group.</p>
+</div>
+</div>
+<!-- Heart Rate (Small Bento) -->
+<div class="md:col-span-6 bg-surface-container-low rounded-full p-8 flex items-center justify-between">
+<div class="flex items-center gap-4">
+<div class="p-3 bg-error-container/20 rounded-full">
+<span class="material-symbols-outlined text-error" style="font-variation-settings: 'FILL' 1;">favorite</span>
+</div>
+<div>
+<p class="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Resting Heart Rate</p>
+<p class="text-3xl font-manrope font-extrabold text-on-surface">62 <span class="text-sm font-normal text-on-surface-variant">BPM</span></p>
+</div>
+</div>
+<div class="h-10 w-24 overflow-hidden opacity-30">
+<svg class="w-full h-full" viewbox="0 0 100 40">
+<path d="M0,20 L10,20 L15,5 L25,35 L30,20 L45,20 L50,0 L60,40 L65,20 L100,20" fill="none" stroke="#9e422c" stroke-width="2"></path>
+</svg>
+</div>
+</div>
+</div>
+</main>
+<!-- NavigationDrawer (AI Triage FAB) -->
+<button class="fixed bottom-24 right-6 z-50 transition-transform active:scale-90 hover:scale-105 hover:brightness-110 bg-gradient-to-br from-[#1b6d24] to-[#076019] text-white shadow-xl shadow-green-900/20 rounded-full h-16 w-16 flex items-center justify-center">
+<span class="material-symbols-outlined text-2xl" style="font-variation-settings: 'FILL' 1;">smart_toy</span>
+</button>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 w-full z-40 flex justify-around items-center px-4 pb-6 pt-3 bg-[#f9f9f9]/90 dark:bg-gray-900/90 backdrop-blur-lg rounded-t-3xl shadow-[0_-4px_24px_-4px_rgba(45,52,53,0.06)]">
+<a class="flex flex-col items-center justify-center text-[#5a6061] dark:text-gray-400 px-5 py-2 hover:text-[#1b6d24] dark:hover:text-white transition-all duration-300 ease-in-out" href="#">
+<span class="material-symbols-outlined mb-1">dashboard</span>
+<span class="font-manrope text-[10px] font-semibold uppercase tracking-widest">Dashboard</span>
+</a>
+<a class="flex flex-col items-center justify-center text-[#5a6061] dark:text-gray-400 px-5 py-2 hover:text-[#1b6d24] dark:hover:text-white transition-all duration-300 ease-in-out" href="#">
+<span class="material-symbols-outlined mb-1">medical_services</span>
+<span class="font-manrope text-[10px] font-semibold uppercase tracking-widest">Doctors</span>
+</a>
+<a class="flex flex-col items-center justify-center text-[#5a6061] dark:text-gray-400 px-5 py-2 hover:text-[#1b6d24] dark:hover:text-white transition-all duration-300 ease-in-out" href="#">
+<span class="material-symbols-outlined mb-1">badge</span>
+<span class="font-manrope text-[10px] font-semibold uppercase tracking-widest">Passport</span>
+</a>
+<!-- ACTIVE TAB: Health -->
+<a class="flex flex-col items-center justify-center bg-[#e5ffdd] dark:bg-green-900/30 text-[#076019] dark:text-[#95e88f] rounded-2xl px-5 py-2 transition-all duration-300 ease-in-out" href="#">
+<span class="material-symbols-outlined mb-1" style="font-variation-settings: 'FILL' 1;">favorite</span>
+<span class="font-manrope text-[10px] font-semibold uppercase tracking-widest">Health</span>
+</a>
+</nav>
+</body></html>

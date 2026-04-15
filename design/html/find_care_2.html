@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Find Care - VoxMed</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "on-tertiary-container": "#445e4a",
+              "surface": "#f9f9f9",
+              "surface-container-high": "#e4e9ea",
+              "tertiary-container": "#d7f6db",
+              "on-surface": "#2d3435",
+              "surface-dim": "#d4dbdd",
+              "primary": "#1b6d24",
+              "on-error": "#fff7f6",
+              "on-primary-fixed-variant": "#176a21",
+              "background": "#f9f9f9",
+              "tertiary-dim": "#3f5945",
+              "on-secondary-fixed": "#264350",
+              "surface-container-low": "#f2f4f4",
+              "secondary": "#466370",
+              "surface-variant": "#dde4e5",
+              "surface-bright": "#f9f9f9",
+              "on-tertiary": "#e8ffe9",
+              "secondary-dim": "#3a5764",
+              "on-surface-variant": "#5a6061",
+              "tertiary": "#4b6551",
+              "error": "#9e422c",
+              "surface-tint": "#1b6d24",
+              "on-secondary-container": "#395663",
+              "on-tertiary-fixed-variant": "#4e6954",
+              "secondary-fixed": "#c9e7f7",
+              "tertiary-fixed": "#d7f6db",
+              "on-secondary-fixed-variant": "#435f6d",
+              "primary-container": "#a3f69c",
+              "error-container": "#fe8b70",
+              "surface-container-highest": "#dde4e5",
+              "outline-variant": "#adb3b4",
+              "outline": "#757c7d",
+              "on-primary-container": "#065f18",
+              "on-background": "#2d3435",
+              "secondary-container": "#c9e7f7",
+              "on-error-container": "#742410",
+              "primary-dim": "#076019",
+              "inverse-surface": "#0c0f0f",
+              "on-primary": "#e5ffdd",
+              "error-dim": "#5c1202",
+              "inverse-primary": "#9df197",
+              "primary-fixed": "#a3f69c",
+              "on-tertiary-fixed": "#324c39",
+              "inverse-on-surface": "#9c9d9d",
+              "on-secondary": "#f3faff",
+              "primary-fixed-dim": "#95e88f",
+              "secondary-fixed-dim": "#bbd9e9",
+              "on-primary-fixed": "#004b0f",
+              "surface-container-lowest": "#ffffff",
+              "surface-container": "#ebeeef",
+              "tertiary-fixed-dim": "#c9e7cd"
+            },
+            fontFamily: {
+              "headline": ["Manrope"],
+              "body": ["Inter"],
+              "label": ["Inter"]
+            },
+            borderRadius: {"DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem"},
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body { font-family: 'Inter', sans-serif; }
+        h1, h2, h3, .headline { font-family: 'Manrope', sans-serif; }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface text-on-surface min-h-screen pb-32">
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full flex justify-between items-center px-6 py-4 bg-[#f9f9f9]/80 dark:bg-gray-900/80 backdrop-blur-xl z-50 no-line tonal-shift">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-green-800 dark:text-green-400 text-2xl" data-icon="clinical_notes">clinical_notes</span>
+<span class="text-2xl font-extrabold text-[#1b6d24] dark:text-[#95e88f] tracking-tighter">VoxMed</span>
+</div>
+<div class="h-10 w-10 rounded-full bg-surface-container-highest flex items-center justify-center overflow-hidden">
+<img alt="User Profile Avatar" class="w-full h-full object-cover" data-alt="Close up portrait of a smiling woman professional" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCVnjJ5Pm3BC9wXeo91FGtWM1uQEc3lWa5FKaxmxO4yJw5jyeA2Sqc7ilgb152xJK-zCt3ybLr0leQ-PGPbFcCT_Q_c6PpL6vhgCpex3856p0TuLHIe1AZ4DNzJJHz_7eI9Wp_jAK_i8FoIliDBtQMwE2aGiRECmChv_6MFlI12ifVtplwYF3r7NM4-FGAzHTkY8sXuxbfyFlIch16X0wAvKImaK19yrCObfMfujj1n7MhCnJXVO3x3W7vMXoxY1Y3J_s9WJwr0xf4"/>
+</div>
+</header>
+<main class="pt-24 px-6 max-w-5xl mx-auto">
+<!-- Hero Search Section -->
+<section class="mb-12">
+<h1 class="text-display-lg text-4xl font-extrabold text-on-primary-fixed tracking-tight mb-4">Find Care</h1>
+<p class="text-on-surface-variant text-lg leading-relaxed max-w-xl mb-8">Access world-class specialists and healthcare facilities tailored to your specific needs.</p>
+<div class="relative group">
+<div class="absolute inset-y-0 left-4 flex items-center pointer-events-none">
+<span class="material-symbols-outlined text-outline" data-icon="search">search</span>
+</div>
+<input class="w-full pl-12 pr-4 py-4 bg-surface-container-low rounded-xl border-none focus:ring-2 focus:ring-primary focus:bg-surface-container-lowest transition-all text-on-surface placeholder:text-outline-variant" placeholder="Search doctors, hospitals, or symptoms..." type="text"/>
+</div>
+</section>
+<!-- Specialty Filters: Editorial Horizontal Scroll -->
+<section class="mb-12 overflow-x-auto pb-4 -mx-6 px-6 no-scrollbar">
+<div class="flex gap-4">
+<button class="flex-none px-6 py-3 rounded-full bg-primary text-on-primary font-semibold text-sm transition-all hover:opacity-90">All Specialties</button>
+<button class="flex-none px-6 py-3 rounded-full bg-surface-container-lowest text-on-surface-variant border border-outline-variant/15 font-semibold text-sm hover:bg-surface-container-high transition-all">Cardiology</button>
+<button class="flex-none px-6 py-3 rounded-full bg-surface-container-lowest text-on-surface-variant border border-outline-variant/15 font-semibold text-sm hover:bg-surface-container-high transition-all">Neurology</button>
+<button class="flex-none px-6 py-3 rounded-full bg-surface-container-lowest text-on-surface-variant border border-outline-variant/15 font-semibold text-sm hover:bg-surface-container-high transition-all">Pediatrics</button>
+<button class="flex-none px-6 py-3 rounded-full bg-surface-container-lowest text-on-surface-variant border border-outline-variant/15 font-semibold text-sm hover:bg-surface-container-high transition-all">Dermatology</button>
+<button class="flex-none px-6 py-3 rounded-full bg-surface-container-lowest text-on-surface-variant border border-outline-variant/15 font-semibold text-sm hover:bg-surface-container-high transition-all">Oncology</button>
+</div>
+</section>
+<!-- Main Directory: Bento-style Cards -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+<!-- Doctor Card 1 -->
+<div class="group relative bg-surface-container-lowest rounded-3xl p-6 transition-all hover:shadow-xl hover:shadow-on-surface/5 flex flex-col justify-between h-full">
+<div class="flex items-start gap-5 mb-6">
+<div class="relative">
+<img alt="Dr. Julian Thorne" class="w-24 h-24 rounded-2xl object-cover grayscale group-hover:grayscale-0 transition-all duration-500" data-alt="Male doctor with stethoscope wearing white medical coat" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA9MQbKqlqzDyuXCmLBdk0aVazBU4L95Hbxqr-4zbgcfWKbvJ3knTn4HpaipOun6KMSV4k7dSMoVOZ6BYtCfJZDY9IAG8xd956ItvVGmzwlT-UYqNVIaGDRTBdiZOxBMZiy9SoormfFcJNvZxv7hBcrCsntJoJuoFI8j4Bc42CIWyB1UEAqCS_OSPDQyWdfpBPoOo4Py-COgALxRcouBNJNqUh0Z2UJ6mwA6OpFrb9QZGPpsMAfnfmWnnz73sTcrcXUIQgahuJAG94"/>
+<div class="absolute -bottom-2 -right-2 bg-primary-container text-on-primary-container p-1 rounded-lg">
+<span class="material-symbols-outlined text-sm" data-icon="verified" style="font-variation-settings: 'FILL' 1;">verified</span>
+</div>
+</div>
+<div>
+<span class="text-xs font-bold text-primary tracking-widest uppercase mb-1 block">Cardiology</span>
+<h3 class="text-xl font-bold text-on-surface mb-1">Dr. Julian Thorne</h3>
+<p class="text-sm text-on-surface-variant leading-relaxed">Expert in interventional cardiology with 12+ years experience.</p>
+</div>
+</div>
+<div class="flex items-center gap-6 mb-8 px-2">
+<div class="text-center">
+<p class="text-xs text-outline font-semibold uppercase tracking-tighter">Rating</p>
+<div class="flex items-center gap-1 text-on-surface font-bold">
+                            4.9 <span class="material-symbols-outlined text-primary text-xs" data-icon="star" style="font-variation-settings: 'FILL' 1;">star</span>
+</div>
+</div>
+<div class="w-px h-8 bg-outline-variant/20"></div>
+<div class="text-center">
+<p class="text-xs text-outline font-semibold uppercase tracking-tighter">Consults</p>
+<p class="text-on-surface font-bold">2.4k+</p>
+</div>
+<div class="w-px h-8 bg-outline-variant/20"></div>
+<div class="text-center">
+<p class="text-xs text-outline font-semibold uppercase tracking-tighter">Next</p>
+<p class="text-on-surface font-bold">Today</p>
+</div>
+</div>
+<button class="w-full py-4 rounded-full bg-gradient-to-br from-primary to-primary-dim text-on-primary font-bold text-sm tracking-wide transition-all active:scale-95 shadow-lg shadow-primary-dim/10">
+                    Book Appointment
+                </button>
+</div>
+<!-- Doctor Card 2 -->
+<div class="group relative bg-surface-container-lowest rounded-3xl p-6 transition-all hover:shadow-xl hover:shadow-on-surface/5 flex flex-col justify-between h-full">
+<div class="flex items-start gap-5 mb-6">
+<div class="relative">
+<img alt="Dr. Sarah Chen" class="w-24 h-24 rounded-2xl object-cover grayscale group-hover:grayscale-0 transition-all duration-500" data-alt="Female doctor in clinical setting smiling warmly" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBDt39olYreKM8-AUDd9PFUieFqJhbkRNFsOdx8hrxe1JC3JS2qJ2E5WjlAytJPKBzgBCP133FPSfzK3LFBy9d0fX7dfzIgCAEvbOZFzbxTp_L1UH_g1cM3wmX-E7tONtAXf1jAYadcf2CUkukcHPSruCsqOk6ZZqf6IcZqONUqJqC4lquf87nkMTWLNZD3ibyw_xKnT55_bpgT9duiLBROQ0J0aWjCFRYl-5QpXya7LdPWDA6Vj8v2Pit379lBO10bvX4Lmna_i2E"/>
+<div class="absolute -bottom-2 -right-2 bg-primary-container text-on-primary-container p-1 rounded-lg">
+<span class="material-symbols-outlined text-sm" data-icon="verified" style="font-variation-settings: 'FILL' 1;">verified</span>
+</div>
+</div>
+<div>
+<span class="text-xs font-bold text-primary tracking-widest uppercase mb-1 block">Neurology</span>
+<h3 class="text-xl font-bold text-on-surface mb-1">Dr. Sarah Chen</h3>
+<p class="text-sm text-on-surface-variant leading-relaxed">Specializing in neuro-regeneration and cognitive health.</p>
+</div>
+</div>
+<div class="flex items-center gap-6 mb-8 px-2">
+<div class="text-center">
+<p class="text-xs text-outline font-semibold uppercase tracking-tighter">Rating</p>
+<div class="flex items-center gap-1 text-on-surface font-bold">
+                            5.0 <span class="material-symbols-outlined text-primary text-xs" data-icon="star" style="font-variation-settings: 'FILL' 1;">star</span>
+</div>
+</div>
+<div class="w-px h-8 bg-outline-variant/20"></div>
+<div class="text-center">
+<p class="text-xs text-outline font-semibold uppercase tracking-tighter">Consults</p>
+<p class="text-on-surface font-bold">1.8k+</p>
+</div>
+<div class="w-px h-8 bg-outline-variant/20"></div>
+<div class="text-center">
+<p class="text-xs text-outline font-semibold uppercase tracking-tighter">Next</p>
+<p class="text-on-surface font-bold">Tomorrow</p>
+</div>
+</div>
+<button class="w-full py-4 rounded-full bg-gradient-to-br from-primary to-primary-dim text-on-primary font-bold text-sm tracking-wide transition-all active:scale-95 shadow-lg shadow-primary-dim/10">
+                    Book Appointment
+                </button>
+</div>
+<!-- Hospital Card - Large Span -->
+<div class="md:col-span-2 relative bg-secondary-container/30 rounded-3xl p-8 overflow-hidden group">
+<div class="relative z-10 flex flex-col md:flex-row gap-8 items-center">
+<div class="flex-1">
+<span class="px-3 py-1 bg-secondary text-on-secondary rounded-full text-[10px] font-bold uppercase tracking-widest mb-4 inline-block">Partner Facility</span>
+<h2 class="text-3xl font-extrabold text-on-secondary-container mb-2">Central Medical Pavilion</h2>
+<p class="text-on-secondary-container/80 mb-6">Equipped with the latest AI-driven diagnostic suites and 24/7 critical care units.</p>
+<div class="flex flex-wrap gap-4">
+<span class="flex items-center gap-2 text-xs font-semibold text-on-secondary-container/70">
+<span class="material-symbols-outlined text-lg" data-icon="map">map</span> 0.8 miles away
+                            </span>
+<span class="flex items-center gap-2 text-xs font-semibold text-on-secondary-container/70">
+<span class="material-symbols-outlined text-lg" data-icon="emergency_hospital">emergency</span> Emergency Open
+                            </span>
+</div>
+</div>
+<div class="w-full md:w-64 h-48 rounded-2xl overflow-hidden shadow-2xl rotate-3 group-hover:rotate-0 transition-transform duration-700">
+<img alt="Medical Center Building" class="w-full h-full object-cover" data-alt="Modern clean hospital architecture with glass facade" src="https://lh3.googleusercontent.com/aida-public/AB6AXuADQKotqpbx6vU8097pnsfAflUesQ6xobTVMIinKpnMLfR8btB80eYkCcikwUP4cMOSVVdUE2FQB6K1Fk0knXh5NzuNSx7O_1lyAB__DCmycrmUd0sqO012pH0cHxLkrnZsQyIC8rWRR4HaATVz11aaUIs_WSyIM7NO4gu_9Pb9o0Kq2XUtBmyaqX3nS63Pw3mxvNxYgj6__cvmDrxlKwgucK_HfWduHmkL3mPpdhhYpRlktEoZKHoiZocQpvHz7c0reZjw0zCKms8"/>
+</div>
+</div>
+<!-- Subtle Gradient Pattern Background -->
+<div class="absolute top-0 right-0 -mr-20 -mt-20 w-80 h-80 bg-white/10 rounded-full blur-3xl"></div>
+</div>
+</div>
+</main>
+<!-- NavigationDrawer (AI Triage Assistant FAB) -->
+<div class="fixed bottom-24 right-6 z-50 transition-transform active:scale-90">
+<button class="bg-gradient-to-br from-[#1b6d24] to-[#076019] text-white rounded-full h-16 w-16 flex items-center justify-center shadow-xl shadow-green-900/20 hover:scale-105 hover:brightness-110">
+<span class="material-symbols-outlined" data-icon="smart_toy">smart_toy</span>
+</button>
+</div>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 w-full z-50 flex justify-around items-center px-4 pb-6 pt-3 bg-[#f9f9f9]/90 dark:bg-gray-900/90 backdrop-blur-lg rounded-t-3xl shadow-[0_-4px_24px_-4px_rgba(45,52,53,0.06)]">
+<a class="flex flex-col items-center justify-center text-[#5a6061] dark:text-gray-400 px-5 py-2 transition-all duration-300 ease-in-out hover:text-[#1b6d24]" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+<span class="font-manrope text-[10px] font-semibold uppercase tracking-widest mt-1">Dashboard</span>
+</a>
+<a class="flex flex-col items-center justify-center bg-[#e5ffdd] dark:bg-green-900/30 text-[#076019] dark:text-[#95e88f] rounded-2xl px-5 py-2 transition-all duration-300 ease-in-out" href="#">
+<span class="material-symbols-outlined" data-icon="medical_services" style="font-variation-settings: 'FILL' 1;">medical_services</span>
+<span class="font-manrope text-[10px] font-semibold uppercase tracking-widest mt-1">Doctors</span>
+</a>
+<a class="flex flex-col items-center justify-center text-[#5a6061] dark:text-gray-400 px-5 py-2 transition-all duration-300 ease-in-out hover:text-[#1b6d24]" href="#">
+<span class="material-symbols-outlined" data-icon="badge">badge</span>
+<span class="font-manrope text-[10px] font-semibold uppercase tracking-widest mt-1">Passport</span>
+</a>
+<a class="flex flex-col items-center justify-center text-[#5a6061] dark:text-gray-400 px-5 py-2 transition-all duration-300 ease-in-out hover:text-[#1b6d24]" href="#">
+<span class="material-symbols-outlined" data-icon="favorite">favorite</span>
+<span class="font-manrope text-[10px] font-semibold uppercase tracking-widest mt-1">Health</span>
+</a>
+</nav>
+<style>
+        /* Custom scrollbar suppression for the filters */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</body></html>

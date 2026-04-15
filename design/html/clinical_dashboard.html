@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>VoxMed | Clinical Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "inverse-surface": "#2e3132",
+                        "on-error-container": "#93000a",
+                        "tertiary-fixed": "#ffdbc9",
+                        "on-tertiary-fixed-variant": "#753400",
+                        "on-primary-fixed": "#001b3d",
+                        "on-primary-fixed-variant": "#00468c",
+                        "surface": "#f8f9fa",
+                        "surface-dim": "#d9dadb",
+                        "primary-fixed": "#d6e3ff",
+                        "on-background": "#191c1d",
+                        "outline-variant": "#c2c6d4",
+                        "tertiary-fixed-dim": "#ffb68c",
+                        "secondary-fixed-dim": "#b2c7f1",
+                        "on-secondary-fixed": "#021b3c",
+                        "on-tertiary": "#ffffff",
+                        "primary-fixed-dim": "#a9c7ff",
+                        "outline": "#727783",
+                        "on-tertiary-fixed": "#321200",
+                        "on-error": "#ffffff",
+                        "surface-container-highest": "#e1e3e4",
+                        "secondary-fixed": "#d6e3ff",
+                        "background": "#f8f9fa",
+                        "surface-bright": "#f8f9fa",
+                        "surface-container-low": "#f3f4f5",
+                        "on-secondary-container": "#475c80",
+                        "surface-container-lowest": "#ffffff",
+                        "on-primary": "#ffffff",
+                        "primary": "#004d99",
+                        "surface-variant": "#e1e3e4",
+                        "on-primary-container": "#dae5ff",
+                        "on-surface-variant": "#424752",
+                        "on-tertiary-container": "#ffdece",
+                        "on-secondary-fixed-variant": "#32476a",
+                        "on-surface": "#191c1d",
+                        "secondary-container": "#c0d5ff",
+                        "tertiary": "#813900",
+                        "inverse-on-surface": "#f0f1f2",
+                        "error": "#ba1a1a",
+                        "inverse-primary": "#a9c7ff",
+                        "surface-tint": "#005db7",
+                        "on-secondary": "#ffffff",
+                        "tertiary-container": "#a64c00",
+                        "primary-container": "#1565c0",
+                        "surface-container-high": "#e7e8e9",
+                        "error-container": "#ffdad6",
+                        "secondary": "#4a5f83",
+                        "surface-container": "#edeeef"
+                    },
+                    fontFamily: {
+                        "headline": ["Manrope"],
+                        "body": ["Inter"],
+                        "label": ["Inter"]
+                    },
+                    borderRadius: {"DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem"},
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body { font-family: 'Inter', sans-serif; }
+        h1, h2, h3 { font-family: 'Manrope', sans-serif; }
+        .glass-header { backdrop-filter: blur(12px); }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface text-on-surface min-h-screen pb-24">
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full z-50 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md">
+<div class="flex justify-between items-center px-6 h-16 w-full max-w-screen-xl mx-auto">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 rounded-full overflow-hidden border-2 border-primary-fixed">
+<img alt="Doctor profile" class="w-full h-full object-cover" data-alt="Doctor professional profile portrait" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD0wP65QQYLyJAgo7vAqG3xWtsRelOWh0wWGovJdV1RX4aDyzg3FkYvmkLZIUYQPNZmelbC9ElcyqntYHBEsjUWgaIdf60Dn3ITUnmG2eJpdls0dOpIS71SKgLvE4iIwsxT7kmDnHo34Wcv6v7eU7_xmYw-_s_9HFg5CN7us3KT8TYusECv3LDoWjbE_bwRAQv8Y1Mu-bnDfnnHiQEQOirsvhDsctxdBykOgEyR4W19Nqzk9hbfasC8tIPVD1lUe0sVHP9y5AYgsXQ"/>
+</div>
+<span class="text-xl font-extrabold text-blue-900 dark:text-blue-400 font-['Manrope'] tracking-tight">VoxMed</span>
+</div>
+<div class="flex items-center gap-3">
+<button class="flex items-center gap-2 px-4 py-2 bg-error-container text-on-error-container rounded-xl font-bold active:scale-95 transition-transform">
+<span class="material-symbols-outlined text-[20px]" data-icon="emergency_home">emergency_home</span>
+<span class="text-sm font-headline">Emergency Absence</span>
+</button>
+</div>
+</div>
+</header>
+<main class="pt-24 px-6 max-w-screen-xl mx-auto">
+<!-- Vitals Strip / Header Stats -->
+<section class="mb-8 grid grid-cols-1 md:grid-cols-4 gap-4">
+<div class="bg-inverse-surface text-inverse-on-surface p-6 rounded-xl flex flex-col justify-between shadow-sm">
+<span class="text-xs uppercase tracking-widest font-label opacity-70">Total Appointments</span>
+<span class="text-4xl font-headline font-extrabold mt-2">12</span>
+</div>
+<div class="bg-surface-container-lowest p-6 rounded-xl flex flex-col justify-between shadow-sm">
+<span class="text-xs uppercase tracking-widest font-label text-on-surface-variant">Avg. Compliance</span>
+<span class="text-4xl font-headline font-extrabold mt-2 text-primary">88%</span>
+</div>
+<div class="bg-surface-container-lowest p-6 rounded-xl flex flex-col justify-between shadow-sm">
+<span class="text-xs uppercase tracking-widest font-label text-on-surface-variant">Pending Lab Results</span>
+<span class="text-4xl font-headline font-extrabold mt-2 text-tertiary">04</span>
+</div>
+<div class="bg-surface-container-lowest p-6 rounded-xl flex flex-col justify-between shadow-sm border-l-4 border-primary">
+<span class="text-xs uppercase tracking-widest font-label text-on-surface-variant">Next Patient</span>
+<span class="text-xl font-headline font-bold mt-2 truncate">Sarah Jenkins</span>
+<span class="text-sm text-primary font-medium">In 15 mins</span>
+</div>
+</section>
+<!-- Main Content Asymmetric Grid -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+<!-- Daily Schedule View -->
+<section class="lg:col-span-8">
+<div class="flex items-center justify-between mb-6">
+<h2 class="text-2xl font-extrabold tracking-tight">Daily Schedule</h2>
+<div class="flex gap-2">
+<button class="p-2 rounded-lg bg-surface-container-high hover:bg-surface-container-highest transition-colors">
+<span class="material-symbols-outlined" data-icon="calendar_today">calendar_today</span>
+</button>
+<button class="p-2 rounded-lg bg-surface-container-high hover:bg-surface-container-highest transition-colors">
+<span class="material-symbols-outlined" data-icon="more_vert">more_vert</span>
+</button>
+</div>
+</div>
+<div class="space-y-4">
+<!-- Schedule Item 1 -->
+<div class="group bg-surface-container-lowest hover:bg-blue-50/30 transition-all p-5 rounded-xl flex items-center gap-6 relative overflow-hidden">
+<div class="flex flex-col items-center justify-center min-w-[80px] border-r border-surface-container py-1">
+<span class="text-lg font-bold text-on-surface">09:00</span>
+<span class="text-[10px] uppercase tracking-tighter text-on-surface-variant font-bold">AM</span>
+</div>
+<div class="flex-grow flex items-center justify-between">
+<div>
+<h3 class="text-lg font-bold text-on-surface leading-tight">Sarah Jenkins</h3>
+<p class="text-sm text-on-surface-variant font-medium">Post-Op Consultation</p>
+</div>
+<div class="flex items-center gap-8">
+<!-- Compliance Gauge -->
+<div class="flex flex-col items-center gap-1">
+<div class="w-16 h-1.5 bg-surface-container rounded-full overflow-hidden">
+<div class="h-full bg-emerald-500 rounded-full" style="width: 92%"></div>
+</div>
+<span class="text-[10px] font-bold text-emerald-600">92% COMPLIANT</span>
+</div>
+<button class="px-5 py-2 bg-primary text-white rounded-full font-bold text-sm hover:bg-surface-tint transition-colors active:scale-95">
+                                    Start Visit
+                                </button>
+</div>
+</div>
+</div>
+<!-- Schedule Item 2 -->
+<div class="group bg-surface-container-lowest hover:bg-blue-50/30 transition-all p-5 rounded-xl flex items-center gap-6 relative overflow-hidden">
+<div class="flex flex-col items-center justify-center min-w-[80px] border-r border-surface-container py-1">
+<span class="text-lg font-bold text-on-surface">10:30</span>
+<span class="text-[10px] uppercase tracking-tighter text-on-surface-variant font-bold">AM</span>
+</div>
+<div class="flex-grow flex items-center justify-between">
+<div>
+<h3 class="text-lg font-bold text-on-surface leading-tight">Marcus Thorne</h3>
+<p class="text-sm text-on-surface-variant font-medium">Chronic Pain Management</p>
+</div>
+<div class="flex items-center gap-8">
+<!-- Compliance Gauge -->
+<div class="flex flex-col items-center gap-1">
+<div class="w-16 h-1.5 bg-surface-container rounded-full overflow-hidden">
+<div class="h-full bg-amber-500 rounded-full" style="width: 64%"></div>
+</div>
+<span class="text-[10px] font-bold text-amber-600">64% COMPLIANT</span>
+</div>
+<button class="px-5 py-2 bg-surface-container-high text-on-surface font-bold text-sm hover:bg-surface-container-highest transition-colors">
+                                    View EHR
+                                </button>
+</div>
+</div>
+</div>
+<!-- Schedule Item 3 (High Alert) -->
+<div class="group bg-surface-container-lowest hover:bg-blue-50/30 transition-all p-5 rounded-xl flex items-center gap-6 relative overflow-hidden border-l-4 border-error">
+<div class="flex flex-col items-center justify-center min-w-[80px] border-r border-surface-container py-1">
+<span class="text-lg font-bold text-on-surface">11:15</span>
+<span class="text-[10px] uppercase tracking-tighter text-on-surface-variant font-bold">AM</span>
+</div>
+<div class="flex-grow flex items-center justify-between">
+<div>
+<div class="flex items-center gap-2">
+<h3 class="text-lg font-bold text-on-surface leading-tight">Elena Rodriguez</h3>
+<span class="bg-error-container text-on-error-container text-[10px] px-2 py-0.5 rounded-full font-bold">STAT</span>
+</div>
+<p class="text-sm text-on-surface-variant font-medium">Emergency Follow-up</p>
+</div>
+<div class="flex items-center gap-8">
+<!-- Compliance Gauge -->
+<div class="flex flex-col items-center gap-1">
+<div class="w-16 h-1.5 bg-surface-container rounded-full overflow-hidden">
+<div class="h-full bg-red-500 rounded-full" style="width: 41%"></div>
+</div>
+<span class="text-[10px] font-bold text-red-600">41% COMPLIANT</span>
+</div>
+<button class="px-5 py-2 bg-primary text-white rounded-full font-bold text-sm hover:bg-surface-tint transition-colors active:scale-95">
+                                    Start Visit
+                                </button>
+</div>
+</div>
+</div>
+<!-- Schedule Item 4 -->
+<div class="group bg-surface-container-lowest hover:bg-blue-50/30 transition-all p-5 rounded-xl flex items-center gap-6 relative overflow-hidden">
+<div class="flex flex-col items-center justify-center min-w-[80px] border-r border-surface-container py-1 opacity-50">
+<span class="text-lg font-bold text-on-surface">01:00</span>
+<span class="text-[10px] uppercase tracking-tighter text-on-surface-variant font-bold">PM</span>
+</div>
+<div class="flex-grow flex items-center justify-between opacity-50">
+<div>
+<h3 class="text-lg font-bold text-on-surface leading-tight">David Wu</h3>
+<p class="text-sm text-on-surface-variant font-medium">Routine Physical</p>
+</div>
+<div class="flex items-center gap-8">
+<div class="flex flex-col items-center gap-1">
+<div class="w-16 h-1.5 bg-surface-container rounded-full overflow-hidden">
+<div class="h-full bg-emerald-500 rounded-full" style="width: 100%"></div>
+</div>
+<span class="text-[10px] font-bold text-emerald-600">100% COMPLIANT</span>
+</div>
+<span class="material-symbols-outlined text-outline" data-icon="lock">lock</span>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Triage & EHR Insights (Sidebar) -->
+<aside class="lg:col-span-4 space-y-6">
+<!-- Compliance Radar Section -->
+<div class="bg-surface-container-high p-6 rounded-xl">
+<h3 class="font-headline font-extrabold text-lg mb-4">Patient Compliance Trends</h3>
+<div class="aspect-square w-full rounded-lg bg-surface-container-highest flex items-center justify-center overflow-hidden relative group">
+<div class="absolute inset-0 bg-gradient-to-tr from-primary/10 to-transparent"></div>
+<div class="flex flex-col items-center z-10">
+<span class="text-5xl font-extrabold text-primary">A+</span>
+<span class="text-xs font-label uppercase tracking-widest text-on-surface-variant mt-2">Overall Clinic Score</span>
+</div>
+<img alt="Data visualization" class="absolute inset-0 w-full h-full object-cover mix-blend-overlay opacity-30" data-alt="Abstract data visualization with clinical blue accents" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCkO4-DV6twahm-F59WP3O9AsM8m9AqM-ox56PIu2GWczb-QC5tbUMtcb67kQ2E79AkCfZQr8eqwymzpjL5UwXmhj5pAXuPiNODcthkWl2nAkInRAdxGxgnSz8poc273DyNJTyoQ5C4c96u--BL7nefmCPVyyknXyqhc8-SzigYPOg1m7d7Hfi6QfQe_T8Yokx5w4aDExbSqtNQSKmgRMSqcT89TxzbPb2Cqqsw4_vSi0tw1Ri9f8MObR6KItu8vPH713VYPUF6SfE"/>
+</div>
+<p class="mt-4 text-sm text-on-surface-variant leading-relaxed">
+                        Medication adherence is up <span class="text-emerald-600 font-bold">12%</span> this week following the new portal reminders.
+                    </p>
+</div>
+<!-- EHR Hub Quick Access -->
+<div class="bg-white p-6 rounded-xl shadow-sm">
+<h3 class="font-headline font-extrabold text-lg mb-4">Approvals Required</h3>
+<div class="space-y-3">
+<div class="flex items-center justify-between p-3 bg-surface rounded-lg">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-amber-600" data-icon="pill">pill</span>
+<span class="text-sm font-medium">Lipitor Refill (3)</span>
+</div>
+<span class="material-symbols-outlined text-outline text-sm" data-icon="chevron_right">chevron_right</span>
+</div>
+<div class="flex items-center justify-between p-3 bg-surface rounded-lg">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary" data-icon="lab_research">lab_research</span>
+<span class="text-sm font-medium">Pathology Review (1)</span>
+</div>
+<span class="material-symbols-outlined text-outline text-sm" data-icon="chevron_right">chevron_right</span>
+</div>
+</div>
+<button class="w-full mt-4 py-3 border border-outline-variant rounded-xl text-sm font-bold hover:bg-surface-container-low transition-colors">
+                        View EHR Hub
+                    </button>
+</div>
+</aside>
+</div>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 pb-safe h-20 bg-white dark:bg-slate-950 shadow-[0_-4px_20px_0_rgba(0,0,0,0.02)] border-t border-slate-100 dark:border-slate-800">
+<!-- Dashboard (Active) -->
+<a class="flex flex-col items-center justify-center bg-blue-50 dark:bg-blue-900/30 text-blue-900 dark:text-blue-200 rounded-xl px-4 py-2 transition-transform active:scale-90" href="#">
+<span class="material-symbols-outlined mb-1" data-icon="dashboard" style="font-variation-settings: 'FILL' 1;">dashboard</span>
+<span class="font-['Inter'] text-[10px] font-bold uppercase tracking-wider">Dashboard</span>
+</a>
+<!-- Consult -->
+<a class="flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 px-3 py-1.5 hover:text-blue-700 dark:hover:text-blue-300 transition-transform active:scale-90" href="#">
+<span class="material-symbols-outlined mb-1" data-icon="medical_services">medical_services</span>
+<span class="font-['Inter'] text-[10px] font-medium uppercase tracking-wider">Consult</span>
+</a>
+<!-- EHR Hub -->
+<a class="flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 px-3 py-1.5 hover:text-blue-700 dark:hover:text-blue-300 transition-transform active:scale-90" href="#">
+<span class="material-symbols-outlined mb-1" data-icon="folder_shared">folder_shared</span>
+<span class="font-['Inter'] text-[10px] font-medium uppercase tracking-wider">EHR Hub</span>
+</a>
+<!-- Approvals -->
+<a class="flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 px-3 py-1.5 hover:text-blue-700 dark:hover:text-blue-300 transition-transform active:scale-90" href="#">
+<span class="material-symbols-outlined mb-1" data-icon="fact_check">fact_check</span>
+<span class="font-['Inter'] text-[10px] font-medium uppercase tracking-wider">Approvals</span>
+</a>
+</nav>
+<!-- Floating Action Button - Supressed as per shell logic for specific sub-pages, but relevant for dashboard 'New Patient' -->
+<button class="fixed right-6 bottom-24 w-14 h-14 bg-primary text-white rounded-full shadow-lg flex items-center justify-center active:scale-90 transition-transform z-40">
+<span class="material-symbols-outlined" data-icon="add">add</span>
+</button>
+</body></html>
