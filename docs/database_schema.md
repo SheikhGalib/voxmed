@@ -1,7 +1,7 @@
 # VoxMed Connect — Database Schema
 
 > **Backend:** Supabase (PostgreSQL + Auth + Storage + Edge Functions + Realtime)  
-> **Last Updated:** 2026-03-28
+> **Last Updated:** 2026-04-16
 
 ---
 
@@ -35,7 +35,9 @@
 │               │     │  ai_conversations, ai_messages,              │
 │               │     │  notifications, reviews,                     │
 │               │     │  consultation_sessions, consultation_members,│
-│               │     │  wearable_data                               │
+│               │     │  wearable_data,                              │
+│               │     │  video_calls, call_transcripts,              │
+│               │     │  emergency_call_requests                     │
 │               │     └──────────────────────────────────────────────┘
 │               │
 │               │────▶ Supabase Storage
@@ -426,6 +428,59 @@ Synced biometric data from wearables (Phase 2+).
 
 ---
 
+### 3.20 `video_calls`
+
+Tracks active/completed video call rooms tied to appointments (ZEGOCLOUD).
+
+| Column             | Type          | Constraints                                      | Description                           |
+|--------------------|---------------|--------------------------------------------------|---------------------------------------|
+| `id`               | `uuid`        | PK, DEFAULT `gen_random_uuid()`                  |                                       |
+| `appointment_id`   | `uuid`        | NOT NULL, FK → `appointments.id` ON DELETE CASCADE |                                    |
+| `room_id`          | `text`        | NOT NULL, UNIQUE                                 | ZEGOCLOUD room identifier             |
+| `patient_id`       | `uuid`        | NOT NULL, FK → `profiles.id`                     |                                       |
+| `doctor_id`        | `uuid`        | NOT NULL, FK → `doctors.id`                      |                                       |
+| `status`           | `text`        | NOT NULL, DEFAULT `'pending'`, CHECK IN (`pending`, `ringing`, `in_progress`, `completed`, `cancelled`, `missed`) | Call lifecycle status |
+| `started_at`       | `timestamptz` |                                                  | When call actually began              |
+| `ended_at`         | `timestamptz` |                                                  | When call ended                       |
+| `duration_seconds` | `int4`        |                                                  | Computed on end                       |
+| `recording_url`    | `text`        |                                                  | If recording is enabled               |
+| `created_at`       | `timestamptz` | DEFAULT `now()`                                  |                                       |
+| `updated_at`       | `timestamptz` | DEFAULT `now()`                                  |                                       |
+
+### 3.21 `call_transcripts`
+
+Stores real-time transcription data from video calls (Deepgram ASR).
+
+| Column           | Type          | Constraints                                      | Description                           |
+|------------------|---------------|--------------------------------------------------|---------------------------------------|
+| `id`             | `uuid`        | PK, DEFAULT `gen_random_uuid()`                  |                                       |
+| `video_call_id`  | `uuid`        | NOT NULL, FK → `video_calls.id` ON DELETE CASCADE |                                     |
+| `speaker_role`   | `text`        | NOT NULL, CHECK IN (`doctor`, `patient`, `unknown`) | Who is speaking                    |
+| `content`        | `text`        | NOT NULL                                         | Transcribed text                      |
+| `timestamp_ms`   | `int8`        | NOT NULL                                         | Milliseconds from call start          |
+| `confidence`     | `float4`      |                                                  | ASR confidence score (0.0–1.0)        |
+| `is_final`       | `boolean`     | DEFAULT `true`                                   | Final vs interim transcript           |
+| `created_at`     | `timestamptz` | DEFAULT `now()`                                  |                                       |
+
+### 3.22 `emergency_call_requests`
+
+Handles the emergency/early-responder call queue.
+
+| Column           | Type          | Constraints                                      | Description                           |
+|------------------|---------------|--------------------------------------------------|---------------------------------------|
+| `id`             | `uuid`        | PK, DEFAULT `gen_random_uuid()`                  |                                       |
+| `patient_id`     | `uuid`        | NOT NULL, FK → `profiles.id`                     |                                       |
+| `reason`         | `text`        |                                                  | Brief emergency description           |
+| `severity`       | `text`        | DEFAULT `'high'`, CHECK IN (`medium`, `high`, `critical`) | Severity level              |
+| `status`         | `text`        | NOT NULL, DEFAULT `'pending'`, CHECK IN (`pending`, `accepted`, `cancelled`, `expired`, `completed`) | Request lifecycle |
+| `accepted_by`    | `uuid`        | FK → `doctors.id`                                | Doctor who accepted                   |
+| `video_call_id`  | `uuid`        | FK → `video_calls.id`                            | Linked video call                     |
+| `expires_at`     | `timestamptz` | NOT NULL, DEFAULT `now() + interval '5 minutes'` | Auto-expire if not accepted           |
+| `created_at`     | `timestamptz` | DEFAULT `now()`                                  |                                       |
+| `updated_at`     | `timestamptz` | DEFAULT `now()`                                  |                                       |
+
+---
+
 ## 4. Enums & Constants
 
 ```sql
@@ -464,7 +519,10 @@ CREATE TYPE notification_type AS ENUM (
   'appointment_reminder', 'appointment_rescheduled', 'appointment_cancelled',
   'medication_reminder', 'renewal_request', 'renewal_approved', 'renewal_rejected',
   'new_lab_result', 'consultation_invite', 'ai_triage_result',
-  'doctor_absence', 'general'
+  'doctor_absence', 'general',
+  -- Video calling notifications (Phase 10)
+  'video_call_scheduled', 'video_call_starting', 'video_call_missed',
+  'emergency_call_request', 'emergency_call_accepted', 'soap_note_ready'
 );
 ```
 
@@ -801,6 +859,58 @@ CREATE POLICY "Patients manage own wearable data" ON wearable_data
   FOR ALL USING (patient_id = auth.uid());
 ```
 
+### `video_calls`
+```sql
+CREATE POLICY "Patients view own video calls" ON video_calls
+  FOR SELECT USING (patient_id = auth.uid());
+
+CREATE POLICY "Doctors view own video calls" ON video_calls
+  FOR SELECT USING (
+    doctor_id IN (SELECT id FROM doctors WHERE profile_id = auth.uid())
+  );
+
+CREATE POLICY "System insert video calls" ON video_calls
+  FOR INSERT WITH CHECK (true);  -- Edge Function uses service role
+
+CREATE POLICY "Participants update video calls" ON video_calls
+  FOR UPDATE USING (
+    patient_id = auth.uid() OR
+    doctor_id IN (SELECT id FROM doctors WHERE profile_id = auth.uid())
+  );
+```
+
+### `call_transcripts`
+```sql
+CREATE POLICY "Doctors view transcripts of their calls" ON call_transcripts
+  FOR SELECT USING (
+    EXISTS (
+      SELECT 1 FROM video_calls vc
+      WHERE vc.id = call_transcripts.video_call_id
+      AND vc.doctor_id IN (SELECT id FROM doctors WHERE profile_id = auth.uid())
+    )
+  );
+
+CREATE POLICY "System insert transcripts" ON call_transcripts
+  FOR INSERT WITH CHECK (true);  -- Edge Function / client during call
+```
+
+### `emergency_call_requests`
+```sql
+CREATE POLICY "Patients manage own emergency requests" ON emergency_call_requests
+  FOR ALL USING (patient_id = auth.uid());
+
+CREATE POLICY "Doctors view pending emergency requests" ON emergency_call_requests
+  FOR SELECT USING (
+    status = 'pending' AND
+    EXISTS (SELECT 1 FROM doctors WHERE profile_id = auth.uid() AND is_available = true)
+  );
+
+CREATE POLICY "Doctors accept emergency requests" ON emergency_call_requests
+  FOR UPDATE USING (
+    EXISTS (SELECT 1 FROM doctors WHERE profile_id = auth.uid())
+  );
+```
+
 ---
 
 ## 6. Storage Buckets
@@ -859,6 +969,12 @@ CREATE INDEX idx_ai_conversations_patient ON ai_conversations(patient_id);
 
 CREATE INDEX idx_consultation_sessions_patient ON consultation_sessions(patient_id);
 CREATE INDEX idx_consultation_members_doctor ON consultation_members(doctor_id);
+
+-- Video calling indexes
+CREATE INDEX idx_video_calls_appointment ON video_calls(appointment_id);
+CREATE INDEX idx_video_calls_room ON video_calls(room_id);
+CREATE INDEX idx_call_transcripts_call ON call_transcripts(video_call_id);
+CREATE INDEX idx_emergency_pending ON emergency_call_requests(status) WHERE status = 'pending';
 ```
 
 ---

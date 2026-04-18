@@ -1,6 +1,6 @@
 # VoxMed Connect — Progress Tracker
 
-> **Last Updated:** 2026-04-14
+> **Last Updated:** 2026-04-16
 
 ---
 
@@ -168,6 +168,45 @@ Rollout plan (3 parts):
 
 ---
 
+## Phase 10: Video Calling — ZEGOCLOUD Integration (🔄 In Progress)
+
+> **Plan:** See `docs/video_calling_implementation.md` for full 5-phase implementation plan.
+
+### Phase 1 — Basic Video Calling (🔄 In Progress)
+
+| Task | Status | Date | Notes |
+|------|--------|------|-------|
+| Add ZEGOCLOUD & permission_handler dependencies to pubspec.yaml | ✅ | 2026-04-15 | `zego_uikit_prebuilt_call: ^4.22.0`, `zego_uikit_signaling_plugin: ^2.10.0`, `permission_handler: ^11.3.0` |
+| Create `zego_config.dart` (reads ZEGO_APP_ID/ZEGO_APP_SIGN from .env) | ✅ | 2026-04-15 | `lib/core/config/zego_config.dart` |
+| Create `VideoCall` model with `VideoCallStatus` enum | ✅ | 2026-04-15 | `lib/models/video_call.dart` |
+| Create `VideoCallRepository` (Supabase CRUD) | ✅ | 2026-04-15 | `lib/repositories/video_call_repository.dart` — createVideoCall, getByAppointment, updateStatus, completeCall |
+| Create `VideoCallProvider` (Riverpod) | ✅ | 2026-04-15 | `lib/providers/video_call_provider.dart` |
+| Create `VideoCallScreen` with ZEGOCLOUD PrebuiltCall wrapper | ✅ | 2026-04-15 | `lib/screens/video_call_screen.dart` — hang-up confirmation, call status management, duration display |
+| Add `/video-call` route to GoRouter | ✅ | 2026-04-15 | `lib/core/router/app_router.dart` with roomId + videoCallId query params |
+| Add `AppRoutes.videoCall` and `Tables.videoCalls` constants | ✅ | 2026-04-15 | `lib/core/constants/app_constants.dart` |
+| Auto-create video call room in booking flow | ✅ | 2026-04-15 | `_confirmBooking()` in doctor_booking_detail_screen.dart |
+| Add appointment type toggle (In-Person / Video) to booking screen | ✅ | 2026-04-16 | `_buildAppointmentTypeToggle()` — was missing, fixed |
+| Add Android permissions for ZEGOCLOUD | ✅ | 2026-04-16 | CAMERA, WIFI, NETWORK, BLUETOOTH, VIBRATE, FULL_SCREEN_INTENT, SCHEDULE_EXACT_ALARM |
+| Add video icon + "Join Call" button to patient dashboard tile | ✅ | 2026-04-16 | `_UpcomingAppointmentTile` shows videocam icon and Join button for video appointments |
+| Add video indicator to doctor daily schedule | ✅ | 2026-04-16 | `_ScheduleItem` shows videocam icon for video appointments |
+| Update `database_schema.md` with video calling tables | ✅ | 2026-04-16 | Added `video_calls`, `call_transcripts`, `emergency_call_requests` tables, RLS, indexes, enum updates |
+| Create Supabase `video_calls` table in database | ⏳ | | SQL in `video_calling_implementation.md` §6.1 |
+| Create Supabase `call_transcripts` table | ⏳ | | SQL in §6.2 |
+| Create Supabase `emergency_call_requests` table | ⏳ | | SQL in §6.3 |
+| Add new `notification_type` enum values | ⏳ | | SQL in §6.4: video_call_scheduled, video_call_starting, etc. |
+| Test end-to-end video call flow | ⏳ | | Requires ZEGOCLOUD credentials in .env |
+
+### Phase 2–5 — Not Started
+
+| Phase | Description | Status |
+|-------|-------------|--------|
+| Phase 2 | Scheduled Meetings & Notifications (call invitations, push) | ⏳ |
+| Phase 3 | Emergency Calling (early responder queue) | ⏳ |
+| Phase 4 | Real-Time ASR Transcription (Deepgram streaming) | ⏳ |
+| Phase 5 | SOAP Notes Generation (Gemini edge function) | ⏳ |
+
+---
+
 ## Recent Fixes
 
 | Task | Status | Date | Notes |
@@ -179,6 +218,15 @@ Rollout plan (3 parts):
 | Expand Find Care search to doctors | ✅ | 2026-04-08 | Shared search bar now filters doctor results by name, specialty, and hospital |
 | Implement AI Chat Part 1 code path | ✅ | 2026-04-14 | Added `gemini-triage` function source, AI repository invocation, and chat session history controls |
 | Configure Supabase CLI + cloud deploy for AI chat | ✅ | 2026-04-14 | Installed local CLI flow (`npx supabase`), linked cloud project, set secrets, verified endpoint no longer returns 404 |
+| Fix missing `_buildAppointmentTypeToggle()` method | ✅ | 2026-04-16 | Method was called but never defined — compile error from disconnected previous session |
+| Add ZEGOCLOUD Android permissions | ✅ | 2026-04-16 | AndroidManifest.xml was missing CAMERA, WIFI, NETWORK, BLUETOOTH permissions |
+| Add video call UI integration to dashboards | ✅ | 2026-04-16 | Patient dashboard "Join Call" button + doctor schedule video icon |
+| Update database_schema.md for video calling | ✅ | 2026-04-16 | 3 new tables (§3.20–3.22), RLS policies, indexes, notification_type enum |
+| Fix Java 17 toolchain missing error | ✅ | 2026-04-16 | Added `foojay-resolver-convention 0.9.0` to `settings.gradle.kts` for JDK 17 auto-download |
+| Fix `zego_zim 2.28.0` API breakage | ✅ | 2026-04-16 | `dependency_overrides: zego_zim: 2.27.0` — signaling plugin incompatible with 2.28.0 |
+| Fix `permission_handler` version conflict | ✅ | 2026-04-16 | Changed from `^11.3.0` to `^12.0.1` (required by ZEGOCLOUD v4.x) |
+| Migrate `video_call_screen.dart` to ZEGOCLOUD v4.x API | ✅ | 2026-04-16 | `onHangUpConfirmation`/`onCallEnd` → `events` param; `durationConfig` → `duration` |
+| Document build fixes | ✅ | 2026-04-16 | `docs/build_fixes.md` — 4 issues with root cause analysis and solutions |
 
 ---
 
