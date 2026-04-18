@@ -32,16 +32,28 @@ class ClinicalDashboardScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildDarkStatsBar(AsyncValue<Map<String, dynamic>> statsAsync, AsyncValue<List<Map<String, dynamic>>> scheduleAsync) {
+  Widget _buildDarkStatsBar(
+    AsyncValue<Map<String, dynamic>> statsAsync,
+    AsyncValue<List<Map<String, dynamic>>> scheduleAsync,
+  ) {
     final stats = statsAsync.valueOrNull ?? {};
     final schedule = scheduleAsync.valueOrNull ?? [];
     final patientsCount = stats['patients_count'] ?? 0;
     final pendingRenewals = stats['pending_renewals'] ?? 0;
     final pendingLabs = stats['pending_labs'] ?? 0;
-    final complianceRate = pendingRenewals == 0 ? 100 : (patientsCount > 0 ? ((patientsCount - pendingRenewals) / patientsCount * 100).round() : 0);
+    final complianceRate = pendingRenewals == 0
+        ? 100
+        : (patientsCount > 0
+              ? ((patientsCount - pendingRenewals) / patientsCount * 100)
+                    .round()
+              : 0);
     final nextPatient = schedule.isNotEmpty ? schedule.first : null;
-    final nextName = nextPatient != null ? (nextPatient['profiles']?['full_name'] ?? 'Unknown') : '—';
-    final nextReason = nextPatient != null ? (nextPatient['reason'] ?? nextPatient['type'] ?? '') : '';
+    final nextName = nextPatient != null
+        ? (nextPatient['profiles']?['full_name'] ?? 'Unknown')
+        : '—';
+    final nextReason = nextPatient != null
+        ? (nextPatient['reason'] ?? nextPatient['type'] ?? '')
+        : '';
 
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
@@ -53,15 +65,33 @@ class ClinicalDashboardScreen extends ConsumerWidget {
         children: [
           Row(
             children: [
-              Expanded(child: _StatCard(label: 'ACTIVE PATIENTS', value: '$patientsCount', color: Colors.cyanAccent)),
+              Expanded(
+                child: _StatCard(
+                  label: 'ACTIVE PATIENTS',
+                  value: '$patientsCount',
+                  color: Colors.cyanAccent,
+                ),
+              ),
               const SizedBox(width: 12),
-              Expanded(child: _StatCard(label: 'COMPLIANCE', value: '$complianceRate%', color: Colors.greenAccent)),
+              Expanded(
+                child: _StatCard(
+                  label: 'COMPLIANCE',
+                  value: '$complianceRate%',
+                  color: Colors.greenAccent,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 12),
           Row(
             children: [
-              Expanded(child: _StatCard(label: 'PENDING LAB REVIEW', value: pendingLabs.toString().padLeft(2, '0'), color: Colors.orangeAccent)),
+              Expanded(
+                child: _StatCard(
+                  label: 'PENDING LAB REVIEW',
+                  value: pendingLabs.toString().padLeft(2, '0'),
+                  color: Colors.orangeAccent,
+                ),
+              ),
               const SizedBox(width: 12),
               Expanded(
                 child: Container(
@@ -75,15 +105,34 @@ class ClinicalDashboardScreen extends ConsumerWidget {
                       CircleAvatar(
                         radius: 18,
                         backgroundColor: Colors.white.withValues(alpha: 0.1),
-                        child: const Icon(Icons.person, color: Colors.white70, size: 18),
+                        child: const Icon(
+                          Icons.person,
+                          color: Colors.white70,
+                          size: 18,
+                        ),
                       ),
                       const SizedBox(width: 10),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(nextName, style: GoogleFonts.manrope(fontSize: 12, fontWeight: FontWeight.w700, color: Colors.white), overflow: TextOverflow.ellipsis),
-                            Text(nextReason, style: GoogleFonts.inter(fontSize: 10, color: Colors.white54), overflow: TextOverflow.ellipsis),
+                            Text(
+                              nextName,
+                              style: GoogleFonts.manrope(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.white,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            Text(
+                              nextReason,
+                              style: GoogleFonts.inter(
+                                fontSize: 10,
+                                color: Colors.white54,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
                           ],
                         ),
                       ),
@@ -98,34 +147,67 @@ class ClinicalDashboardScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildDailySchedule(AsyncValue<List<Map<String, dynamic>>> scheduleAsync) {
+  Widget _buildDailySchedule(
+    AsyncValue<List<Map<String, dynamic>>> scheduleAsync,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Daily Schedule', style: GoogleFonts.manrope(fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.onSurface)),
+        Text(
+          'Daily Schedule',
+          style: GoogleFonts.manrope(
+            fontSize: 18,
+            fontWeight: FontWeight.w700,
+            color: AppColors.onSurface,
+          ),
+        ),
         const SizedBox(height: 14),
         scheduleAsync.when(
           data: (appointments) {
             if (appointments.isEmpty) {
               return Padding(
                 padding: const EdgeInsets.all(20),
-                child: Center(child: Text('No appointments today', style: GoogleFonts.inter(fontSize: 14, color: AppColors.onSurfaceVariant))),
+                child: Center(
+                  child: Text(
+                    'No appointments today',
+                    style: GoogleFonts.inter(
+                      fontSize: 14,
+                      color: AppColors.onSurfaceVariant,
+                    ),
+                  ),
+                ),
               );
             }
             return Column(
               children: appointments.map((apt) {
-                final start = DateTime.tryParse(apt['scheduled_start_at'] ?? '');
+                final start = DateTime.tryParse(
+                  apt['scheduled_start_at'] ?? '',
+                );
                 final end = DateTime.tryParse(apt['scheduled_end_at'] ?? '');
-                final time = start != null ? DateFormat('hh:mm').format(start.toLocal()) : '--:--';
+                final time = start != null
+                    ? DateFormat('hh:mm').format(start.toLocal())
+                    : '--:--';
                 final name = apt['profiles']?['full_name'] ?? 'Unknown';
                 final reason = apt['reason'] ?? apt['type'] ?? 'Consultation';
-                final durationMin = (start != null && end != null) ? end.difference(start).inMinutes : 30;
-                return _ScheduleItem(time: time, name: name, type: reason, duration: '$durationMin min');
+                final durationMin = (start != null && end != null)
+                    ? end.difference(start).inMinutes
+                    : 30;
+                final isVideo = apt['type'] == 'video';
+                return _ScheduleItem(
+                  time: time,
+                  name: name,
+                  type: reason,
+                  duration: '$durationMin min',
+                  isVideo: isVideo,
+                );
               }).toList(),
             );
           },
           loading: () => const Center(child: CircularProgressIndicator()),
-          error: (_, _) => Text('Failed to load schedule', style: GoogleFonts.inter(color: AppColors.error)),
+          error: (_, _) => Text(
+            'Failed to load schedule',
+            style: GoogleFonts.inter(color: AppColors.error),
+          ),
         ),
       ],
     );
@@ -151,7 +233,14 @@ class ClinicalDashboardScreen extends ConsumerWidget {
     return VoxmedCard(
       child: Column(
         children: [
-          Text('Patient Compliance Trends', style: GoogleFonts.manrope(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.onSurface)),
+          Text(
+            'Patient Compliance Trends',
+            style: GoogleFonts.manrope(
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              color: AppColors.onSurface,
+            ),
+          ),
           const SizedBox(height: 20),
           Center(
             child: Stack(
@@ -164,21 +253,44 @@ class ClinicalDashboardScreen extends ConsumerWidget {
                     value: ratingPct,
                     strokeWidth: 10,
                     backgroundColor: AppColors.surfaceContainerHigh,
-                    valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primary),
+                    valueColor: const AlwaysStoppedAnimation<Color>(
+                      AppColors.primary,
+                    ),
                     strokeCap: StrokeCap.round,
                   ),
                 ),
                 Column(
                   children: [
-                    Text(grade, style: GoogleFonts.manrope(fontSize: 36, fontWeight: FontWeight.w800, color: AppColors.primary)),
-                    Text('Average', style: GoogleFonts.inter(fontSize: 11, color: AppColors.onSurfaceVariant)),
+                    Text(
+                      grade,
+                      style: GoogleFonts.manrope(
+                        fontSize: 36,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                    Text(
+                      'Average',
+                      style: GoogleFonts.inter(
+                        fontSize: 11,
+                        color: AppColors.onSurfaceVariant,
+                      ),
+                    ),
                   ],
                 ),
               ],
             ),
           ),
           const SizedBox(height: 16),
-          Text('RATING: ${rating.toStringAsFixed(1)} / 5.0', style: GoogleFonts.inter(fontSize: 9, fontWeight: FontWeight.w700, letterSpacing: 1, color: AppColors.onSurfaceVariant)),
+          Text(
+            'RATING: ${rating.toStringAsFixed(1)} / 5.0',
+            style: GoogleFonts.inter(
+              fontSize: 9,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 1,
+              color: AppColors.onSurfaceVariant,
+            ),
+          ),
           const SizedBox(height: 6),
           ClipRRect(
             borderRadius: BorderRadius.circular(6),
@@ -186,7 +298,9 @@ class ClinicalDashboardScreen extends ConsumerWidget {
               value: ratingPct,
               minHeight: 6,
               backgroundColor: AppColors.surfaceContainerHigh,
-              valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primary),
+              valueColor: const AlwaysStoppedAnimation<Color>(
+                AppColors.primary,
+              ),
             ),
           ),
         ],
@@ -194,34 +308,61 @@ class ClinicalDashboardScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildApprovalsRequired(AsyncValue<List<Map<String, dynamic>>> renewalsAsync) {
+  Widget _buildApprovalsRequired(
+    AsyncValue<List<Map<String, dynamic>>> renewalsAsync,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Approvals Required', style: GoogleFonts.manrope(fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.onSurface)),
+        Text(
+          'Approvals Required',
+          style: GoogleFonts.manrope(
+            fontSize: 18,
+            fontWeight: FontWeight.w700,
+            color: AppColors.onSurface,
+          ),
+        ),
         const SizedBox(height: 14),
         renewalsAsync.when(
           data: (renewals) {
             if (renewals.isEmpty) {
               return Padding(
                 padding: const EdgeInsets.all(20),
-                child: Center(child: Text('No pending approvals', style: GoogleFonts.inter(fontSize: 14, color: AppColors.onSurfaceVariant))),
+                child: Center(
+                  child: Text(
+                    'No pending approvals',
+                    style: GoogleFonts.inter(
+                      fontSize: 14,
+                      color: AppColors.onSurfaceVariant,
+                    ),
+                  ),
+                ),
               );
             }
             return Column(
               children: renewals.take(3).map((r) {
                 final patientName = r['profiles']?['full_name'] ?? 'Unknown';
-                final items = r['prescriptions']?['prescription_items'] as List? ?? [];
-                final drug = items.isNotEmpty ? items.first['medication_name'] ?? 'Medication' : 'Medication';
+                final items =
+                    r['prescriptions']?['prescription_items'] as List? ?? [];
+                final drug = items.isNotEmpty
+                    ? items.first['medication_name'] ?? 'Medication'
+                    : 'Medication';
                 return Padding(
                   padding: const EdgeInsets.only(bottom: 10),
-                  child: _ApprovalItem(name: patientName, drug: drug, hasAction: true),
+                  child: _ApprovalItem(
+                    name: patientName,
+                    drug: drug,
+                    hasAction: true,
+                  ),
                 );
               }).toList(),
             );
           },
           loading: () => const Center(child: CircularProgressIndicator()),
-          error: (_, _) => Text('Failed to load approvals', style: GoogleFonts.inter(color: AppColors.error)),
+          error: (_, _) => Text(
+            'Failed to load approvals',
+            style: GoogleFonts.inter(color: AppColors.error),
+          ),
         ),
       ],
     );
@@ -233,7 +374,11 @@ class _StatCard extends StatelessWidget {
   final String value;
   final Color color;
 
-  const _StatCard({required this.label, required this.value, required this.color});
+  const _StatCard({
+    required this.label,
+    required this.value,
+    required this.color,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -246,9 +391,24 @@ class _StatCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: GoogleFonts.inter(fontSize: 9, fontWeight: FontWeight.w700, letterSpacing: 1, color: Colors.white.withValues(alpha: 0.4))),
+          Text(
+            label,
+            style: GoogleFonts.inter(
+              fontSize: 9,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 1,
+              color: Colors.white.withValues(alpha: 0.4),
+            ),
+          ),
           const SizedBox(height: 6),
-          Text(value, style: GoogleFonts.manrope(fontSize: 28, fontWeight: FontWeight.w800, color: color)),
+          Text(
+            value,
+            style: GoogleFonts.manrope(
+              fontSize: 28,
+              fontWeight: FontWeight.w800,
+              color: color,
+            ),
+          ),
         ],
       ),
     );
@@ -260,8 +420,15 @@ class _ScheduleItem extends StatelessWidget {
   final String name;
   final String type;
   final String duration;
+  final bool isVideo;
 
-  const _ScheduleItem({required this.time, required this.name, required this.type, required this.duration});
+  const _ScheduleItem({
+    required this.time,
+    required this.name,
+    required this.type,
+    required this.duration,
+    this.isVideo = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -272,7 +439,14 @@ class _ScheduleItem extends StatelessWidget {
         children: [
           SizedBox(
             width: 50,
-            child: Text(time, style: GoogleFonts.manrope(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.onSurfaceVariant)),
+            child: Text(
+              time,
+              style: GoogleFonts.manrope(
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+                color: AppColors.onSurfaceVariant,
+              ),
+            ),
           ),
           Container(
             width: 2,
@@ -295,19 +469,47 @@ class _ScheduleItem extends StatelessWidget {
                   CircleAvatar(
                     radius: 18,
                     backgroundColor: AppColors.surfaceContainerHighest,
-                    child: const Icon(Icons.person, size: 18, color: AppColors.onSurfaceVariant),
+                    child: const Icon(
+                      Icons.person,
+                      size: 18,
+                      color: AppColors.onSurfaceVariant,
+                    ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(name, style: GoogleFonts.manrope(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.onSurface)),
-                        Text(type, style: GoogleFonts.inter(fontSize: 11, color: AppColors.onSurfaceVariant)),
+                        Text(
+                          name,
+                          style: GoogleFonts.manrope(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.onSurface,
+                          ),
+                        ),
+                        Text(
+                          type,
+                          style: GoogleFonts.inter(
+                            fontSize: 11,
+                            color: AppColors.onSurfaceVariant,
+                          ),
+                        ),
                       ],
                     ),
                   ),
-                  Text(duration, style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w600, color: AppColors.onSurfaceVariant)),
+                  Text(
+                    duration,
+                    style: GoogleFonts.inter(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.onSurfaceVariant,
+                    ),
+                  ),
+                  if (isVideo) ...[
+                    const SizedBox(width: 6),
+                    Icon(Icons.videocam, size: 16, color: AppColors.primary),
+                  ],
                 ],
               ),
             ),
@@ -323,7 +525,11 @@ class _ApprovalItem extends StatelessWidget {
   final String drug;
   final bool hasAction;
 
-  const _ApprovalItem({required this.name, required this.drug, this.hasAction = false});
+  const _ApprovalItem({
+    required this.name,
+    required this.drug,
+    this.hasAction = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -338,27 +544,57 @@ class _ApprovalItem extends StatelessWidget {
           CircleAvatar(
             radius: 18,
             backgroundColor: AppColors.surfaceContainerHighest,
-            child: const Icon(Icons.person, size: 18, color: AppColors.onSurfaceVariant),
+            child: const Icon(
+              Icons.person,
+              size: 18,
+              color: AppColors.onSurfaceVariant,
+            ),
           ),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(name, style: GoogleFonts.manrope(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.onSurface)),
-                Text(drug, style: GoogleFonts.inter(fontSize: 11, color: AppColors.onSurfaceVariant)),
+                Text(
+                  name,
+                  style: GoogleFonts.manrope(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.onSurface,
+                  ),
+                ),
+                Text(
+                  drug,
+                  style: GoogleFonts.inter(
+                    fontSize: 11,
+                    color: AppColors.onSurfaceVariant,
+                  ),
+                ),
               ],
             ),
           ),
           if (hasAction)
             Row(
               children: [
-                Text('Review \$98+/visit', style: GoogleFonts.inter(fontSize: 10, color: AppColors.onSurfaceVariant)),
+                Text(
+                  'Review \$98+/visit',
+                  style: GoogleFonts.inter(
+                    fontSize: 10,
+                    color: AppColors.onSurfaceVariant,
+                  ),
+                ),
                 const SizedBox(width: 8),
                 Container(
                   padding: const EdgeInsets.all(6),
-                  decoration: BoxDecoration(color: AppColors.primary, borderRadius: BorderRadius.circular(8)),
-                  child: const Icon(Icons.arrow_forward, color: Colors.white, size: 14),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(
+                    Icons.arrow_forward,
+                    color: Colors.white,
+                    size: 14,
+                  ),
                 ),
               ],
             ),

@@ -23,10 +23,12 @@ class DoctorBookingDetailScreen extends ConsumerStatefulWidget {
   const DoctorBookingDetailScreen({super.key, this.doctorId});
 
   @override
-  ConsumerState<DoctorBookingDetailScreen> createState() => _DoctorBookingDetailScreenState();
+  ConsumerState<DoctorBookingDetailScreen> createState() =>
+      _DoctorBookingDetailScreenState();
 }
 
-class _DoctorBookingDetailScreenState extends ConsumerState<DoctorBookingDetailScreen> {
+class _DoctorBookingDetailScreenState
+    extends ConsumerState<DoctorBookingDetailScreen> {
   final TextEditingController _reasonController = TextEditingController();
   DateTime _selectedDate = DateTime.now();
   DateTime? _selectedSlot;
@@ -73,14 +75,17 @@ class _DoctorBookingDetailScreenState extends ConsumerState<DoctorBookingDetailS
         ),
       ),
       body: doctorAsync.when(
-        loading: () => const VoxmedLoadingIndicator(message: 'Loading doctor details...'),
+        loading: () =>
+            const VoxmedLoadingIndicator(message: 'Loading doctor details...'),
         error: (error, _) => VoxmedErrorWidget(
           message: error.toString(),
           onRetry: () => ref.invalidate(doctorDetailProvider(doctorId)),
         ),
         data: (doctor) {
           return scheduleAsync.when(
-            loading: () => const VoxmedLoadingIndicator(message: 'Loading available slots...'),
+            loading: () => const VoxmedLoadingIndicator(
+              message: 'Loading available slots...',
+            ),
             error: (error, _) => VoxmedErrorWidget(
               message: error.toString(),
               onRetry: () => ref.invalidate(doctorScheduleProvider(doctorId)),
@@ -88,7 +93,9 @@ class _DoctorBookingDetailScreenState extends ConsumerState<DoctorBookingDetailS
             data: (schedules) {
               final slots = _buildSlotsForDate(_selectedDate, schedules);
               // Track current slot duration for booking
-              final daySchedules = schedules.where((s) => s.dayOfWeek == _selectedDate.weekday % 7 && s.isActive);
+              final daySchedules = schedules.where(
+                (s) => s.dayOfWeek == _selectedDate.weekday % 7 && s.isActive,
+              );
               if (daySchedules.isNotEmpty) {
                 _slotDurationMinutes = daySchedules.first.slotDurationMinutes;
               }
@@ -100,7 +107,11 @@ class _DoctorBookingDetailScreenState extends ConsumerState<DoctorBookingDetailS
     );
   }
 
-  Widget _buildContent(Doctor doctor, List<DoctorSchedule> schedules, List<DateTime> slots) {
+  Widget _buildContent(
+    Doctor doctor,
+    List<DoctorSchedule> schedules,
+    List<DateTime> slots,
+  ) {
     final appointmentState = ref.watch(appointmentProvider);
 
     return Column(
@@ -119,7 +130,8 @@ class _DoctorBookingDetailScreenState extends ConsumerState<DoctorBookingDetailS
                   const EmptyStateWidget(
                     icon: Icons.schedule,
                     title: 'No schedule slots available',
-                    subtitle: 'This doctor has not published available slots yet.',
+                    subtitle:
+                        'This doctor has not published available slots yet.',
                   )
                 else if (slots.isEmpty)
                   const EmptyStateWidget(
@@ -154,7 +166,11 @@ class _DoctorBookingDetailScreenState extends ConsumerState<DoctorBookingDetailS
             ),
           ),
         ),
-        _buildBottomBar(doctor, appointmentState.isLoading, schedules.isNotEmpty && slots.isNotEmpty),
+        _buildBottomBar(
+          doctor,
+          appointmentState.isLoading,
+          schedules.isNotEmpty && slots.isNotEmpty,
+        ),
       ],
     );
   }
@@ -167,11 +183,16 @@ class _DoctorBookingDetailScreenState extends ConsumerState<DoctorBookingDetailS
           CircleAvatar(
             radius: 34,
             backgroundColor: AppColors.surfaceContainer,
-            backgroundImage: (doctor.avatarUrl != null && doctor.avatarUrl!.isNotEmpty)
+            backgroundImage:
+                (doctor.avatarUrl != null && doctor.avatarUrl!.isNotEmpty)
                 ? NetworkImage(doctor.avatarUrl!)
                 : null,
             child: (doctor.avatarUrl == null || doctor.avatarUrl!.isEmpty)
-                ? const Icon(Icons.person, size: 32, color: AppColors.onSurfaceVariant)
+                ? const Icon(
+                    Icons.person,
+                    size: 32,
+                    color: AppColors.onSurfaceVariant,
+                  )
                 : null,
           ),
           const SizedBox(width: 14),
@@ -190,13 +211,19 @@ class _DoctorBookingDetailScreenState extends ConsumerState<DoctorBookingDetailS
                 const SizedBox(height: 4),
                 Text(
                   doctor.specialty,
-                  style: GoogleFonts.inter(fontSize: 13, color: AppColors.onSurfaceVariant),
+                  style: GoogleFonts.inter(
+                    fontSize: 13,
+                    color: AppColors.onSurfaceVariant,
+                  ),
                 ),
                 if (doctor.hospitalName != null) ...[
                   const SizedBox(height: 2),
                   Text(
                     doctor.hospitalName!,
-                    style: GoogleFonts.inter(fontSize: 12, color: AppColors.onSurfaceVariant),
+                    style: GoogleFonts.inter(
+                      fontSize: 12,
+                      color: AppColors.onSurfaceVariant,
+                    ),
                   ),
                 ],
                 const SizedBox(height: 8),
@@ -256,7 +283,9 @@ class _DoctorBookingDetailScreenState extends ConsumerState<DoctorBookingDetailS
                   width: 76,
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(16),
-                    color: isSelected ? AppColors.primary : AppColors.surfaceContainerLow,
+                    color: isSelected
+                        ? AppColors.primary
+                        : AppColors.surfaceContainerLow,
                   ),
                   padding: const EdgeInsets.symmetric(vertical: 12),
                   child: Column(
@@ -278,7 +307,9 @@ class _DoctorBookingDetailScreenState extends ConsumerState<DoctorBookingDetailS
                         style: GoogleFonts.manrope(
                           fontSize: 24,
                           fontWeight: FontWeight.w800,
-                          color: isSelected ? Colors.white : AppColors.onSurface,
+                          color: isSelected
+                              ? Colors.white
+                              : AppColors.onSurface,
                         ),
                       ),
                     ],
@@ -287,6 +318,104 @@ class _DoctorBookingDetailScreenState extends ConsumerState<DoctorBookingDetailS
               );
             },
           ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAppointmentTypeToggle() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Appointment Type',
+          style: GoogleFonts.manrope(
+            fontSize: 17,
+            fontWeight: FontWeight.w700,
+            color: AppColors.onSurface,
+          ),
+        ),
+        const SizedBox(height: 10),
+        Row(
+          children: [
+            Expanded(
+              child: GestureDetector(
+                onTap: () =>
+                    setState(() => _selectedType = AppointmentType.inPerson),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  decoration: BoxDecoration(
+                    color: _selectedType == AppointmentType.inPerson
+                        ? AppColors.primary
+                        : AppColors.surfaceContainerLow,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.person,
+                        size: 18,
+                        color: _selectedType == AppointmentType.inPerson
+                            ? Colors.white
+                            : AppColors.onSurfaceVariant,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'In-Person',
+                        style: GoogleFonts.inter(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: _selectedType == AppointmentType.inPerson
+                              ? Colors.white
+                              : AppColors.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: GestureDetector(
+                onTap: () =>
+                    setState(() => _selectedType = AppointmentType.video),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  decoration: BoxDecoration(
+                    color: _selectedType == AppointmentType.video
+                        ? AppColors.primary
+                        : AppColors.surfaceContainerLow,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.videocam,
+                        size: 18,
+                        color: _selectedType == AppointmentType.video
+                            ? Colors.white
+                            : AppColors.onSurfaceVariant,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Video Call',
+                        style: GoogleFonts.inter(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: _selectedType == AppointmentType.video
+                              ? Colors.white
+                              : AppColors.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
       ],
     );
@@ -326,7 +455,11 @@ class _DoctorBookingDetailScreenState extends ConsumerState<DoctorBookingDetailS
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
       decoration: BoxDecoration(
         color: AppColors.surfaceContainerLowest,
-        border: Border(top: BorderSide(color: AppColors.outlineVariant.withValues(alpha: 0.2))),
+        border: Border(
+          top: BorderSide(
+            color: AppColors.outlineVariant.withValues(alpha: 0.2),
+          ),
+        ),
       ),
       child: SizedBox(
         width: double.infinity,
@@ -353,19 +486,24 @@ class _DoctorBookingDetailScreenState extends ConsumerState<DoctorBookingDetailS
     final startAt = selectedSlot;
     final endAt = selectedSlot.add(Duration(minutes: _slotDurationMinutes));
 
-    final created = await ref.read(appointmentProvider.notifier).createAppointment(
+    final created = await ref
+        .read(appointmentProvider.notifier)
+        .createAppointment(
           doctorId: doctor.id,
           hospitalId: doctor.hospitalId,
           startAt: startAt,
           endAt: endAt,
           type: _selectedType,
-          reason: _reasonController.text.trim().isEmpty ? null : _reasonController.text.trim(),
+          reason: _reasonController.text.trim().isEmpty
+              ? null
+              : _reasonController.text.trim(),
         );
 
     if (!mounted) return;
 
     if (created == null) {
-      final errorMessage = ref.read(appointmentProvider).error?.message ??
+      final errorMessage =
+          ref.read(appointmentProvider).error?.message ??
           'Unable to complete booking. Please try again.';
       showErrorSnackBar(context, errorMessage);
       return;
@@ -389,9 +527,14 @@ class _DoctorBookingDetailScreenState extends ConsumerState<DoctorBookingDetailS
     context.pop();
   }
 
-  List<DateTime> _buildSlotsForDate(DateTime date, List<DoctorSchedule> schedules) {
+  List<DateTime> _buildSlotsForDate(
+    DateTime date,
+    List<DoctorSchedule> schedules,
+  ) {
     final weekday = date.weekday % 7;
-    final daySchedules = schedules.where((s) => s.dayOfWeek == weekday && s.isActive).toList();
+    final daySchedules = schedules
+        .where((s) => s.dayOfWeek == weekday && s.isActive)
+        .toList();
     if (daySchedules.isEmpty) return const [];
 
     final slots = <DateTime>[];

@@ -52,7 +52,6 @@ class DashboardScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 24),
           _buildRecentReports(recordsAsync),
-
         ],
       ),
     );
@@ -119,51 +118,61 @@ class DashboardScreen extends ConsumerWidget {
                 ),
               ),
               const SizedBox(height: 24),
-              Builder(builder: (context) {
-                return Wrap(
-                  spacing: 12,
-                  runSpacing: 12,
-                  children: [
-                    GestureDetector(
-                      onTap: () => context.go(AppRoutes.passport),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-                        decoration: BoxDecoration(
-                          color: AppColors.surfaceContainerLowest,
-                          borderRadius: BorderRadius.circular(100),
-                        ),
-                        child: Text(
-                          'Health Passport',
-                          style: GoogleFonts.inter(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.primary,
+              Builder(
+                builder: (context) {
+                  return Wrap(
+                    spacing: 12,
+                    runSpacing: 12,
+                    children: [
+                      GestureDetector(
+                        onTap: () => context.go(AppRoutes.passport),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 24,
+                            vertical: 14,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.surfaceContainerLowest,
+                            borderRadius: BorderRadius.circular(100),
+                          ),
+                          child: Text(
+                            'Health Passport',
+                            style: GoogleFonts.inter(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.primary,
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                    GestureDetector(
-                      onTap: () => context.go(AppRoutes.health),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-                        decoration: BoxDecoration(
-                          color: AppColors.primaryDim.withValues(alpha: 0.3),
-                          borderRadius: BorderRadius.circular(100),
-                          border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
-                        ),
-                        child: Text(
-                          'Vitals Summary',
-                          style: GoogleFonts.inter(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.onPrimary,
+                      GestureDetector(
+                        onTap: () => context.go(AppRoutes.health),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 24,
+                            vertical: 14,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.primaryDim.withValues(alpha: 0.3),
+                            borderRadius: BorderRadius.circular(100),
+                            border: Border.all(
+                              color: Colors.white.withValues(alpha: 0.1),
+                            ),
+                          ),
+                          child: Text(
+                            'Vitals Summary',
+                            style: GoogleFonts.inter(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.onPrimary,
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                  ],
-                );
-              }),
+                    ],
+                  );
+                },
+              ),
             ],
           ),
         ],
@@ -171,7 +180,9 @@ class DashboardScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildVoiceAdherenceTracker(AsyncValue<Map<String, dynamic>> adherenceAsync) {
+  Widget _buildVoiceAdherenceTracker(
+    AsyncValue<Map<String, dynamic>> adherenceAsync,
+  ) {
     final rate = adherenceAsync.when(
       data: (stats) => '${stats['rate'] ?? 0}%',
       loading: () => '...',
@@ -214,7 +225,11 @@ class DashboardScreen extends ConsumerWidget {
                   color: AppColors.primaryContainer.withValues(alpha: 0.3),
                   borderRadius: BorderRadius.circular(16),
                 ),
-                child: const Icon(Icons.settings_voice, color: AppColors.primary, size: 22),
+                child: const Icon(
+                  Icons.settings_voice,
+                  color: AppColors.primary,
+                  size: 22,
+                ),
               ),
             ],
           ),
@@ -261,8 +276,14 @@ class DashboardScreen extends ConsumerWidget {
                     children: [
                       Text('TONE ANALYSIS', style: _chipLabel),
                       const SizedBox(height: 4),
-                      Text('Stable', style: GoogleFonts.manrope(
-                        fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.primary)),
+                      Text(
+                        'Stable',
+                        style: GoogleFonts.manrope(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.primary,
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -280,8 +301,14 @@ class DashboardScreen extends ConsumerWidget {
                     children: [
                       Text('RESPIRATION', style: _chipLabel),
                       const SizedBox(height: 4),
-                      Text('Optimal', style: GoogleFonts.manrope(
-                        fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.primary)),
+                      Text(
+                        'Optimal',
+                        style: GoogleFonts.manrope(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.primary,
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -315,7 +342,9 @@ class DashboardScreen extends ConsumerWidget {
                 child: Container(
                   decoration: BoxDecoration(
                     color: AppColors.primary.withValues(alpha: opacities[i]),
-                    borderRadius: const BorderRadius.vertical(top: Radius.circular(100)),
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(100),
+                    ),
                   ),
                 ),
               ),
@@ -347,7 +376,11 @@ class DashboardScreen extends ConsumerWidget {
               ),
               IconButton(
                 onPressed: () => ref.invalidate(upcomingAppointmentsProvider),
-                icon: const Icon(Icons.refresh, color: AppColors.onSurfaceVariant, size: 20),
+                icon: const Icon(
+                  Icons.refresh,
+                  color: AppColors.onSurfaceVariant,
+                  size: 20,
+                ),
               ),
             ],
           ),
@@ -374,12 +407,17 @@ class DashboardScreen extends ConsumerWidget {
 
               return Column(
                 children: [
-                  for (int index = 0; index < appointments.take(3).length; index++) ...[
+                  for (
+                    int index = 0;
+                    index < appointments.take(3).length;
+                    index++
+                  ) ...[
                     _UpcomingAppointmentTile(
                       appointment: appointments[index],
                       highlight: index == 0,
                     ),
-                    if (index < appointments.take(3).length - 1) const SizedBox(height: 10),
+                    if (index < appointments.take(3).length - 1)
+                      const SizedBox(height: 10),
                   ],
                   const SizedBox(height: 12),
                   SizedBox(
@@ -387,8 +425,13 @@ class DashboardScreen extends ConsumerWidget {
                     child: OutlinedButton(
                       onPressed: () => context.go(AppRoutes.findCare),
                       style: OutlinedButton.styleFrom(
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                        side: BorderSide(color: AppColors.primary.withValues(alpha: 0.15), width: 1.5),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        side: BorderSide(
+                          color: AppColors.primary.withValues(alpha: 0.15),
+                          width: 1.5,
+                        ),
                       ),
                       child: Text(
                         'Book New Appointment',
@@ -432,80 +475,134 @@ class DashboardScreen extends ConsumerWidget {
         children: [
           Row(
             children: [
-              const Icon(Icons.favorite, color: AppColors.onSecondaryContainer, size: 20),
+              const Icon(
+                Icons.favorite,
+                color: AppColors.onSecondaryContainer,
+                size: 20,
+              ),
               const SizedBox(width: 8),
-              Text('Health Pulse', style: GoogleFonts.manrope(
-                fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.onSecondaryContainer)),
+              Text(
+                'Health Pulse',
+                style: GoogleFonts.manrope(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.onSecondaryContainer,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 16),
           Row(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Text(bpm, style: GoogleFonts.manrope(
-                fontSize: 40, fontWeight: FontWeight.w800, color: AppColors.onSecondaryFixed)),
+              Text(
+                bpm,
+                style: GoogleFonts.manrope(
+                  fontSize: 40,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.onSecondaryFixed,
+                ),
+              ),
               const SizedBox(width: 4),
               Padding(
                 padding: const EdgeInsets.only(bottom: 6),
-                child: Text('BPM', style: GoogleFonts.manrope(
-                  fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.onSecondaryContainer)),
+                child: Text(
+                  'BPM',
+                  style: GoogleFonts.manrope(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.onSecondaryContainer,
+                  ),
+                ),
               ),
             ],
           ),
           const SizedBox(height: 4),
-          Text('Excellent', style: GoogleFonts.inter(
-            fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.onSecondaryContainer)),
+          Text(
+            'Excellent',
+            style: GoogleFonts.inter(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: AppColors.onSecondaryContainer,
+            ),
+          ),
         ],
       ),
     );
   }
 
   Widget _buildDigitalPassport() {
-    return Builder(builder: (context) {
-      return GestureDetector(
-        onTap: () => context.go(AppRoutes.passport),
-        child: Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: AppColors.surfaceContainerHighest,
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: AppColors.outlineVariant.withValues(alpha: 0.1)),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: AppColors.surfaceContainerLowest,
-                  borderRadius: BorderRadius.circular(16),
+    return Builder(
+      builder: (context) {
+        return GestureDetector(
+          onTap: () => context.go(AppRoutes.passport),
+          child: Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: AppColors.surfaceContainerHighest,
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(
+                color: AppColors.outlineVariant.withValues(alpha: 0.1),
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppColors.surfaceContainerLowest,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: const Icon(
+                    Icons.badge,
+                    color: AppColors.primary,
+                    size: 28,
+                  ),
                 ),
-                child: const Icon(Icons.badge, color: AppColors.primary, size: 28),
-              ),
-              const SizedBox(height: 12),
-              Text('Digital Passport', style: GoogleFonts.manrope(
-                fontSize: 15, fontWeight: FontWeight.w700, color: AppColors.onSurface)),
-              const SizedBox(height: 4),
-              Text('Verified Credentials', style: GoogleFonts.inter(
-                fontSize: 12, color: AppColors.onSurfaceVariant, fontWeight: FontWeight.w500)),
-              const SizedBox(height: 8),
-              const Align(
-                alignment: Alignment.centerRight,
-                child: Icon(Icons.chevron_right, color: AppColors.primary),
-              ),
-            ],
+                const SizedBox(height: 12),
+                Text(
+                  'Digital Passport',
+                  style: GoogleFonts.manrope(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.onSurface,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Verified Credentials',
+                  style: GoogleFonts.inter(
+                    fontSize: 12,
+                    color: AppColors.onSurfaceVariant,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                const Align(
+                  alignment: Alignment.centerRight,
+                  child: Icon(Icons.chevron_right, color: AppColors.primary),
+                ),
+              ],
+            ),
           ),
-        ),
-      );
-    });
+        );
+      },
+    );
   }
 
   Widget _buildRecentReports(AsyncValue<List<MedicalRecord>> recordsAsync) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Recent Reports', style: GoogleFonts.manrope(
-          fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.onSurface)),
+        Text(
+          'Recent Reports',
+          style: GoogleFonts.manrope(
+            fontSize: 18,
+            fontWeight: FontWeight.w700,
+            color: AppColors.onSurface,
+          ),
+        ),
         const SizedBox(height: 16),
         recordsAsync.when(
           loading: () => const SizedBox(
@@ -519,8 +616,13 @@ class DashboardScreen extends ConsumerWidget {
               borderRadius: BorderRadius.circular(16),
             ),
             child: Center(
-              child: Text('Could not load reports', style: GoogleFonts.inter(
-                fontSize: 13, color: AppColors.onSurfaceVariant)),
+              child: Text(
+                'Could not load reports',
+                style: GoogleFonts.inter(
+                  fontSize: 13,
+                  color: AppColors.onSurfaceVariant,
+                ),
+              ),
             ),
           ),
           data: (records) {
@@ -532,16 +634,27 @@ class DashboardScreen extends ConsumerWidget {
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: Center(
-                  child: Text('No recent reports', style: GoogleFonts.inter(
-                    fontSize: 13, color: AppColors.onSurfaceVariant)),
+                  child: Text(
+                    'No recent reports',
+                    style: GoogleFonts.inter(
+                      fontSize: 13,
+                      color: AppColors.onSurfaceVariant,
+                    ),
+                  ),
                 ),
               );
             }
 
             return Column(
               children: records.take(3).map<Widget>((record) {
-                final daysAgo = record.recordDate != null ? DateTime.now().difference(record.recordDate!).inDays : 0;
-                final timeText = daysAgo == 0 ? 'Today' : daysAgo == 1 ? 'Yesterday' : '$daysAgo days ago';
+                final daysAgo = record.recordDate != null
+                    ? DateTime.now().difference(record.recordDate!).inDays
+                    : 0;
+                final timeText = daysAgo == 0
+                    ? 'Today'
+                    : daysAgo == 1
+                    ? 'Yesterday'
+                    : '$daysAgo days ago';
                 return Padding(
                   padding: const EdgeInsets.only(bottom: 8),
                   child: Container(
@@ -559,24 +672,43 @@ class DashboardScreen extends ConsumerWidget {
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Icon(
-                            record.recordType == RecordType.labResult ? Icons.biotech : Icons.description,
-                            color: AppColors.onSurfaceVariant, size: 22),
+                            record.recordType == RecordType.labResult
+                                ? Icons.biotech
+                                : Icons.description,
+                            color: AppColors.onSurfaceVariant,
+                            size: 22,
+                          ),
                         ),
                         const SizedBox(width: 14),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(record.title, style: GoogleFonts.inter(
-                                fontWeight: FontWeight.w700, color: AppColors.onSurface, fontSize: 14)),
+                              Text(
+                                record.title,
+                                style: GoogleFonts.inter(
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.onSurface,
+                                  fontSize: 14,
+                                ),
+                              ),
                               const SizedBox(height: 2),
-                              Text('Uploaded • $timeText', style: GoogleFonts.inter(
-                                fontSize: 11, color: AppColors.onSurfaceVariant)),
+                              Text(
+                                'Uploaded • $timeText',
+                                style: GoogleFonts.inter(
+                                  fontSize: 11,
+                                  color: AppColors.onSurfaceVariant,
+                                ),
+                              ),
                             ],
                           ),
                         ),
                         if (record.fileUrl != null)
-                          const Icon(Icons.download, color: AppColors.onSurfaceVariant, size: 22),
+                          const Icon(
+                            Icons.download,
+                            color: AppColors.onSurfaceVariant,
+                            size: 22,
+                          ),
                       ],
                     ),
                   ),
@@ -617,7 +749,11 @@ class _UpcomingAppointmentTile extends StatelessWidget {
             ? AppColors.surfaceContainerLowest
             : AppColors.surfaceContainerLowest.withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(16),
-        border: highlight ? Border.all(color: AppColors.outlineVariant.withValues(alpha: 0.05)) : null,
+        border: highlight
+            ? Border.all(
+                color: AppColors.outlineVariant.withValues(alpha: 0.05),
+              )
+            : null,
       ),
       child: Column(
         children: [
@@ -625,10 +761,16 @@ class _UpcomingAppointmentTile extends StatelessWidget {
             children: [
               CircleAvatar(
                 radius: 20,
-                backgroundColor: highlight ? AppColors.secondaryContainer : AppColors.surfaceContainer,
+                backgroundColor: highlight
+                    ? AppColors.secondaryContainer
+                    : AppColors.surfaceContainer,
                 child: Icon(
-                  Icons.medical_services,
-                  color: highlight ? AppColors.onSecondaryContainer : AppColors.onSurfaceVariant,
+                  appointment.type == AppointmentType.video
+                      ? Icons.videocam
+                      : Icons.medical_services,
+                  color: highlight
+                      ? AppColors.onSecondaryContainer
+                      : AppColors.onSurfaceVariant,
                   size: 20,
                 ),
               ),
@@ -646,7 +788,10 @@ class _UpcomingAppointmentTile extends StatelessWidget {
                   ),
                   Text(
                     appointment.doctorSpecialty ?? 'General consultation',
-                    style: GoogleFonts.inter(fontSize: 11, color: AppColors.onSurfaceVariant),
+                    style: GoogleFonts.inter(
+                      fontSize: 11,
+                      color: AppColors.onSurfaceVariant,
+                    ),
                   ),
                 ],
               ),
@@ -659,26 +804,71 @@ class _UpcomingAppointmentTile extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: highlight ? AppColors.tertiaryContainer : AppColors.surfaceContainer,
+                  color: highlight
+                      ? AppColors.tertiaryContainer
+                      : AppColors.surfaceContainer,
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Text(
-                  DateFormat('MMM d').format(appointment.scheduledStartAt.toLocal()),
+                  DateFormat(
+                    'MMM d',
+                  ).format(appointment.scheduledStartAt.toLocal()),
                   style: GoogleFonts.inter(
                     fontSize: 10,
                     fontWeight: FontWeight.w700,
-                    color: highlight ? AppColors.onTertiaryContainer : AppColors.onSurfaceVariant,
+                    color: highlight
+                        ? AppColors.onTertiaryContainer
+                        : AppColors.onSurfaceVariant,
                   ),
                 ),
               ),
               Text(
-                DateFormat('hh:mm a').format(appointment.scheduledStartAt.toLocal()),
+                DateFormat(
+                  'hh:mm a',
+                ).format(appointment.scheduledStartAt.toLocal()),
                 style: GoogleFonts.inter(
                   fontSize: 11,
                   fontWeight: FontWeight.w500,
                   color: AppColors.onSurfaceVariant,
                 ),
               ),
+              if (appointment.type == AppointmentType.video)
+                GestureDetector(
+                  onTap: () {
+                    context.push(
+                      '${AppRoutes.videoCall}?roomId=room_${appointment.id}&videoCallId=',
+                    );
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 5,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(
+                          Icons.videocam,
+                          size: 14,
+                          color: Colors.white,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          'Join',
+                          style: GoogleFonts.inter(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
             ],
           ),
         ],

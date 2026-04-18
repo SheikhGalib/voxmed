@@ -148,9 +148,23 @@ class _VideoCallScreenState extends ConsumerState<VideoCallScreen> {
       userName: userName,
       callID: widget.roomId,
       config: ZegoUIKitPrebuiltCallConfig.oneOnOneVideoCall()
-        ..onHangUpConfirmation = (BuildContext context) async {
+        ..duration = ZegoCallDurationConfig(
+          isVisible: true,
+        )
+        ..topMenuBar = ZegoCallTopMenuBarConfig(
+          isVisible: true,
+          buttons: [
+            ZegoCallMenuBarButtonName.minimizingButton,
+            ZegoCallMenuBarButtonName.showMemberListButton,
+          ],
+        ),
+      events: ZegoUIKitPrebuiltCallEvents(
+        onHangUpConfirmation: (
+          ZegoCallHangUpConfirmationEvent event,
+          Future<bool> Function() defaultAction,
+        ) async {
           return await showDialog<bool>(
-                context: context,
+                context: event.context,
                 barrierDismissible: false,
                 builder: (ctx) => AlertDialog(
                   title: Text(
@@ -175,23 +189,14 @@ class _VideoCallScreenState extends ConsumerState<VideoCallScreen> {
                 ),
               ) ??
               false;
-        }
-        ..onCallEnd = (ZegoCallEndEvent event, VoidCallback defaultAction) {
+        },
+        onCallEnd: (ZegoCallEndEvent event, VoidCallback defaultAction) {
           _markCompleted();
           // Invalidate providers so UI reflects updated status
           ref.invalidate(activeVideoCallsProvider);
           defaultAction.call();
-        }
-        ..durationConfig = ZegoCallDurationConfig(
-          isVisible: true,
-        )
-        ..topMenuBar = ZegoCallTopMenuBarConfig(
-          isVisible: true,
-          buttons: [
-            ZegoCallMenuBarButtonName.minimizingButton,
-            ZegoCallMenuBarButtonName.showMemberListButton,
-          ],
-        ),
+        },
+      ),
     );
   }
 }

@@ -119,7 +119,7 @@ class VideoCallRepository {
       await supabase.from(_tableName).update({
         'status': VideoCallStatus.completed.value,
         'ended_at': now.toIso8601String(),
-        if (duration != null) 'duration_seconds': duration,
+        'duration_seconds': ?duration,
         'updated_at': now.toIso8601String(),
       }).eq('id', callId);
     } on PostgrestException catch (e) {
