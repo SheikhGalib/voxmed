@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../core/responsive/responsive.dart';
 import '../core/theme/app_colors.dart';
 import '../providers/prescription_provider.dart';
 import '../widgets/voxmed_card.dart';
@@ -14,12 +15,12 @@ class HealthAnalyticsScreen extends ConsumerWidget {
     final wearableAsync = ref.watch(wearableDataProvider);
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+      padding: EdgeInsets.fromLTRB(Responsive.hPad(context), 16, Responsive.hPad(context), 32),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text('Health Insights',
-              style: GoogleFonts.manrope(fontSize: 28, fontWeight: FontWeight.w800, color: AppColors.onSurface)),
+              style: GoogleFonts.manrope(fontSize: Responsive.fontSize(context, 26), fontWeight: FontWeight.w800, color: AppColors.onSurface)),
           const SizedBox(height: 8),
           Text('Real-time analysis of your physiological data and treatment compliance.',
               style: GoogleFonts.inter(fontSize: 14, color: AppColors.onSurfaceVariant, height: 1.5)),

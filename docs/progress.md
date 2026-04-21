@@ -227,6 +227,7 @@ Rollout plan (3 parts):
 | Fix `permission_handler` version conflict | ✅ | 2026-04-16 | Changed from `^11.3.0` to `^12.0.1` (required by ZEGOCLOUD v4.x) |
 | Migrate `video_call_screen.dart` to ZEGOCLOUD v4.x API | ✅ | 2026-04-16 | `onHangUpConfirmation`/`onCallEnd` → `events` param; `durationConfig` → `duration` |
 | Document build fixes | ✅ | 2026-04-16 | `docs/build_fixes.md` — 4 issues with root cause analysis and solutions |
+| **Fix register screen not showing / back button broken** | ✅ | 2026-04-22 | **Root cause:** `_GoRouterRefreshStream` (in `app_router.dart`) fired on every Supabase auth event (token refreshes, initial state loads) — not just real login/logout changes. GoRouter's `refreshListenable` re-runs the redirect and internally calls `go()` to re-navigate, wiping the push-navigation back stack. After `context.push('/register')`, the stack `[login, register]` was instantly replaced with `[register]` alone, so `context.pop()` had nothing to pop. **Fix 1:** `_GoRouterRefreshStream` now tracks `_prevHasSession` and only calls `notifyListeners()` when the session null→non-null state actually changes. **Fix 2:** Login screen navigation changed from `context.push(AppRoutes.register)` to `context.go(AppRoutes.register)` (correct for auth flows). **Fix 3:** Register screen back button and "Sign In" link changed from `context.pop()` to `context.go(AppRoutes.login)` — deterministic regardless of back-stack state. Files: `app_router.dart`, `login_screen.dart`, `register_screen.dart`. |
 
 ---
 

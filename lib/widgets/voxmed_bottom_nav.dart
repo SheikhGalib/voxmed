@@ -33,31 +33,38 @@ class VoxmedBottomNav extends StatelessWidget {
           child: Padding(
             padding: const EdgeInsets.only(left: 8, right: 8, top: 8, bottom: 12),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                _NavItem(
-                  icon: Icons.dashboard_rounded,
-                  label: 'DASHBOARD',
-                  isActive: currentIndex == 0,
-                  onTap: () => onTap(0),
+                Expanded(
+                  child: _NavItem(
+                    icon: Icons.dashboard_rounded,
+                    label: 'DASHBOARD',
+                    isActive: currentIndex == 0,
+                    onTap: () => onTap(0),
+                  ),
                 ),
-                _NavItem(
-                  icon: Icons.medical_services_outlined,
-                  label: 'DOCTORS',
-                  isActive: currentIndex == 1,
-                  onTap: () => onTap(1),
+                Expanded(
+                  child: _NavItem(
+                    icon: Icons.medical_services_outlined,
+                    label: 'DOCTORS',
+                    isActive: currentIndex == 1,
+                    onTap: () => onTap(1),
+                  ),
                 ),
-                _NavItem(
-                  icon: Icons.badge_outlined,
-                  label: 'PASSPORT',
-                  isActive: currentIndex == 2,
-                  onTap: () => onTap(2),
+                Expanded(
+                  child: _NavItem(
+                    icon: Icons.badge_outlined,
+                    label: 'PASSPORT',
+                    isActive: currentIndex == 2,
+                    onTap: () => onTap(2),
+                  ),
                 ),
-                _NavItem(
-                  icon: Icons.favorite_outline,
-                  label: 'HEALTH',
-                  isActive: currentIndex == 3,
-                  onTap: () => onTap(3),
+                Expanded(
+                  child: _NavItem(
+                    icon: Icons.favorite_outline,
+                    label: 'HEALTH',
+                    isActive: currentIndex == 3,
+                    onTap: () => onTap(3),
+                  ),
                 ),
               ],
             ),
@@ -89,6 +96,7 @@ class _NavItem extends StatelessWidget {
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeInOut,
+        width: double.infinity,
         padding: EdgeInsets.symmetric(
           horizontal: isActive ? 20 : 16,
           vertical: 8,
@@ -112,6 +120,8 @@ class _NavItem extends StatelessWidget {
             const SizedBox(height: 4),
             Text(
               label,
+              overflow: TextOverflow.ellipsis,
+              maxLines: 1,
               style: GoogleFonts.manrope(
                 fontSize: 9,
                 fontWeight: FontWeight.w700,

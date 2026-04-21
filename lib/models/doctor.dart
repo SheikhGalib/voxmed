@@ -25,6 +25,13 @@ class Doctor {
   // Joined data from hospitals table
   final String? hospitalName;
 
+  // Approval & identity fields
+  final String? department;
+  final String? licenseNumber;
+  final String status;
+  final bool approvedByHospital;
+  final String? roomNumber;
+
   const Doctor({
     required this.id,
     required this.profileId,
@@ -47,6 +54,11 @@ class Doctor {
     this.avatarUrl,
     this.email,
     this.hospitalName,
+    this.department,
+    this.licenseNumber,
+    this.status = 'pending',
+    this.approvedByHospital = false,
+    this.roomNumber,
   });
 
   factory Doctor.fromJson(Map<String, dynamic> json) {
@@ -78,6 +90,11 @@ class Doctor {
       avatarUrl: profile?['avatar_url'] as String?,
       email: profile?['email'] as String?,
       hospitalName: hospital?['name'] as String?,
+      department: json['department'] as String?,
+      licenseNumber: json['license_number'] as String?,
+      status: json['status'] as String? ?? 'pending',
+      approvedByHospital: json['approved_by_hospital'] as bool? ?? false,
+      roomNumber: json['room_number'] as String?,
     );
   }
 

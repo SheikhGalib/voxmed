@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import '../core/constants/app_constants.dart';
+import '../core/responsive/responsive.dart';
 import '../core/theme/app_colors.dart';
 import '../models/appointment.dart';
 import '../models/medical_record.dart';
@@ -33,19 +34,19 @@ class DashboardScreen extends ConsumerWidget {
     );
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+      padding: EdgeInsets.fromLTRB(Responsive.hPad(context), 16, Responsive.hPad(context), 32),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildWelcomeBanner(firstName, ref),
+          _buildWelcomeBanner(context, firstName, ref),
           const SizedBox(height: 24),
-          _buildVoiceAdherenceTracker(adherenceAsync),
+          _buildVoiceAdherenceTracker(context, adherenceAsync),
           const SizedBox(height: 16),
           _buildUpcomingAppointments(context, ref),
           const SizedBox(height: 16),
           Row(
             children: [
-              Expanded(child: _buildHealthPulse(wearableAsync)),
+              Expanded(child: _buildHealthPulse(context, wearableAsync)),
               const SizedBox(width: 12),
               Expanded(child: _buildDigitalPassport()),
             ],
@@ -58,7 +59,7 @@ class DashboardScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildWelcomeBanner(String firstName, WidgetRef ref) {
+  Widget _buildWelcomeBanner(BuildContext context, String firstName, WidgetRef ref) {
     final appointmentsAsync = ref.watch(upcomingAppointmentsProvider);
     final nextApptText = appointmentsAsync.when(
       data: (appts) {
@@ -88,14 +89,17 @@ class DashboardScreen extends ConsumerWidget {
           Positioned(
             right: -60,
             bottom: -60,
-            child: Container(
-              width: 200,
-              height: 200,
+            child: Builder(builder: (context) {
+              final sz = Responsive.value(context, mobile: 160.0, tablet: 200.0);
+              return Container(
+              width: sz,
+              height: sz,
               decoration: BoxDecoration(
                 color: AppColors.primaryContainer.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(100),
               ),
-            ),
+            );
+            }),
           ),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -103,11 +107,13 @@ class DashboardScreen extends ConsumerWidget {
               Text(
                 'Welcome back, $firstName.',
                 style: GoogleFonts.manrope(
-                  fontSize: 30,
+                  fontSize: Responsive.fontSize(context, 26),
                   fontWeight: FontWeight.w800,
                   color: AppColors.onPrimary,
                   height: 1.15,
                 ),
+                overflow: TextOverflow.ellipsis,
+                maxLines: 2,
               ),
               const SizedBox(height: 12),
               Text(
@@ -171,7 +177,7 @@ class DashboardScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildVoiceAdherenceTracker(AsyncValue<Map<String, dynamic>> adherenceAsync) {
+  Widget _buildVoiceAdherenceTracker(BuildContext context, AsyncValue<Map<String, dynamic>> adherenceAsync) {
     final rate = adherenceAsync.when(
       data: (stats) => '${stats['rate'] ?? 0}%',
       loading: () => '...',
@@ -185,29 +191,33 @@ class DashboardScreen extends ConsumerWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'LIVE MONITORING',
-                    style: GoogleFonts.inter(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 2,
-                      color: AppColors.primaryDim,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'LIVE MONITORING',
+                      style: GoogleFonts.inter(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 2,
+                        color: AppColors.primaryDim,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Voice Adherence Tracker',
-                    style: GoogleFonts.manrope(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.onSurface,
+                    const SizedBox(height: 4),
+                    Text(
+                      'Voice Adherence Tracker',
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.manrope(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.onSurface,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
+              const SizedBox(width: 8),
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
@@ -222,27 +232,34 @@ class DashboardScreen extends ConsumerWidget {
           Row(
             children: [
               Expanded(child: _buildWaveform()),
-              const SizedBox(width: 20),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    rate,
-                    style: GoogleFonts.manrope(
-                      fontSize: 36,
-                      fontWeight: FontWeight.w800,
-                      color: AppColors.onSurface,
+              const SizedBox(width: 12),
+              Flexible(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        rate,
+                        style: GoogleFonts.manrope(
+                          fontSize: Responsive.fontSize(context, 32),
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.onSurface,
+                        ),
+                      ),
                     ),
-                  ),
-                  Text(
-                    'Clarity Score',
-                    style: GoogleFonts.inter(
-                      fontSize: 12,
-                      color: AppColors.onSurfaceVariant,
-                      fontWeight: FontWeight.w500,
+                    Text(
+                      'Clarity Score',
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.inter(
+                        fontSize: 12,
+                        color: AppColors.onSurfaceVariant,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ],
           ),
@@ -408,7 +425,7 @@ class DashboardScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildHealthPulse(AsyncValue<Map<String, dynamic>> wearableAsync) {
+  Widget _buildHealthPulse(BuildContext context, AsyncValue<Map<String, dynamic>> wearableAsync) {
     final bpm = wearableAsync.when(
       data: (data) {
         final hrList = data['heart_rate'] as List? ?? [];
@@ -443,7 +460,7 @@ class DashboardScreen extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(bpm, style: GoogleFonts.manrope(
-                fontSize: 40, fontWeight: FontWeight.w800, color: AppColors.onSecondaryFixed)),
+                fontSize: Responsive.fontSize(context, 36), fontWeight: FontWeight.w800, color: AppColors.onSecondaryFixed)),
               const SizedBox(width: 4),
               Padding(
                 padding: const EdgeInsets.only(bottom: 6),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../core/responsive/responsive.dart';
 import '../core/theme/app_colors.dart';
 import '../core/constants/app_constants.dart';
 import '../providers/prescription_provider.dart';
@@ -14,17 +15,17 @@ class ApprovalQueueScreen extends ConsumerWidget {
     final renewalsAsync = ref.watch(pendingRenewalsProvider);
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+      padding: EdgeInsets.fromLTRB(Responsive.hPad(context), 16, Responsive.hPad(context), 32),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text('Approvals',
-              style: GoogleFonts.manrope(fontSize: 28, fontWeight: FontWeight.w800, color: AppColors.onSurface)),
+              style: GoogleFonts.manrope(fontSize: Responsive.fontSize(context, 26), fontWeight: FontWeight.w800, color: AppColors.onSurface)),
           const SizedBox(height: 8),
           Text('Review and authorize renewal requests from patients in your care.',
               style: GoogleFonts.inter(fontSize: 14, color: AppColors.onSurfaceVariant, height: 1.5)),
           const SizedBox(height: 24),
-          _buildQueueStats(renewalsAsync),
+          _buildQueueStats(context, renewalsAsync),
           const SizedBox(height: 24),
           _buildRenewalsList(context, ref, renewalsAsync),
         ],
@@ -32,7 +33,7 @@ class ApprovalQueueScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildQueueStats(AsyncValue<List<Map<String, dynamic>>> renewalsAsync) {
+  Widget _buildQueueStats(BuildContext context, AsyncValue<List<Map<String, dynamic>>> renewalsAsync) {
     final count = renewalsAsync.valueOrNull?.length ?? 0;
 
     return Row(
@@ -46,7 +47,7 @@ class ApprovalQueueScreen extends ConsumerWidget {
                 Text('PRIORITY QUEUE',
                     style: GoogleFonts.inter(fontSize: 9, fontWeight: FontWeight.w700, letterSpacing: 1, color: AppColors.onSurfaceVariant)),
                 const SizedBox(height: 8),
-                Text('$count', style: GoogleFonts.manrope(fontSize: 42, fontWeight: FontWeight.w800, color: AppColors.onSurface)),
+                Text('$count', style: GoogleFonts.manrope(fontSize: Responsive.fontSize(context, 38), fontWeight: FontWeight.w800, color: AppColors.onSurface)),
                 const SizedBox(height: 4),
                 Row(
                   children: [

@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
 import '../core/constants/app_constants.dart';
+import '../core/responsive/responsive.dart';
 import '../core/theme/app_colors.dart';
 import '../core/utils/error_handler.dart';
 import '../models/doctor.dart';
@@ -105,7 +106,7 @@ class _DoctorBookingDetailScreenState extends ConsumerState<DoctorBookingDetailS
       children: [
         Expanded(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+            padding: EdgeInsets.fromLTRB(Responsive.hPad(context), 12, Responsive.hPad(context), 24),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -318,8 +319,9 @@ class _DoctorBookingDetailScreenState extends ConsumerState<DoctorBookingDetailS
   }
 
   Widget _buildBottomBar(Doctor doctor, bool isSubmitting, bool hasSchedule) {
+    return Builder(builder: (context) {
     return Container(
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+      padding: EdgeInsets.fromLTRB(Responsive.hPad(context), 12, Responsive.hPad(context), 24),
       decoration: BoxDecoration(
         color: AppColors.surfaceContainerLowest,
         border: Border(top: BorderSide(color: AppColors.outlineVariant.withValues(alpha: 0.2))),
@@ -340,6 +342,7 @@ class _DoctorBookingDetailScreenState extends ConsumerState<DoctorBookingDetailS
         ),
       ),
     );
+    });
   }
 
   Future<void> _confirmBooking(Doctor doctor) async {

@@ -164,11 +164,20 @@ final appRouter = GoRouter(
 
 class _GoRouterRefreshStream extends ChangeNotifier {
   _GoRouterRefreshStream(Stream<dynamic> stream) {
+    // Only notify when the session state actually changes (login/logout).
+    // Firing on every auth event (e.g. token refresh) caused GoRouter to
+    // internally call go() which wiped the push-navigation back stack,
+    // making context.pop() fail on the register screen.
     _subscription = stream.asBroadcastStream().listen((_) {
-      notifyListeners();
+      final nowHasSession = supabase.auth.currentSession != null;
+      if (nowHasSession != _prevHasSession) {
+        _prevHasSession = nowHasSession;
+        notifyListeners();
+      }
     });
   }
 
+  bool _prevHasSession = supabase.auth.currentSession != null;
   late final StreamSubscription<dynamic> _subscription;
 
   @override

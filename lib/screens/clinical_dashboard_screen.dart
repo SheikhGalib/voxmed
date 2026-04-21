@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
+import '../core/responsive/responsive.dart';
 import '../core/theme/app_colors.dart';
+import '../core/constants/app_constants.dart';
 import '../providers/prescription_provider.dart';
+import '../providers/doctor_provider.dart';
 import '../widgets/voxmed_card.dart';
 
 class ClinicalDashboardScreen extends ConsumerWidget {
@@ -11,12 +14,20 @@ class ClinicalDashboardScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final currentDoctorAsync = ref.watch(currentDoctorProvider);
+
+    // Show pending approval screen if doctor is not yet approved.
+    final doctor = currentDoctorAsync.valueOrNull;
+    if (doctor != null && doctor.status != DoctorStatus.approved) {
+      return _buildPendingApprovalScreen(doctor.status);
+    }
+
     final statsAsync = ref.watch(doctorStatsProvider);
     final scheduleAsync = ref.watch(doctorTodayAppointmentsProvider);
     final renewalsAsync = ref.watch(pendingRenewalsProvider);
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+      padding: EdgeInsets.fromLTRB(Responsive.hPad(context), 16, Responsive.hPad(context), 32),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -28,6 +39,58 @@ class ClinicalDashboardScreen extends ConsumerWidget {
           const SizedBox(height: 20),
           _buildApprovalsRequired(renewalsAsync),
         ],
+      ),
+    );
+  }
+
+  Widget _buildPendingApprovalScreen(String status) {
+    final isRejected = status == DoctorStatus.rejected;
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const SizedBox(height: 80),
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: isRejected
+                    ? AppColors.errorContainer.withValues(alpha: 0.15)
+                    : AppColors.primaryContainer.withValues(alpha: 0.15),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                isRejected ? Icons.cancel_outlined : Icons.hourglass_top_outlined,
+                size: 56,
+                color: isRejected ? AppColors.error : AppColors.primary,
+              ),
+            ),
+            const SizedBox(height: 28),
+            Text(
+              isRejected ? 'Profile Not Approved' : 'Approval Pending',
+              style: GoogleFonts.manrope(
+                fontSize: 24,
+                fontWeight: FontWeight.w800,
+                color: AppColors.onSurface,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              isRejected
+                  ? 'Your profile was not approved by the hospital. '
+                    'Please contact the hospital administration for more information.'
+                  : 'Your profile is under review by the hospital. '
+                    'You will be visible to patients and gain full access after approval.',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.inter(
+                fontSize: 15,
+                color: AppColors.onSurfaceVariant,
+                height: 1.6,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -248,7 +311,7 @@ class _StatCard extends StatelessWidget {
         children: [
           Text(label, style: GoogleFonts.inter(fontSize: 9, fontWeight: FontWeight.w700, letterSpacing: 1, color: Colors.white.withValues(alpha: 0.4))),
           const SizedBox(height: 6),
-          Text(value, style: GoogleFonts.manrope(fontSize: 28, fontWeight: FontWeight.w800, color: color)),
+          Text(value, style: GoogleFonts.manrope(fontSize: Responsive.fontSize(context, 24), fontWeight: FontWeight.w800, color: color)),
         ],
       ),
     );

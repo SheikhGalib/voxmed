@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../core/responsive/responsive.dart';
 import '../core/theme/app_colors.dart';
 import '../core/constants/app_constants.dart';
 import '../providers/prescription_provider.dart';
@@ -26,12 +27,12 @@ class PrescriptionRenewalsScreen extends ConsumerWidget {
         title: Text('VoxMed', style: GoogleFonts.manrope(fontSize: 22, fontWeight: FontWeight.w800, color: AppColors.primary)),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+        padding: EdgeInsets.fromLTRB(Responsive.hPad(context), 16, Responsive.hPad(context), 32),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text('Prescription\nRenewals',
-                style: GoogleFonts.manrope(fontSize: 30, fontWeight: FontWeight.w800, color: AppColors.onSurface, height: 1.15)),
+                style: GoogleFonts.manrope(fontSize: Responsive.fontSize(context, 26), fontWeight: FontWeight.w800, color: AppColors.onSurface, height: 1.15)),
             const SizedBox(height: 8),
             Text('Manage your active medications and set up automated refills to stay on track with your health.',
                 style: GoogleFonts.inter(fontSize: 14, color: AppColors.onSurfaceVariant, height: 1.5)),

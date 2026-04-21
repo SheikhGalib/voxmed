@@ -18,6 +18,7 @@ class Hospital {
   final List<String>? services;
   final double rating;
   final bool isActive;
+  final String status;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -41,6 +42,7 @@ class Hospital {
     this.services,
     this.rating = 0,
     this.isActive = true,
+    this.status = 'pending',
     required this.createdAt,
     required this.updatedAt,
   });
@@ -68,6 +70,7 @@ class Hospital {
           .toList(),
       rating: (json['rating'] as num?)?.toDouble() ?? 0,
       isActive: json['is_active'] as bool? ?? true,
+      status: json['status'] as String? ?? 'pending',
       createdAt: DateTime.parse(json['created_at'] as String),
       updatedAt: DateTime.parse(json['updated_at'] as String),
     );

@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../core/constants/app_constants.dart';
+import '../core/responsive/responsive.dart';
 import '../core/theme/app_colors.dart';
 import '../models/doctor.dart';
 import '../models/hospital.dart';
@@ -38,14 +39,14 @@ class _FindCareScreenState extends ConsumerState<FindCareScreen> {
     final hospitalsAsync = ref.watch(hospitalSearchProvider(_searchQuery));
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+      padding: EdgeInsets.fromLTRB(Responsive.hPad(context), 16, Responsive.hPad(context), 32),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             'Find Care',
             style: GoogleFonts.manrope(
-              fontSize: 30,
+              fontSize: Responsive.fontSize(context, 28),
               fontWeight: FontWeight.w800,
               color: AppColors.onSurface,
             ),
@@ -160,7 +161,7 @@ class _FindCareScreenState extends ConsumerState<FindCareScreen> {
           final hospital = hospitals[index];
           final isSelected = hospital.id == _selectedHospitalId;
           return SizedBox(
-            width: 250,
+            width: Responsive.horizontalCardWidth(context),
             child: VoxmedCard(
               onTap: () {
                 setState(() {

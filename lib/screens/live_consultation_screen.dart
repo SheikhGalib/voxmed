@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../core/responsive/responsive.dart';
 import '../core/theme/app_colors.dart';
 import '../providers/prescription_provider.dart';
 import '../widgets/voxmed_card.dart';
@@ -34,7 +35,7 @@ class LiveConsultationScreen extends ConsumerWidget {
         children: [
           Expanded(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+              padding: EdgeInsets.fromLTRB(Responsive.hPad(context), 8, Responsive.hPad(context), 24),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [

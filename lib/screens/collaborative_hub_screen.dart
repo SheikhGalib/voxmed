@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../core/responsive/responsive.dart';
 import '../core/theme/app_colors.dart';
 import '../providers/prescription_provider.dart';
 import '../widgets/voxmed_card.dart';
@@ -49,7 +50,7 @@ class CollaborativeHubScreen extends ConsumerWidget {
           final soapNote = cs['soap_note'] as Map<String, dynamic>? ?? {};
 
           return SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
+            padding: EdgeInsets.fromLTRB(Responsive.hPad(context), 8, Responsive.hPad(context), 32),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [

@@ -10,7 +10,8 @@ class DoctorRepository {
   static const String _doctorColumns =
       'id, profile_id, hospital_id, specialty, sub_specialty, qualifications, experience_years, '
       'bio, consultation_fee, patients_count, reviews_count, rating, is_available, chamber_address, '
-      'chamber_city, created_at, updated_at, profiles!inner(full_name, avatar_url, email), hospitals(name)';
+      'chamber_city, created_at, updated_at, department, license_number, status, approved_by_hospital, '
+      'room_number, profiles(full_name, avatar_url, email), hospitals(name)';
 
   static const String _scheduleColumns =
       'id, doctor_id, day_of_week, start_time, end_time, slot_duration_minutes, is_active, created_at';
@@ -27,7 +28,7 @@ class DoctorRepository {
     _scheduleCache.clear();
   }
 
-  /// List all available doctors with joined profile data.
+  /// List all approved doctors (via public_doctors view).
   Future<List<Doctor>> listDoctors({int limit = 20, int offset = 0}) async {
     if (offset == 0 && _doctorCache != null && _doctorCache!.isNotEmpty) {
       return _doctorCache!;
@@ -35,7 +36,7 @@ class DoctorRepository {
 
     try {
       final data = await supabase
-          .from(Tables.doctors)
+          .from(Tables.publicDoctors)
           .select(_doctorColumns)
           .eq('is_available', true)
           .order('rating', ascending: false)
@@ -52,11 +53,11 @@ class DoctorRepository {
     }
   }
 
-  /// Get a single doctor by ID with joined data.
+  /// Get a single approved doctor by ID (patient-facing).
   Future<Doctor> getDoctor(String id) async {
     try {
       final data = await supabase
-          .from(Tables.doctors)
+          .from(Tables.publicDoctors)
           .select(_doctorColumns)
           .eq('id', id)
           .single();
@@ -85,7 +86,7 @@ class DoctorRepository {
     }
   }
 
-  /// Filter doctors by specialty.
+  /// Filter approved doctors by specialty.
   Future<List<Doctor>> filterBySpecialty(String specialty) async {
     final normalized = specialty.trim().toLowerCase();
     if (normalized.isEmpty || normalized == 'all specialties') {
@@ -97,7 +98,7 @@ class DoctorRepository {
 
     try {
       final data = await supabase
-          .from(Tables.doctors)
+          .from(Tables.publicDoctors)
           .select(_doctorColumns)
           .eq('is_available', true)
           .ilike('specialty', '%$normalized%')
@@ -113,7 +114,7 @@ class DoctorRepository {
     }
   }
 
-  /// Get doctors by hospital.
+  /// Get approved doctors by hospital.
   Future<List<Doctor>> getByHospital(String hospitalId) async {
     if (_hospitalDoctorCache.containsKey(hospitalId)) {
       return _hospitalDoctorCache[hospitalId]!;
@@ -121,7 +122,7 @@ class DoctorRepository {
 
     try {
       final data = await supabase
-          .from(Tables.doctors)
+          .from(Tables.publicDoctors)
           .select(_doctorColumns)
           .eq('is_available', true)
           .eq('hospital_id', hospitalId)
@@ -134,6 +135,36 @@ class DoctorRepository {
       throw AppException.fromPostgrestException(e);
     } catch (e) {
       throw AppException(message: 'Failed to load hospital doctors: $e');
+    }
+  }
+
+  /// Create a full doctor profile during registration.
+  /// Inserts into the doctors table with status=pending.
+  Future<void> createFullDoctorProfile({
+    required String profileId,
+    required String hospitalId,
+    required String specialty,
+    required String department,
+    required String licenseNumber,
+    required List<String> qualifications,
+  }) async {
+    try {
+      await supabase.from(Tables.doctors).insert({
+        'profile_id': profileId,
+        'hospital_id': hospitalId,
+        'specialty': specialty,
+        'department': department,
+        'license_number': licenseNumber,
+        'qualifications': qualifications,
+        'status': 'pending',
+        'approved_by_hospital': false,
+        'is_available': false,
+      });
+      _clearCaches();
+    } on PostgrestException catch (e) {
+      throw AppException.fromPostgrestException(e);
+    } catch (e) {
+      throw AppException(message: 'Failed to create doctor profile: $e');
     }
   }
 
