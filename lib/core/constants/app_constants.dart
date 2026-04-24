@@ -29,6 +29,7 @@ class AppRoutes {
   // Doctor full-screen routes
   static const String liveConsultation = '/live-consultation';
   static const String patientDetail = '/patient-detail';
+  static const String doctorChat = '/doctor-chat';
 }
 
 /// Doctor approval status values (mirrors doctor_status enum in DB).

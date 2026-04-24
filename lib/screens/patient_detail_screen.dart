@@ -778,9 +778,26 @@ class _WritePrescriptionSheetState
 
       if (success && mounted) {
         widget.onCreated();
-      } else if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to save prescription')),
+          const SnackBar(
+            content: Text('Prescription saved successfully'),
+            backgroundColor: Color(0xFF2E7D32),
+          ),
+        );
+      } else if (mounted) {
+        // Show the actual error from the notifier state
+        final err = ref.read(createPrescriptionProvider);
+        final errMsg = err.hasError
+            ? err.error.toString().replaceAll('AppException: ', '')
+            : 'Failed to save prescription. Check your permissions.';
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(errMsg), backgroundColor: AppColors.error),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e'), backgroundColor: AppColors.error),
         );
       }
     } finally {

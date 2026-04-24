@@ -136,8 +136,18 @@ Rollout plan (3 parts):
 | Patient Detail screen | ✅ | 2026-05-28 | `PatientDetailScreen` — Overview, Prescriptions, Records, Analytics (bar chart, pie chart, medication trends) |
 | Write Prescription from patient detail | ✅ | 2026-05-28 | Bottom sheet form in Prescriptions tab; creates prescription + items in Supabase |
 | Analytics trend charts per patient | ✅ | 2026-05-28 | `fl_chart` bar chart (visit frequency), pie chart (appointment types), medication history bars |
-| Doctor bottom nav updated (5 tabs) | ✅ | 2026-05-28 | Dashboard · Schedule · My Patients · Approvals · Collaborate |
-| New route constants | ✅ | 2026-05-28 | `doctorSchedule`, `myPatients`, `patientDetail` added to `AppRoutes` |
+| Doctor bottom nav updated (4 tabs) | ✅ | 2026-06-01 | Dashboard · Patients · Approvals · Collaborate — Schedule removed from nav |
+| Schedule moved to dashboard section | ✅ | 2026-06-01 | Dashboard shows today's appointments; "Full view" button navigates to `DoctorScheduleScreen` |
+| Doctor theme redesign (blue + white) | ✅ | 2026-06-01 | `DoctorColors` class in `app_colors.dart`; blue `0xFF1565C0` primary |
+| Stat cards redesigned (white + blue border) | ✅ | 2026-06-01 | Replaced dark black header with white cards + `DoctorColors.border` thin border |
+| Compliance Trends removed | ✅ | 2026-06-01 | Section removed from clinical dashboard as redundant |
+| Approval dashboard section | ✅ | 2026-06-01 | Top 3 recent pending approvals on dashboard + "See all" → full approval queue |
+| Approval queue: list/card/sort/detail | ✅ | 2026-06-01 | Card view, list view, newest/oldest sort, bottom-sheet detail with Approve/Deny |
+| "My Patients" → "Patients" rename | ✅ | 2026-06-01 | Nav label and screen header renamed to "Patients" |
+| Patient name overflow fix | ✅ | 2026-06-01 | `maxLines: 1, overflow: TextOverflow.ellipsis` on patient cards |
+| Write Prescription save fix | ✅ | 2026-06-01 | Success snackbar added; real error shown from provider state; outer catch fallback |
+| App logo updated | ✅ | 2026-06-01 | `voxmed_logo.png` in `VoxmedAppBar` via `Image.asset` with Icon fallback |
+| New route constants | ✅ | 2026-05-28 | `doctorSchedule`, `myPatients`, `patientDetail`, `doctorChat` added to `AppRoutes` |
 | Repository additions | ✅ | 2026-05-28 | `listByDoctorRange`, `listDoctorPatients`, `listPatientVisitsForDoctor` (Appointment); `createPrescriptionWithItems` (Prescription); `listByPatientId` (MedicalRecord) |
 | `patient_provider.dart` (new) | ✅ | 2026-05-28 | Riverpod providers for doctor-scoped patient data and prescription creation |
 | Doctor dashboard tests | ✅ | 2026-05-28 | 8 tests in `test/doctor_dashboard_test.dart` — routes, models, chart logic; all passing |
@@ -149,9 +159,20 @@ Rollout plan (3 parts):
 
 | Task | Status | Date | Notes |
 |------|--------|------|-------|
+| Collaborative Hub (doctor messenger list) | ✅ | 2026-06-01 | `CollaborativeHubScreen` — search, specialty filter chips, peer doctor list; tap → chat |
+| Doctor-to-doctor chat (`DoctorChatScreen`) | ✅ | 2026-06-01 | Full chat UI; text messages + patient-share cards; session via `getOrCreateChatSession` |
+| Patient profile sharing in chat | ✅ | 2026-06-01 | "Share Patient" button in chat sends a patient card bubble; tap → `PatientDetailScreen` |
+| Transfer Patient dialog | ✅ | 2026-06-01 | Informational dialog; full DB-level transfer requires schema update (see DB notes below) |
+| `CollaborationRepository` | ✅ | 2026-06-01 | `listPeerDoctors`, `getOrCreateChatSession`, `sendMessage`, `getMessages` |
+| Collaboration tests | ✅ | 2026-06-01 | 13 tests in `test/collaboration_test.dart` — colors, routes, RenewalStatus, repo instantiation |
 | Consultation sessions + realtime chat | ✅ | 2026-04-07 | Session and message data connected to UI |
 | Specialist invitation flow | ⏳ | | Invitation workflow pending |
 | Shared patient data view | ✅ | 2026-04-07 | Collaborative hub shows live consultation content |
+
+> **⚠️ DB Changes Required for full collaboration support:**
+> 1. `consultation_sessions.patient_id` must be **NULLABLE** — doctor-to-doctor chats have no patient context.
+> 2. `consultation_messages` needs a `message_type` column (e.g. `text`, `patient_share`) to render share cards.
+> 3. `prescriptions` RLS policy must allow doctors to INSERT for their own patients (not just `auth.uid() = patient_id`).
 
 ---
 

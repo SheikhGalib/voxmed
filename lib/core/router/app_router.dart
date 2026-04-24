@@ -19,7 +19,9 @@ import '../../screens/approval_queue_screen.dart';
 import '../../screens/doctor_schedule_screen.dart';
 import '../../screens/my_patients_screen.dart';
 import '../../screens/patient_detail_screen.dart';
+import '../../screens/doctor_chat_screen.dart';
 import '../../screens/profile_screen.dart';
+import '../../core/theme/app_colors.dart';
 import '../../widgets/voxmed_app_bar.dart';
 import '../../widgets/voxmed_bottom_nav.dart';
 import '../../widgets/ai_fab.dart';
@@ -104,7 +106,7 @@ final appRouter = GoRouter(
       ],
     ),
 
-    // Doctor shell (bottom nav)
+    // Doctor shell (bottom nav — 4 tabs: Dashboard, Patients, Approvals, Collaborate)
     ShellRoute(
       navigatorKey: _doctorShellKey,
       builder: (context, state, child) {
@@ -115,11 +117,6 @@ final appRouter = GoRouter(
           path: AppRoutes.clinicalDashboard,
           pageBuilder: (context, state) =>
               const NoTransitionPage(child: ClinicalDashboardScreen()),
-        ),
-        GoRoute(
-          path: AppRoutes.doctorSchedule,
-          pageBuilder: (context, state) =>
-              const NoTransitionPage(child: DoctorScheduleScreen()),
         ),
         GoRoute(
           path: AppRoutes.myPatients,
@@ -177,6 +174,22 @@ final appRouter = GoRouter(
       parentNavigatorKey: _rootNavigatorKey,
       builder: (context, state) => PatientDetailScreen(
         patientId: state.uri.queryParameters['patientId'] ?? '',
+      ),
+    ),
+    GoRoute(
+      path: AppRoutes.doctorSchedule,
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (context, state) => const DoctorScheduleScreen(),
+    ),
+    GoRoute(
+      path: AppRoutes.doctorChat,
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (context, state) => DoctorChatScreen(
+        otherDoctorId: state.uri.queryParameters['doctorId'] ?? '',
+        otherDoctorName: Uri.decodeComponent(
+            state.uri.queryParameters['name'] ?? 'Doctor'),
+        otherDoctorSpecialty: Uri.decodeComponent(
+            state.uri.queryParameters['specialty'] ?? ''),
       ),
     ),
   ],
@@ -256,7 +269,7 @@ class _PatientShell extends StatelessWidget {
   }
 }
 
-/// Doctor shell with a dedicated bottom nav.
+/// Doctor shell with blue-themed bottom nav (4 tabs).
 class _DoctorShell extends StatelessWidget {
   final Widget child;
 
@@ -267,71 +280,82 @@ class _DoctorShell extends StatelessWidget {
     final location = GoRouterState.of(context).uri.path;
     final currentIndex = _getDoctorIndex(location);
 
-    return Scaffold(
-      appBar: const VoxmedAppBar(),
-      body: child,
-      floatingActionButton: AiFab(
-        showGreeting: currentIndex == 0,
-        greetingText: 'Hi',
-        onPressed: () => context.push(AppRoutes.aiAssistant),
+    return Theme(
+      data: Theme.of(context).copyWith(
+        navigationBarTheme: NavigationBarThemeData(
+          indicatorColor: DoctorColors.primaryContainer,
+          iconTheme: WidgetStateProperty.resolveWith((states) {
+            if (states.contains(WidgetState.selected)) {
+              return const IconThemeData(color: DoctorColors.primary);
+            }
+            return const IconThemeData(color: Color(0xFF5A6061));
+          }),
+          labelTextStyle: WidgetStateProperty.resolveWith((states) {
+            if (states.contains(WidgetState.selected)) {
+              return const TextStyle(
+                  color: DoctorColors.primary, fontWeight: FontWeight.w700, fontSize: 11);
+            }
+            return const TextStyle(color: Color(0xFF5A6061), fontSize: 11);
+          }),
+        ),
       ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: currentIndex,
-        onDestinationSelected: (index) {
-          switch (index) {
-            case 0:
-              context.go(AppRoutes.clinicalDashboard);
-              break;
-            case 1:
-              context.go(AppRoutes.doctorSchedule);
-              break;
-            case 2:
-              context.go(AppRoutes.myPatients);
-              break;
-            case 3:
-              context.go(AppRoutes.approvalQueue);
-              break;
-            case 4:
-              context.go(AppRoutes.collaborativeHub);
-              break;
-          }
-        },
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.dashboard_outlined),
-            selectedIcon: Icon(Icons.dashboard),
-            label: 'Dashboard',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.calendar_month_outlined),
-            selectedIcon: Icon(Icons.calendar_month),
-            label: 'Schedule',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.people_outline),
-            selectedIcon: Icon(Icons.people),
-            label: 'My Patients',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.pending_actions_outlined),
-            selectedIcon: Icon(Icons.pending_actions),
-            label: 'Approvals',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.groups_outlined),
-            selectedIcon: Icon(Icons.groups),
-            label: 'Collaborate',
-          ),
-        ],
+      child: Scaffold(
+        appBar: const VoxmedAppBar(),
+        body: child,
+        floatingActionButton: AiFab(
+          showGreeting: currentIndex == 0,
+          greetingText: 'Hi',
+          onPressed: () => context.push(AppRoutes.aiAssistant),
+        ),
+        bottomNavigationBar: NavigationBar(
+          selectedIndex: currentIndex,
+          onDestinationSelected: (index) {
+            switch (index) {
+              case 0:
+                context.go(AppRoutes.clinicalDashboard);
+                break;
+              case 1:
+                context.go(AppRoutes.myPatients);
+                break;
+              case 2:
+                context.go(AppRoutes.approvalQueue);
+                break;
+              case 3:
+                context.go(AppRoutes.collaborativeHub);
+                break;
+            }
+          },
+          destinations: const [
+            NavigationDestination(
+              icon: Icon(Icons.dashboard_outlined),
+              selectedIcon: Icon(Icons.dashboard),
+              label: 'Dashboard',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.people_outline),
+              selectedIcon: Icon(Icons.people),
+              label: 'Patients',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.pending_actions_outlined),
+              selectedIcon: Icon(Icons.pending_actions),
+              label: 'Approvals',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.groups_outlined),
+              selectedIcon: Icon(Icons.groups),
+              label: 'Collaborate',
+            ),
+          ],
+        ),
       ),
     );
   }
 
   int _getDoctorIndex(String location) {
-    if (location.startsWith('/doctor-schedule')) return 1;
-    if (location.startsWith('/my-patients')) return 2;
-    if (location.startsWith('/approval-queue')) return 3;
-    if (location.startsWith('/collaborative-hub')) return 4;
+    if (location.startsWith('/my-patients')) return 1;
+    if (location.startsWith('/approval-queue')) return 2;
+    if (location.startsWith('/collaborative-hub')) return 3;
     return 0;
   }
 }

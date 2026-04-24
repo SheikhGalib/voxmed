@@ -70,3 +70,23 @@ class AppColors {
   static const Color outline = Color(0xFF757C7D);
   static const Color outlineVariant = Color(0xFFADB3B4);
 }
+
+/// Doctor-specific blue color palette (used in doctor-role screens only).
+/// Patient screens continue to use the main green [AppColors].
+class DoctorColors {
+  DoctorColors._();
+
+  static const Color primary       = Color(0xFF1565C0); // Blue 800
+  static const Color primaryLight  = Color(0xFF1E88E5); // Blue 600
+  static const Color primaryDark   = Color(0xFF0D47A1); // Blue 900
+  static const Color primaryContainer = Color(0xFFE3F2FD); // Blue 50
+  static const Color onPrimary     = Color(0xFFFFFFFF);
+  static const Color border        = Color(0xFFBBDEFB); // Blue 100
+  static const Color lightBg       = Color(0xFFF5F9FF); // Very light blue
+  static const Color cardBg        = Color(0xFFEEF4FF); // Light blue card
+  static const Color accent        = Color(0xFF0288D1); // Light Blue 700
+  static const Color accentLight   = Color(0xFF4FC3F7); // Light Blue 300
+  static const Color statGreen     = Color(0xFF2E7D32); // for positive numbers
+  static const Color statOrange    = Color(0xFFE65100); // for warnings
+  static const Color navSelected   = Color(0xFF1565C0);
+}

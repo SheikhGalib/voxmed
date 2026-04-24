@@ -131,7 +131,7 @@ class _MyPatientsScreenState extends ConsumerState<MyPatientsScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('My Patients',
+                Text('Patients',
                     style: GoogleFonts.manrope(
                         fontSize: 26,
                         fontWeight: FontWeight.w800,
@@ -251,6 +251,8 @@ class _PatientCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: GoogleFonts.manrope(
                           fontSize: 15,
                           fontWeight: FontWeight.w700,
