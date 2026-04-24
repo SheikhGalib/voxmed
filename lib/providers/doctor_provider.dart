@@ -5,6 +5,7 @@ import '../core/utils/error_handler.dart';
 import '../repositories/doctor_repository.dart';
 import '../models/doctor.dart';
 import '../models/doctor_schedule.dart';
+import 'auth_provider.dart';
 
 /// Provides the DoctorRepository instance.
 final doctorRepositoryProvider = Provider<DoctorRepository>((ref) {
@@ -124,8 +125,12 @@ final doctorScheduleProvider = FutureProvider.family<List<DoctorSchedule>, Strin
 
 /// Fetch the currently logged-in doctor's own profile (from doctors table, not view).
 /// Used to check approval status on the doctor dashboard.
+/// Watches authStateProvider so the value is re-fetched on sign-out/sign-in,
+/// fixing the stale "Approval Pending" screen after sign-in.
 final currentDoctorProvider = FutureProvider<Doctor?>((ref) async {
-  final userId = supabase.auth.currentUser?.id;
-  if (userId == null) return null;
+  // Depend on auth state — provider auto-invalidates when session changes.
+  final authState = await ref.watch(authStateProvider.future);
+  if (authState.session == null) return null;
+  final userId = authState.session!.user.id;
   return ref.read(doctorRepositoryProvider).getDoctorByProfileId(userId);
 });

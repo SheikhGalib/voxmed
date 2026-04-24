@@ -198,6 +198,34 @@ Rollout plan (3 parts):
 
 ### Phase 2–5 — Not Started
 
+---
+
+## Cross-Platform: Shared Database (voxmed + voxmedweb)
+
+> **Context:** The Flutter app and the React web management dashboard use the same Supabase project (`jedgnisrjwemhazherro`). RLS bugs in one app affect the other.
+
+| Task | Status | Date | Notes |
+|------|--------|------|-------|
+| Identify shared database between Flutter app and web dashboard | ✅ | 2026-04-24 | Same Supabase project; `user_role` enum covers all 6 roles |
+| Update `database_schema.md` to reflect actual cloud schema | ✅ | 2026-04-24 | Added `hospital_staff` table, `hospital_status`/`doctor_status` enums, approval fields on `doctors` and `hospitals`, updated architecture overview |
+| Diagnose doctor-not-appearing-for-approval bug | ✅ | 2026-04-24 | Root cause: missing INSERT RLS policy on `doctors` for authenticated users — see `docs/rls_fix_doctor_visibility.md` |
+| Create fix doc for RLS issue | ✅ | 2026-04-24 | `docs/rls_fix_doctor_visibility.md` — full root cause analysis, fix SQL, verification steps |
+| Create migration `002_fix_rls_policies.sql` | ✅ | 2026-04-24 | At `voxmedweb/supabase/migrations/002_fix_rls_policies.sql` |
+| **Apply RLS fix in Supabase cloud** | ⚠️ | | **ACTION REQUIRED** — run `002_fix_rls_policies.sql` in Supabase SQL Editor |
+
+### ⚠️ Supabase Action Required — Doctor Visibility Fix
+
+Run the contents of `voxmedweb/supabase/migrations/002_fix_rls_policies.sql` in the **Supabase SQL Editor**:
+
+1. Open https://supabase.com/dashboard → project `jedgnisrjwemhazherro`
+2. Navigate to **SQL Editor → New query**
+3. Paste and run `002_fix_rls_policies.sql`
+
+This adds three policies to the `doctors` table:
+- `Doctors can insert own profile` — fixes the silent INSERT failure that prevents new doctors from registering
+- `Doctors can view own profile` — allows a pending doctor to see their own record in the app
+- `Hospital admin views own hospital doctors` — defence-in-depth for future Flutter hospital admin views
+
 | Phase | Description | Status |
 |-------|-------------|--------|
 | Phase 2 | Scheduled Meetings & Notifications (call invitations, push) | ⏳ |

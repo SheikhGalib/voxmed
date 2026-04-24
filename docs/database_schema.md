@@ -1,7 +1,8 @@
 # VoxMed Connect — Database Schema
 
 > **Backend:** Supabase (PostgreSQL + Auth + Storage + Edge Functions + Realtime)  
-> **Last Updated:** 2026-04-16
+> **Last Updated:** 2026-04-24  
+> **Note:** This database is shared between the Flutter mobile app (voxmed) and the web management dashboard (voxmedweb). Both read/write the same Supabase project.
 
 ---
 
@@ -20,37 +21,38 @@
 
 ## 1. Architecture Overview
 
+This database is **shared** between the Flutter mobile app (patients/doctors) and the Node.js/React web management dashboard (hospital admins/staff/platform admin).
+
 ```
-┌──────────────┐     ┌──────────────────────┐     ┌──────────────────┐
-│  Flutter App  │────▶│   Supabase Auth       │────▶│  profiles        │
-│  (Patient /   │     │   (JWT + RLS)          │     │  (role-based)    │
-│   Doctor)     │     └──────────────────────┘     └──────────────────┘
-│               │                                         │
-│               │────▶ Supabase PostgreSQL ◀──────────────┘
-│               │     ┌──────────────────────────────────────────────┐
-│               │     │  hospitals, doctors, doctor_schedules,       │
-│               │     │  appointments, medical_records,              │
-│               │     │  prescriptions, prescription_items,          │
-│               │     │  medications, adherence_logs,                │
-│               │     │  ai_conversations, ai_messages,              │
-│               │     │  notifications, reviews,                     │
-│               │     │  consultation_sessions, consultation_members,│
-│               │     │  wearable_data,                              │
-│               │     │  video_calls, call_transcripts,              │
-│               │     │  emergency_call_requests                     │
-│               │     └──────────────────────────────────────────────┘
-│               │
-│               │────▶ Supabase Storage
-│               │     ┌──────────────────────────────────┐
-│               │     │  avatars/  reports/  prescriptions/ │
-│               │     └──────────────────────────────────┘
-│               │
-│               │────▶ Supabase Edge Functions
-│               │     ┌──────────────────────────────────┐
-│               │     │  gemini-ocr, gemini-triage,      │
-│               │     │  auto-reschedule, soap-notes     │
-│               │     └──────────────────────────────────┘
-└──────────────┘
+┌──────────────────┐     ┌──────────────────────┐     ┌──────────────────┐
+│  Flutter App      │────▶│   Supabase Auth       │────▶│  profiles        │
+│  (Patient/Doctor) │     │   (JWT + RLS)          │     │  (role-based)    │
+│  Uses anon/user   │     └──────────────────────┘     └──────────────────┘
+│  JWT — RLS applies│                                         │
+│                   │────▶ Supabase PostgreSQL ◀──────────────┘
+└──────────────────┘     ┌──────────────────────────────────────────────┐
+                         │  hospitals, hospital_staff,                  │
+┌──────────────────┐     │  doctors, doctor_schedules, doctor_absences, │
+│  React Web App    │     │  departments, appointments, medical_tests,   │
+│  (Hospital Admin/ │────▶│  medical_records, payments,                  │
+│   Admin/Staff)    │     │  prescriptions, prescription_items,          │
+│  Uses service_role│     │  prescription_renewals, adherence_logs,      │
+│  JWT — bypasses   │     │  ai_conversations, ai_messages,              │
+│  RLS              │     │  notifications, reviews,                     │
+└──────────────────┘     │  consultation_sessions, consultation_members,│
+                         │  consultation_messages, wearable_data,       │
+                         │  video_calls, call_transcripts,              │
+                         │  emergency_call_requests                     │
+                         └──────────────────────────────────────────────┘
+                         ┌──────────────────────────────────┐
+                         │  Supabase Storage                 │
+                         │  avatars/  reports/  prescriptions/ │
+                         └──────────────────────────────────┘
+                         ┌──────────────────────────────────┐
+                         │  Supabase Edge Functions          │
+                         │  gemini-ocr, gemini-triage,       │
+                         │  auto-reschedule, soap-notes      │
+                         └──────────────────────────────────┘
 ```
 
 ---
@@ -59,12 +61,18 @@
 
 Supabase Auth handles sign-up/sign-in. On registration a trigger inserts a row into `profiles`.
 
-| Role      | Description                                              |
-|-----------|----------------------------------------------------------|
-| `patient` | End users who book appointments, track health, talk to AI |
-| `doctor`  | Clinicians who manage schedules, patients, prescriptions  |
+The `user_role` enum covers all roles across both the mobile app and web management dashboard:
 
-> **Note:** Hospitals are entities, not user roles. Doctors can be affiliated with hospitals or operate independently.
+| Role             | App / Dashboard | Description                                                   |
+|------------------|-----------------|---------------------------------------------------------------|
+| `patient`        | Mobile app      | Books appointments, tracks health, chats with AI              |
+| `doctor`         | Mobile app      | Manages schedule, patients, prescriptions                     |
+| `hospital_admin` | Web dashboard   | Manages one hospital's doctors, staff, tests, appointments    |
+| `receptionist`   | Web dashboard   | Views doctor schedules and books appointments for patients    |
+| `lab_staff`      | Web dashboard   | Looks up patients and uploads test result reports             |
+| `admin`          | Web dashboard   | Platform superadmin — approves hospitals/doctors, views revenue |
+
+> **Note:** `hospital_admin`, `receptionist`, `lab_staff`, and `admin` operate exclusively through the web management dashboard (voxmedweb). The Flutter app serves `patient` and `doctor` roles only.
 
 ---
 
@@ -94,59 +102,86 @@ Extends `auth.users`. Created automatically via trigger on sign-up.
 
 ### 3.2 `hospitals`
 
-| Column             | Type          | Constraints                  | Description                          |
-|--------------------|---------------|------------------------------|--------------------------------------|
-| `id`               | `uuid`        | PK, DEFAULT `gen_random_uuid()` | Hospital ID                        |
-| `name`             | `text`        | NOT NULL                     | Hospital name                        |
-| `description`      | `text`        |                              | About the hospital                   |
-| `address`          | `text`        | NOT NULL                     | Physical address                     |
-| `city`             | `text`        | NOT NULL                     |                                      |
-| `state`            | `text`        |                              |                                      |
-| `country`          | `text`        | NOT NULL                     |                                      |
-| `zip_code`         | `text`        |                              |                                      |
-| `latitude`         | `float8`      |                              | For map/proximity searches           |
-| `longitude`        | `float8`      |                              |                                      |
-| `phone`            | `text`        |                              |                                      |
-| `email`            | `text`        |                              |                                      |
-| `website`          | `text`        |                              |                                      |
-| `logo_url`         | `text`        |                              | Path in storage bucket               |
-| `cover_image_url`  | `text`        |                              |                                      |
-| `operating_hours`  | `jsonb`       |                              | `{ mon: {open, close}, tue: ... }`   |
-| `services`         | `text[]`      |                              | e.g. `{Radiology, Pathology, ICU}`   |
-| `rating`           | `float4`      | DEFAULT `0`                  | Aggregate rating                     |
-| `is_active`        | `boolean`     | DEFAULT `true`               |                                      |
-| `created_at`       | `timestamptz` | DEFAULT `now()`              |                                      |
-| `updated_at`       | `timestamptz` | DEFAULT `now()`              |                                      |
+| Column             | Type             | Constraints                  | Description                          |
+|--------------------|------------------|------------------------------|--------------------------------------|
+| `id`               | `uuid`           | PK, DEFAULT `gen_random_uuid()` | Hospital ID                       |
+| `name`             | `text`           | NOT NULL                     | Hospital name                        |
+| `description`      | `text`           |                              | About the hospital                   |
+| `address`          | `text`           | NOT NULL                     | Physical address                     |
+| `city`             | `text`           | NOT NULL                     |                                      |
+| `state`            | `text`           |                              |                                      |
+| `country`          | `text`           | NOT NULL                     |                                      |
+| `zip_code`         | `text`           |                              |                                      |
+| `latitude`         | `float8`         |                              | For map/proximity searches           |
+| `longitude`        | `float8`         |                              |                                      |
+| `phone`            | `text`           |                              |                                      |
+| `email`            | `text`           |                              |                                      |
+| `website`          | `text`           |                              |                                      |
+| `logo_url`         | `text`           |                              | Path in storage bucket               |
+| `cover_image_url`  | `text`           |                              |                                      |
+| `operating_hours`  | `jsonb`          |                              | `{ mon: {open, close}, tue: ... }`   |
+| `services`         | `text[]`         |                              | e.g. `{Radiology, Pathology, ICU}`   |
+| `rating`           | `float4`         | DEFAULT `0`                  | Aggregate rating                     |
+| `is_active`        | `boolean`        | DEFAULT `true`               |                                      |
+| `license_number`   | `text`           |                              | Regulatory licence number            |
+| `status`           | `hospital_status`| DEFAULT `'pending'`          | Enum: `pending`, `approved`, `rejected` |
+| `approved_by`      | `uuid`           | FK → `profiles.id`, NULLABLE | Platform admin who approved          |
+| `profit_earned`    | `numeric`        | DEFAULT `0`                  | Cumulative platform profit from this hospital |
+| `created_at`       | `timestamptz`    | DEFAULT `now()`              |                                      |
+| `updated_at`       | `timestamptz`    | DEFAULT `now()`              |                                      |
 
 ---
 
-### 3.3 `doctors`
+### 3.3 `hospital_staff`
+
+Links web-dashboard users (`hospital_admin`, `receptionist`, `lab_staff`) to their hospital.
+
+| Column        | Type        | Constraints                     | Description                                        |
+|---------------|-------------|----------------------------------|----------------------------------------------------|
+| `id`          | `uuid`      | PK, DEFAULT `gen_random_uuid()`  |                                                    |
+| `hospital_id` | `uuid`      | FK → `hospitals.id`              |                                                    |
+| `profile_id`  | `uuid`      | FK → `profiles.id`               | The staff member's user profile                    |
+| `role`        | `user_role` |                                  | `admin` (hospital_admin), `receptionist`, `lab`    |
+| `created_at`  | `timestamptz` | DEFAULT `now()`               |                                                    |
+
+> **Note:** Hospital admins are seeded with `role = 'admin'` in this table (not `'hospital_admin'`). The web API uses this to resolve `hospital_id` for each request.
+
+---
+
+### 3.4 `doctors`
 
 Doctor-specific profile data. A doctor is a user with `role = 'doctor'` in `profiles`. This table extends that profile.
 
-| Column             | Type          | Constraints                                 | Description                             |
-|--------------------|---------------|---------------------------------------------|-----------------------------------------|
-| `id`               | `uuid`        | PK, DEFAULT `gen_random_uuid()`             |                                         |
-| `profile_id`       | `uuid`        | UNIQUE, NOT NULL, FK → `profiles.id`        | Links to the user profile               |
-| `hospital_id`      | `uuid`        | FK → `hospitals.id`, NULLABLE               | NULL if independent practitioner        |
-| `specialty`        | `text`        | NOT NULL                                    | e.g. `Cardiology`, `Neurology`          |
-| `sub_specialty`    | `text`        |                                             |                                         |
-| `qualifications`   | `text[]`      |                                             | e.g. `{MBBS, MD, FRCS}`                |
-| `experience_years` | `int4`        |                                             | Years of practice                       |
-| `bio`              | `text`        |                                             | About the doctor                        |
-| `consultation_fee` | `numeric(10,2)` |                                           | Base fee                                |
-| `patients_count`   | `int4`        | DEFAULT `0`                                 | Aggregate count                         |
-| `reviews_count`    | `int4`        | DEFAULT `0`                                 |                                         |
-| `rating`           | `float4`      | DEFAULT `0`                                 | Average rating                          |
-| `is_available`     | `boolean`     | DEFAULT `true`                              | Online availability flag                |
-| `chamber_address`  | `text`        |                                             | For independent doctors                 |
-| `chamber_city`     | `text`        |                                             |                                         |
-| `created_at`       | `timestamptz` | DEFAULT `now()`                             |                                         |
-| `updated_at`       | `timestamptz` | DEFAULT `now()`                             |                                         |
+| Column               | Type            | Constraints                                 | Description                             |
+|----------------------|-----------------|---------------------------------------------|-----------------------------------------|
+| `id`                 | `uuid`          | PK, DEFAULT `gen_random_uuid()`             |                                         |
+| `profile_id`         | `uuid`          | UNIQUE, NOT NULL, FK → `profiles.id`        | Links to the user profile               |
+| `hospital_id`        | `uuid`          | FK → `hospitals.id`, NULLABLE               | NULL if independent practitioner        |
+| `specialty`          | `text`          | NOT NULL                                    | e.g. `Cardiology`, `Neurology`          |
+| `sub_specialty`      | `text`          |                                             |                                         |
+| `department`         | `text`          |                                             | Department name within the hospital     |
+| `qualifications`     | `text[]`        |                                             | e.g. `{MBBS, MD, FRCS}`                |
+| `experience_years`   | `int4`          |                                             | Years of practice                       |
+| `license_number`     | `text`          |                                             | Medical council licence number          |
+| `bio`                | `text`          |                                             | About the doctor                        |
+| `consultation_fee`   | `numeric`       |                                             | Base fee                                |
+| `room_number`        | `text`          |                                             | Assigned room in hospital               |
+| `patients_count`     | `int4`          | DEFAULT `0`                                 | Aggregate count                         |
+| `reviews_count`      | `int4`          | DEFAULT `0`                                 |                                         |
+| `rating`             | `float4`        | DEFAULT `0`                                 | Average rating                          |
+| `is_available`       | `boolean`       | DEFAULT `true`                              | Online availability flag                |
+| `status`             | `doctor_status` | DEFAULT `'pending'`                         | Enum: `pending`, `approved`, `rejected` |
+| `approved_by_hospital` | `boolean`     | DEFAULT `false`                             | Set `true` when hospital admin approves |
+| `chamber_address`    | `text`          |                                             | For independent doctors                 |
+| `chamber_city`       | `text`          |                                             |                                         |
+| `created_at`         | `timestamptz`   | DEFAULT `now()`                             |                                         |
+| `updated_at`         | `timestamptz`   | DEFAULT `now()`                             |                                         |
+
+> **Approval Flow:** A doctor registered via the Flutter app has `status = 'pending'` and `approved_by_hospital = false`. The hospital admin uses the web dashboard to approve (sets `status = 'approved'`, `approved_by_hospital = true`, `is_available = true`). The `public_doctors` view then exposes this doctor to patients.
 
 ---
 
-### 3.4 `doctor_schedules`
+### 3.5 `doctor_schedules`
 
 Weekly recurring schedule slots for a doctor.
 
@@ -165,7 +200,7 @@ Weekly recurring schedule slots for a doctor.
 
 ---
 
-### 3.5 `doctor_absences`
+### 3.6 `doctor_absences`
 
 Handles "Emergency Absence" feature. Triggers auto-rescheduling Edge Function.
 
@@ -180,7 +215,7 @@ Handles "Emergency Absence" feature. Triggers auto-rescheduling Edge Function.
 
 ---
 
-### 3.6 `appointments`
+### 3.7 `appointments`
 
 > **Design Decision:** Uses `timestamptz` for scheduling instead of separate `date`/`time` columns to ensure universal UTC alignment across time zones — critical for telehealth where doctor and patient may be in different regions.
 
@@ -202,7 +237,7 @@ Handles "Emergency Absence" feature. Triggers auto-rescheduling Edge Function.
 
 ---
 
-### 3.7 `medical_records`
+### 3.8 `medical_records`
 
 The Health Passport data — prescriptions, lab results, consultation notes, radiology reports, etc.
 
@@ -224,7 +259,7 @@ The Health Passport data — prescriptions, lab results, consultation notes, rad
 
 ---
 
-### 3.8 `prescriptions`
+### 3.9 `prescriptions`
 
 A prescription issued by a doctor during/after an appointment.
 
@@ -244,7 +279,7 @@ A prescription issued by a doctor during/after an appointment.
 
 ---
 
-### 3.9 `prescription_items`
+### 3.10 `prescription_items`
 
 Individual medication entries within a prescription.
 
@@ -263,7 +298,7 @@ Individual medication entries within a prescription.
 
 ---
 
-### 3.10 `prescription_renewals`
+### 3.11 `prescription_renewals`
 
 Renewal requests from patients, approval queue for doctors.
 
@@ -281,7 +316,7 @@ Renewal requests from patients, approval queue for doctors.
 
 ---
 
-### 3.11 `adherence_logs`
+### 3.12 `adherence_logs`
 
 Voice-tracked medication compliance entries.
 
@@ -299,7 +334,7 @@ Voice-tracked medication compliance entries.
 
 ---
 
-### 3.12 `ai_conversations`
+### 3.13 `ai_conversations`
 
 Chat sessions with the AI Triage Assistant.
 
@@ -314,7 +349,7 @@ Chat sessions with the AI Triage Assistant.
 
 ---
 
-### 3.13 `ai_messages`
+### 3.14 `ai_messages`
 
 Individual messages within an AI conversation.
 
@@ -329,7 +364,7 @@ Individual messages within an AI conversation.
 
 ---
 
-### 3.14 `consultation_sessions`
+### 3.15 `consultation_sessions`
 
 Multi-doctor collaborative care sessions.
 
@@ -347,7 +382,7 @@ Multi-doctor collaborative care sessions.
 
 ---
 
-### 3.15 `consultation_members`
+### 3.16 `consultation_members`
 
 Doctors participating in a collaborative consultation.
 
@@ -363,7 +398,7 @@ Doctors participating in a collaborative consultation.
 
 ---
 
-### 3.16 `consultation_messages`
+### 3.17 `consultation_messages`
 
 Real-time chat within collaborative sessions (Supabase Realtime).
 
@@ -377,7 +412,7 @@ Real-time chat within collaborative sessions (Supabase Realtime).
 
 ---
 
-### 3.17 `notifications`
+### 3.18 `notifications`
 
 Push/in-app notifications for both roles.
 
@@ -394,7 +429,7 @@ Push/in-app notifications for both roles.
 
 ---
 
-### 3.18 `reviews`
+### 3.19 `reviews`
 
 Patient reviews for doctors.
 
@@ -412,7 +447,7 @@ Patient reviews for doctors.
 
 ---
 
-### 3.19 `wearable_data`
+### 3.20 `wearable_data`
 
 Synced biometric data from wearables (Phase 2+).
 
@@ -428,7 +463,7 @@ Synced biometric data from wearables (Phase 2+).
 
 ---
 
-### 3.20 `video_calls`
+### 3.21 `video_calls`
 
 Tracks active/completed video call rooms tied to appointments (ZEGOCLOUD).
 
@@ -447,7 +482,7 @@ Tracks active/completed video call rooms tied to appointments (ZEGOCLOUD).
 | `created_at`       | `timestamptz` | DEFAULT `now()`                                  |                                       |
 | `updated_at`       | `timestamptz` | DEFAULT `now()`                                  |                                       |
 
-### 3.21 `call_transcripts`
+### 3.22 `call_transcripts`
 
 Stores real-time transcription data from video calls (Deepgram ASR).
 
@@ -462,7 +497,7 @@ Stores real-time transcription data from video calls (Deepgram ASR).
 | `is_final`       | `boolean`     | DEFAULT `true`                                   | Final vs interim transcript           |
 | `created_at`     | `timestamptz` | DEFAULT `now()`                                  |                                       |
 
-### 3.22 `emergency_call_requests`
+### 3.23 `emergency_call_requests`
 
 Handles the emergency/early-responder call queue.
 
@@ -484,8 +519,21 @@ Handles the emergency/early-responder call queue.
 ## 4. Enums & Constants
 
 ```sql
--- User roles
-CREATE TYPE user_role AS ENUM ('patient', 'doctor');
+-- User roles (shared across mobile app + web management dashboard)
+CREATE TYPE user_role AS ENUM (
+  'patient',        -- Mobile: books appointments, health tracking, AI chat
+  'doctor',         -- Mobile: clinical dashboard, prescriptions, schedules
+  'hospital_admin', -- Web: manages one hospital's operations
+  'receptionist',   -- Web: books appointments on behalf of patients
+  'lab_staff',      -- Web: uploads patient test reports
+  'admin'           -- Web: platform superadmin
+);
+
+-- Hospital approval status
+CREATE TYPE hospital_status AS ENUM ('pending', 'approved', 'rejected');
+
+-- Doctor approval status
+CREATE TYPE doctor_status AS ENUM ('pending', 'approved', 'rejected');
 
 -- Appointment status
 CREATE TYPE appointment_status AS ENUM (
@@ -620,14 +668,55 @@ CREATE POLICY "Doctors update patient records" ON medical_records
   );
 ```
 
-### `hospitals` & `doctors`
+### `hospitals`
 ```sql
--- Public read access for search/directory
-CREATE POLICY "Public read hospitals"
-  ON hospitals FOR SELECT USING (true);
+-- Anyone can see approved/active hospitals (for directory/search)
+CREATE POLICY "Public can view approved hospitals"
+  ON hospitals FOR SELECT USING (is_active = true);
 
-CREATE POLICY "Public read doctors"
-  ON doctors FOR SELECT USING (true);
+-- Service role has full access (web dashboard uses this)
+CREATE POLICY "Service role full access hospitals"
+  ON hospitals FOR ALL USING (auth.role() = 'service_role');
+```
+
+### `doctors`
+
+> **⚠ Root Cause of Bug:** The actual cloud has only two policies on `doctors`:
+> 1. SELECT for `status = 'approved'` — patients can only see approved doctors ✓
+> 2. ALL for `service_role` — web dashboard bypasses RLS ✓
+>
+> **Missing:** No `INSERT` policy for `authenticated` users. When the Flutter app calls `supabase.from('doctors').insert({...})` with the doctor's JWT, Supabase silently rejects the insert (0 rows written, no error). The doctor record is never created. See migration `002_fix_rls_policies.sql`.
+
+```sql
+-- Current (deployed) policies:
+CREATE POLICY "Public can view approved doctors"
+  ON doctors FOR SELECT USING (status = 'approved');
+
+CREATE POLICY "Service role full access doctors"
+  ON doctors FOR ALL USING (auth.role() = 'service_role');
+
+-- ✅ REQUIRED FIX — apply via 002_fix_rls_policies.sql:
+
+-- Allow a doctor to insert their own profile row
+CREATE POLICY "Doctors can insert own profile"
+  ON doctors FOR INSERT TO authenticated
+  WITH CHECK (profile_id = auth.uid());
+
+-- Allow a doctor to see their own record (even when status = 'pending')
+CREATE POLICY "Doctors can view own profile"
+  ON doctors FOR SELECT TO authenticated
+  USING (profile_id = auth.uid());
+
+-- Allow hospital admins (via web) to see their hospital's pending doctors
+-- (Not strictly required since web uses service_role, but provides defence-in-depth)
+CREATE POLICY "Hospital admin views own hospital doctors"
+  ON doctors FOR SELECT TO authenticated
+  USING (
+    hospital_id IN (
+      SELECT hospital_id FROM hospital_staff
+      WHERE profile_id = auth.uid() AND role IN ('admin', 'hospital_admin')
+    )
+  );
 ```
 
 ### `doctor_schedules`
