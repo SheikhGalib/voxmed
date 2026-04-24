@@ -374,4 +374,99 @@ Invoke-RestMethod -Uri "https://<project>.supabase.co/rest/v1/<table>?limit=1" -
 - `voxmedweb/client/src/pages/hospital/HospitalDoctors.jsx`
 - `voxmedweb/client/src/pages/receptionist/ReceptionistSchedules.jsx`
 
+---
+
+## Fix 5 — Web: "no unique or exclusion constraint matching the ON CONFLICT specification"
+
+> **Date:** 2026-04-25  
+> **Severity:** Critical — hospital admin cannot save any doctor schedule  
+> **Status:** Fixed in `voxmedweb/server/src/routes/hospital/doctors.js`
+
+### Symptom
+
+After Fix 3 and Fix 4 resolved the column name mismatches, saving a doctor schedule still failed with:
+
+> there is no unique or exclusion constraint matching the ON CONFLICT specification
+
+### Root Cause
+
+PostgREST upsert requires a **database-level `UNIQUE` constraint** on the columns specified in `onConflict`. The server was calling:
+
+```js
+supabaseAdmin
+  .from('doctor_schedules')
+  .upsert(
+    { doctor_id: req.params.id, ...req.validated },
+    { onConflict: 'doctor_id,day_of_week' }   // ← requires UNIQUE(doctor_id, day_of_week) in DB
+  )
+```
+
+The cloud `doctor_schedules` table was created without that constraint — the reference `schema.sql` defined `UNIQUE(doctor_id, day_of_week)` but it was never applied to the cloud database.
+
+### Fix
+
+**Server code** — replaced `.upsert()` with a select-then-update-or-insert pattern that works regardless of whether the DB constraint exists:
+
+```js
+// Step 1: check if a row already exists for this doctor + day
+const { data: existing } = await supabaseAdmin
+  .from('doctor_schedules')
+  .select('id')
+  .eq('doctor_id', req.params.id)
+  .eq('day_of_week', req.validated.day_of_week)
+  .maybeSingle();
+
+// Step 2: update the existing row, or insert a new one
+if (existing) {
+  await supabaseAdmin.from('doctor_schedules').update(req.validated).eq('id', existing.id);
+} else {
+  await supabaseAdmin.from('doctor_schedules').insert({ doctor_id: req.params.id, ...req.validated });
+}
+```
+
+**Database migration** — `003_add_doctor_schedules_unique_constraint.sql` adds the proper constraint as a safety net. Run in Supabase SQL Editor:
+
+```sql
+ALTER TABLE public.doctor_schedules
+  ADD CONSTRAINT doctor_schedules_doctor_id_day_of_week_key
+  UNIQUE (doctor_id, day_of_week);
+```
+
+### Files Changed
+
+- `voxmedweb/server/src/routes/hospital/doctors.js`
+- `voxmedweb/supabase/migrations/003_add_doctor_schedules_unique_constraint.sql` *(run in Supabase SQL Editor)*
+
+---
+
+## Tests Added — Doctor Scheduling
+
+> **Date:** 2026-04-25
+
+### Flutter — `test/scheduling_test.dart`
+
+Unit tests for the `DoctorSchedule` model covering all scheduling-related logic:
+
+| Test group | # tests | What is tested |
+|---|---|---|
+| `DoctorSchedule.fromJson` | 3 | Full parse, default `slot_duration_minutes`, default `is_active` |
+| `DoctorSchedule.toJson` | 2 | Round-trip fidelity, `id`/`created_at` excluded from output |
+| Day name helpers | 2 | `dayName` and `shortDayName` for all 7 days |
+| Slot count calculation | 5 | Slot math, edge cases (end < start, duration = 0) |
+
+Run: `flutter test test/scheduling_test.dart`  → **12/12 passed**
+
+### Web — `server/src/test/scheduling.test.js`
+
+Unit tests for the server's Zod schema and upsert logic using Node's built-in `node:test`:
+
+| Test group | # tests | What is tested |
+|---|---|---|
+| Valid payloads | 7 | Accepts correct schedules, applies Zod defaults |
+| Invalid payloads | 6 | Rejects out-of-range day, short slots, missing fields |
+| Slot count calculation | 5 | Matches Flutter slot math exactly |
+| Upsert branching | 3 | insert vs update decision based on `existing` row |
+
+Run: `cd server && npm test`  → **21/21 passed**
+
 

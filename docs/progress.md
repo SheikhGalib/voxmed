@@ -211,20 +211,24 @@ Rollout plan (3 parts):
 | Diagnose doctor-not-appearing-for-approval bug | ✅ | 2026-04-24 | Root cause: missing INSERT RLS policy on `doctors` for authenticated users — see `docs/rls_fix_doctor_visibility.md` |
 | Create fix doc for RLS issue | ✅ | 2026-04-24 | `docs/rls_fix_doctor_visibility.md` — full root cause analysis, fix SQL, verification steps |
 | Create migration `002_fix_rls_policies.sql` | ✅ | 2026-04-24 | At `voxmedweb/supabase/migrations/002_fix_rls_policies.sql` |
-| **Apply RLS fix in Supabase cloud** | ⚠️ | | **ACTION REQUIRED** — run `002_fix_rls_policies.sql` in Supabase SQL Editor |
+| Apply RLS fix in Supabase cloud | ✅ | 2026-04-24 | Migration applied — hospital dashboard now shows doctors |
+| Fix stale "Approval Pending" after sign-in (Flutter) | ✅ | 2026-04-24 | `currentDoctorProvider` now watches `authStateProvider` — auto-invalidates on sign-in/out |
+| Fix `is_available` column mismatch in doctor_schedules (web) | ✅ | 2026-04-24 | Renamed to `is_active` in server Zod schema |
+| Fix `max_patients` column not found in doctor_schedules (web) | ✅ | 2026-04-24 | Renamed to `slot_duration_minutes` in server + client form |
+| Fix ON CONFLICT error when saving doctor schedule (web) | ✅ | 2026-04-25 | Replaced `.upsert()` with select-then-update-or-insert; created migration `003` for DB constraint |
+| Create migration `003_add_doctor_schedules_unique_constraint.sql` | ⚠️ | 2026-04-25 | **ACTION REQUIRED** — run in Supabase SQL Editor to add `UNIQUE(doctor_id, day_of_week)` |
+| Write Flutter scheduling unit tests | ✅ | 2026-04-25 | `test/scheduling_test.dart` — 12 tests covering fromJson, toJson, day names, slot count |
+| Write web scheduling unit tests | ✅ | 2026-04-25 | `server/src/test/scheduling.test.js` — 21 tests covering Zod schema, slot count, upsert logic |
 
-### ⚠️ Supabase Action Required — Doctor Visibility Fix
+### ⚠️ Supabase Action Required — Doctor Schedules Unique Constraint
 
-Run the contents of `voxmedweb/supabase/migrations/002_fix_rls_policies.sql` in the **Supabase SQL Editor**:
+Run the contents of `voxmedweb/supabase/migrations/003_add_doctor_schedules_unique_constraint.sql` in the **Supabase SQL Editor**:
 
 1. Open https://supabase.com/dashboard → project `jedgnisrjwemhazherro`
 2. Navigate to **SQL Editor → New query**
-3. Paste and run `002_fix_rls_policies.sql`
+3. Paste and run the migration
 
-This adds three policies to the `doctors` table:
-- `Doctors can insert own profile` — fixes the silent INSERT failure that prevents new doctors from registering
-- `Doctors can view own profile` — allows a pending doctor to see their own record in the app
-- `Hospital admin views own hospital doctors` — defence-in-depth for future Flutter hospital admin views
+This adds `UNIQUE(doctor_id, day_of_week)` to `doctor_schedules`. The server already works without it (select-then-update-or-insert), but the constraint provides database-level enforcement as a safety net.
 
 | Phase | Description | Status |
 |-------|-------------|--------|
