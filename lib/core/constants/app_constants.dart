@@ -21,9 +21,14 @@ class AppRoutes {
 
   // Doctor shell tabs
   static const String clinicalDashboard = '/clinical-dashboard';
+  static const String doctorSchedule = '/doctor-schedule';
+  static const String myPatients = '/my-patients';
   static const String approvalQueue = '/approval-queue';
   static const String collaborativeHub = '/collaborative-hub';
+
+  // Doctor full-screen routes
   static const String liveConsultation = '/live-consultation';
+  static const String patientDetail = '/patient-detail';
 }
 
 /// Doctor approval status values (mirrors doctor_status enum in DB).

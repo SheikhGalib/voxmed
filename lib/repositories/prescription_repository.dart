@@ -132,4 +132,47 @@ class PrescriptionRepository {
       throw AppException(message: 'Failed to request renewal: $e');
     }
   }
+
+  /// Create a new prescription with medication items (doctor writes prescription).
+  Future<Prescription> createPrescriptionWithItems({
+    required String patientId,
+    required String doctorId,
+    String? appointmentId,
+    String? diagnosis,
+    String? notes,
+    DateTime? validUntil,
+    required List<Map<String, dynamic>> items,
+  }) async {
+    try {
+      final rxData = await supabase
+          .from(Tables.prescriptions)
+          .insert({
+            'patient_id': patientId,
+            'doctor_id': doctorId,
+            if (appointmentId != null) 'appointment_id': appointmentId,
+            if (diagnosis != null) 'diagnosis': diagnosis,
+            if (notes != null) 'notes': notes,
+            'status': 'active',
+            'issued_date': DateTime.now().toIso8601String().split('T').first,
+            if (validUntil != null)
+              'valid_until': validUntil.toIso8601String().split('T').first,
+          })
+          .select('id')
+          .single();
+
+      final rxId = rxData['id'] as String;
+      if (items.isNotEmpty) {
+        final itemsToInsert = items
+            .map((item) => {...item, 'prescription_id': rxId})
+            .toList();
+        await supabase.from(Tables.prescriptionItems).insert(itemsToInsert);
+      }
+
+      return getPrescription(rxId);
+    } on PostgrestException catch (e) {
+      throw AppException.fromPostgrestException(e);
+    } catch (e) {
+      throw AppException(message: 'Failed to create prescription: $e');
+    }
+  }
 }

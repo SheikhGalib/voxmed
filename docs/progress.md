@@ -130,8 +130,17 @@ Rollout plan (3 parts):
 |------|--------|------|-------|
 | Clinical Dashboard with live data | ✅ | 2026-04-07 | Dashboard cards and today appointments are live |
 | Fix double AppBar on doctor screens | ✅ | 2026-04-08 | Removed inner Scaffold from ClinicalDashboard + ApprovalQueue |
-| Schedule management | 🔄 | 2026-04-08 | Doctor identity rows now auto-heal on login/sign-up; richer editing still pending |
+| Schedule management | ✅ | 2026-05-28 | Full day/week/month schedule view with appointment list; `DoctorScheduleScreen` in doctor shell |
 | Approval Queue | ✅ | 2026-04-07 | Approve/Deny actions update renewal status |
+| My Patients section | ✅ | 2026-05-28 | `MyPatientsScreen` — searchable patient list; tap opens full patient detail |
+| Patient Detail screen | ✅ | 2026-05-28 | `PatientDetailScreen` — Overview, Prescriptions, Records, Analytics (bar chart, pie chart, medication trends) |
+| Write Prescription from patient detail | ✅ | 2026-05-28 | Bottom sheet form in Prescriptions tab; creates prescription + items in Supabase |
+| Analytics trend charts per patient | ✅ | 2026-05-28 | `fl_chart` bar chart (visit frequency), pie chart (appointment types), medication history bars |
+| Doctor bottom nav updated (5 tabs) | ✅ | 2026-05-28 | Dashboard · Schedule · My Patients · Approvals · Collaborate |
+| New route constants | ✅ | 2026-05-28 | `doctorSchedule`, `myPatients`, `patientDetail` added to `AppRoutes` |
+| Repository additions | ✅ | 2026-05-28 | `listByDoctorRange`, `listDoctorPatients`, `listPatientVisitsForDoctor` (Appointment); `createPrescriptionWithItems` (Prescription); `listByPatientId` (MedicalRecord) |
+| `patient_provider.dart` (new) | ✅ | 2026-05-28 | Riverpod providers for doctor-scoped patient data and prescription creation |
+| Doctor dashboard tests | ✅ | 2026-05-28 | 8 tests in `test/doctor_dashboard_test.dart` — routes, models, chart logic; all passing |
 | Emergency Absence + auto-reschedule | ⏳ | | Pending |
 
 ---

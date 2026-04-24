@@ -16,6 +16,9 @@ import '../../screens/live_consultation_screen.dart';
 import '../../screens/clinical_dashboard_screen.dart';
 import '../../screens/collaborative_hub_screen.dart';
 import '../../screens/approval_queue_screen.dart';
+import '../../screens/doctor_schedule_screen.dart';
+import '../../screens/my_patients_screen.dart';
+import '../../screens/patient_detail_screen.dart';
 import '../../screens/profile_screen.dart';
 import '../../widgets/voxmed_app_bar.dart';
 import '../../widgets/voxmed_bottom_nav.dart';
@@ -114,6 +117,16 @@ final appRouter = GoRouter(
               const NoTransitionPage(child: ClinicalDashboardScreen()),
         ),
         GoRoute(
+          path: AppRoutes.doctorSchedule,
+          pageBuilder: (context, state) =>
+              const NoTransitionPage(child: DoctorScheduleScreen()),
+        ),
+        GoRoute(
+          path: AppRoutes.myPatients,
+          pageBuilder: (context, state) =>
+              const NoTransitionPage(child: MyPatientsScreen()),
+        ),
+        GoRoute(
           path: AppRoutes.approvalQueue,
           pageBuilder: (context, state) =>
               const NoTransitionPage(child: ApprovalQueueScreen()),
@@ -158,6 +171,13 @@ final appRouter = GoRouter(
       path: AppRoutes.liveConsultation,
       parentNavigatorKey: _rootNavigatorKey,
       builder: (context, state) => const LiveConsultationScreen(),
+    ),
+    GoRoute(
+      path: AppRoutes.patientDetail,
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (context, state) => PatientDetailScreen(
+        patientId: state.uri.queryParameters['patientId'] ?? '',
+      ),
     ),
   ],
 );
@@ -263,9 +283,15 @@ class _DoctorShell extends StatelessWidget {
               context.go(AppRoutes.clinicalDashboard);
               break;
             case 1:
-              context.go(AppRoutes.approvalQueue);
+              context.go(AppRoutes.doctorSchedule);
               break;
             case 2:
+              context.go(AppRoutes.myPatients);
+              break;
+            case 3:
+              context.go(AppRoutes.approvalQueue);
+              break;
+            case 4:
               context.go(AppRoutes.collaborativeHub);
               break;
           }
@@ -275,6 +301,16 @@ class _DoctorShell extends StatelessWidget {
             icon: Icon(Icons.dashboard_outlined),
             selectedIcon: Icon(Icons.dashboard),
             label: 'Dashboard',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.calendar_month_outlined),
+            selectedIcon: Icon(Icons.calendar_month),
+            label: 'Schedule',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.people_outline),
+            selectedIcon: Icon(Icons.people),
+            label: 'My Patients',
           ),
           NavigationDestination(
             icon: Icon(Icons.pending_actions_outlined),
@@ -292,8 +328,10 @@ class _DoctorShell extends StatelessWidget {
   }
 
   int _getDoctorIndex(String location) {
-    if (location.startsWith('/approval-queue')) return 1;
-    if (location.startsWith('/collaborative-hub')) return 2;
+    if (location.startsWith('/doctor-schedule')) return 1;
+    if (location.startsWith('/my-patients')) return 2;
+    if (location.startsWith('/approval-queue')) return 3;
+    if (location.startsWith('/collaborative-hub')) return 4;
     return 0;
   }
 }
