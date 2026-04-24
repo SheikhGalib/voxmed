@@ -437,11 +437,14 @@ class _DoctorTile extends StatelessWidget {
               const SizedBox(width: 12),
               const Icon(Icons.work_outline, size: 14, color: AppColors.onSurfaceVariant),
               const SizedBox(width: 4),
-              Text(
-                doctor.experienceYears == null
-                    ? 'Experience N/A'
-                    : '${doctor.experienceYears} years',
-                style: GoogleFonts.inter(fontSize: 12, color: AppColors.onSurfaceVariant),
+              Flexible(
+                child: Text(
+                  doctor.experienceYears == null
+                      ? 'Experience N/A'
+                      : '${doctor.experienceYears} years',
+                  style: GoogleFonts.inter(fontSize: 12, color: AppColors.onSurfaceVariant),
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
             ],
           ),

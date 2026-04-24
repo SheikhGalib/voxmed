@@ -42,13 +42,16 @@ class VoxmedAppBar extends ConsumerWidget implements PreferredSizeWidget {
                 Icon(Icons.medical_information_outlined,
                     color: AppColors.primary, size: 28),
                 const SizedBox(width: 8),
-                Text(
-                  'VoxMed',
-                  style: GoogleFonts.manrope(
-                    fontSize: 24,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.primary,
-                    letterSpacing: -0.5,
+                Flexible(
+                  child: Text(
+                    'VoxMed',
+                    style: GoogleFonts.manrope(
+                      fontSize: 24,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.primary,
+                      letterSpacing: -0.5,
+                    ),
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ],

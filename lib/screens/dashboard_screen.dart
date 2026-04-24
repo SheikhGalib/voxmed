@@ -650,22 +650,26 @@ class _UpcomingAppointmentTile extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 12),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    appointment.doctorName ?? 'Doctor',
-                    style: GoogleFonts.inter(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 13,
-                      color: AppColors.onSurface,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      appointment.doctorName ?? 'Doctor',
+                      style: GoogleFonts.inter(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 13,
+                        color: AppColors.onSurface,
+                      ),
+                      overflow: TextOverflow.ellipsis,
                     ),
-                  ),
-                  Text(
-                    appointment.doctorSpecialty ?? 'General consultation',
-                    style: GoogleFonts.inter(fontSize: 11, color: AppColors.onSurfaceVariant),
-                  ),
-                ],
+                    Text(
+                      appointment.doctorSpecialty ?? 'General consultation',
+                      style: GoogleFonts.inter(fontSize: 11, color: AppColors.onSurfaceVariant),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
               ),
             ],
           ),

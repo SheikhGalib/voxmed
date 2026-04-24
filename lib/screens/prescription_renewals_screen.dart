@@ -226,7 +226,10 @@ class _MedicationCard extends StatelessWidget {
                 children: [
                   const Icon(Icons.calendar_today, size: 14, color: AppColors.onSurfaceVariant),
                   const SizedBox(width: 6),
-                  Text(nextRefill, style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.onSurfaceVariant)),
+                  Flexible(
+                    child: Text(nextRefill, style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.onSurfaceVariant),
+                        overflow: TextOverflow.ellipsis),
+                  ),
                 ],
               ),
               if (status.isNotEmpty)

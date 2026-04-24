@@ -610,12 +610,15 @@ class _InfoCard extends StatelessWidget {
                 child: Icon(icon, size: 18, color: AppColors.primary),
               ),
               const SizedBox(width: 12),
-              Text(
-                title,
-                style: GoogleFonts.manrope(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.onSurface,
+              Flexible(
+                child: Text(
+                  title,
+                  style: GoogleFonts.manrope(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.onSurface,
+                  ),
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
             ],

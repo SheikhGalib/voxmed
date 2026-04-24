@@ -153,8 +153,11 @@ class CollaborativeHubScreen extends ConsumerWidget {
       children: [
         Row(
           children: [
-            Text('Collaborative Exchange',
-                style: GoogleFonts.manrope(fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.onSurface)),
+            Flexible(
+              child: Text('Collaborative Exchange',
+                  style: GoogleFonts.manrope(fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.onSurface),
+                  overflow: TextOverflow.ellipsis),
+            ),
           ],
         ),
         const SizedBox(height: 6),
@@ -185,8 +188,11 @@ class CollaborativeHubScreen extends ConsumerWidget {
           children: [
             const Icon(Icons.history, color: AppColors.onSurfaceVariant, size: 18),
             const SizedBox(width: 8),
-            Text('Clinical History',
-                style: GoogleFonts.manrope(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.onSurface)),
+            Flexible(
+              child: Text('Clinical History',
+                  style: GoogleFonts.manrope(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.onSurface),
+                  overflow: TextOverflow.ellipsis),
+            ),
           ],
         ),
         const SizedBox(height: 10),
@@ -220,8 +226,11 @@ class CollaborativeHubScreen extends ConsumerWidget {
           children: [
             const Icon(Icons.group, color: AppColors.onSurfaceVariant, size: 18),
             const SizedBox(width: 8),
-            Text('Labs',
-                style: GoogleFonts.manrope(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.onSurface)),
+            Flexible(
+              child: Text('Labs',
+                  style: GoogleFonts.manrope(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.onSurface),
+                  overflow: TextOverflow.ellipsis),
+            ),
           ],
         ),
         const SizedBox(height: 10),
@@ -265,8 +274,11 @@ class CollaborativeHubScreen extends ConsumerWidget {
             children: [
               const Icon(Icons.chat_bubble_outline, color: AppColors.primary, size: 16),
               const SizedBox(width: 8),
-              Text('Treatment Collaboration Thread',
-                  style: GoogleFonts.manrope(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.onSurface)),
+              Flexible(
+                child: Text('Treatment Collaboration Thread',
+                    style: GoogleFonts.manrope(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.onSurface),
+                    overflow: TextOverflow.ellipsis),
+              ),
             ],
           ),
           const SizedBox(height: 12),

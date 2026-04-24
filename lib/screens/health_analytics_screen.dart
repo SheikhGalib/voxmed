@@ -113,8 +113,11 @@ class HealthAnalyticsScreen extends ConsumerWidget {
                 child: const Icon(Icons.watch, color: AppColors.onSurfaceVariant, size: 20),
               ),
               const SizedBox(width: 12),
-              Text('Oura Ring',
-                  style: GoogleFonts.manrope(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.onSurface)),
+              Flexible(
+                child: Text('Oura Ring',
+                    style: GoogleFonts.manrope(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.onSurface),
+                    overflow: TextOverflow.ellipsis),
+              ),
             ],
           ),
           const SizedBox(height: 16),
@@ -276,7 +279,8 @@ class HealthAnalyticsScreen extends ConsumerWidget {
             child: Icon(Icons.favorite, color: AppColors.error, size: 24),
           ),
           const SizedBox(width: 16),
-          Column(
+          Expanded(
+            child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text('Resting Heart Rate',
@@ -284,8 +288,11 @@ class HealthAnalyticsScreen extends ConsumerWidget {
               Row(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  Text(restingHr,
-                      style: GoogleFonts.manrope(fontSize: 32, fontWeight: FontWeight.w800, color: AppColors.onSurface, height: 1.1)),
+                  Flexible(
+                    child: Text(restingHr,
+                        style: GoogleFonts.manrope(fontSize: 32, fontWeight: FontWeight.w800, color: AppColors.onSurface, height: 1.1),
+                        overflow: TextOverflow.ellipsis),
+                  ),
                   const SizedBox(width: 4),
                   Padding(
                     padding: const EdgeInsets.only(bottom: 4),
@@ -295,6 +302,7 @@ class HealthAnalyticsScreen extends ConsumerWidget {
                 ],
               ),
             ],
+          ),
           ),
         ],
       ),

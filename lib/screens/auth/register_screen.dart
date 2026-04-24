@@ -64,10 +64,12 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       );
 
       if (_selectedRole == UserRole.doctor) {
-        final profileId = authResponse.user?.id ?? authRepo.currentUser?.id;
+        // authResponse.user is always present after signUp even if email confirmation
+        // is required (session may be null, but the user object is not).
+        final profileId = authResponse.user?.id;
         if (profileId == null) {
           throw AppException(
-              message: 'Account created but session unavailable. Please sign in.');
+              message: 'Registration failed. Please try signing in to complete setup.');
         }
 
         await ref.read(doctorRepositoryProvider).createFullDoctorProfile(
