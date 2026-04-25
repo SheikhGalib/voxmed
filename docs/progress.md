@@ -1,6 +1,6 @@
 # VoxMed Connect — Progress Tracker
 
-> **Last Updated:** 2026-04-16
+> **Last Updated:** 2026-04-25 (rev 4)
 
 ---
 
@@ -168,11 +168,31 @@ Rollout plan (3 parts):
 | Consultation sessions + realtime chat | ✅ | 2026-04-07 | Session and message data connected to UI |
 | Specialist invitation flow | ⏳ | | Invitation workflow pending |
 | Shared patient data view | ✅ | 2026-04-07 | Collaborative hub shows live consultation content |
+| **Run migration 004 in Supabase** | ✅ | 2026-04-25 | `supabase/migrations/004_doctor_chat_realtime.sql` — nullable patient_id, message_type column, Realtime publication |
+| **Fix: consultation_sessions RLS (chicken-and-egg)** | ✅ | 2026-04-25 | Migration `005_fix_chat_session_rls.sql` — restores `created_by IN (...)` to SELECT policy so INSERT+select-back works before members exist |
+| **Fix: sender_id FK violation in messages** | ✅ | 2026-04-25 | `doctor_chat_screen.dart` — `sender_id` now uses `supabase.auth.currentUser!.id` (= `profiles.id`) instead of `doctors.id`; `isMe` check also fixed |
+| **Fix: hardcoded error message in chat screen** | ✅ | 2026-04-25 | Error widget now shows `e.toString()` instead of static DB migration hint |
+| Supabase Realtime on consultation_messages | ✅ | 2026-04-25 | `REPLICA IDENTITY FULL` + publication; `.stream()` in Flutter delivers true push chat |
+| **Fix: message persistence broken — duplicate sessions per doctor pair** | ✅ | 2026-04-25 | Root cause: `getOrCreateChatSession()` used a cross-membership query (`.eq('doctor_id', otherDoctorId)`) that `members_select` RLS always stripped to 0 rows — each doctor opened a new separate session, so neither could see the other's messages. Fix: replaced with single title-based lookup on `consultation_sessions` (title is deterministic; `sessions_select` correctly lets any member see the session). File: `lib/repositories/collaboration_repository.dart` |
+| **Migration 008: deduplicate sessions + UNIQUE title constraint** | ✅ | 2026-04-25 | Deletes orphaned duplicate `dr_chat:` sessions left by the broken lookup, then adds `UNIQUE(title)` to `consultation_sessions` to prevent race-condition duplicates. File: `supabase/migrations/008_deduplicate_sessions.sql` |
+| **Fix: recursion persists — nuclear RLS reset (migration 007)** | ✅ | 2026-04-25 | Migration `007_nuclear_rls_reset.sql` — drops ALL policies on the 3 tables, introduces `get_my_doctor_id()` SECURITY DEFINER helper to resolve `doctors.id` outside the RLS evaluation loop, rewrites all 6 policies with a strictly one-way dependency graph; also fixes `sessions_insert` (enforces `created_by = get_my_doctor_id()`) and `messages_insert` (adds `sender_id = auth.uid()` guard) |
 
-> **⚠️ DB Changes Required for full collaboration support:**
-> 1. `consultation_sessions.patient_id` must be **NULLABLE** — doctor-to-doctor chats have no patient context.
-> 2. `consultation_messages` needs a `message_type` column (e.g. `text`, `patient_share`) to render share cards.
-> 3. `prescriptions` RLS policy must allow doctors to INSERT for their own patients (not just `auth.uid() = patient_id`).
+> **⚠️ ACTION REQUIRED — Run migration 007:**
+> Run `supabase/migrations/007_nuclear_rls_reset.sql` in the Supabase SQL Editor.
+> This supersedes migrations 004–006 for the RLS policies on `consultation_sessions`, `consultation_members`, and `consultation_messages`. The schema changes (nullable columns, Realtime publication, message_type column) from migration 004 are still valid and do not need to be re-run.
+>
+> **Ambiguities found and fixed in migration 007 vs. the original draft:**
+> 1. `sessions_insert` was `get_my_doctor_id() IS NOT NULL` (only checked "are you a doctor") — changed to `created_by = get_my_doctor_id()` to prevent `created_by` spoofing.
+> 2. `messages_insert` was missing `sender_id = auth.uid()` — any session member could insert a message with another doctor's UUID as the sender; now enforced at DB level.
+
+> **DB Changes completed (migrations 004 → 007):**
+> 1. `consultation_sessions.patient_id` is now **NULLABLE** — doctor-to-doctor chats work without a patient context.
+> 2. `consultation_sessions.created_by` is now **NULLABLE** — guard against schema drift.
+> 3. `consultation_messages.message_type` column added (`text` | `patient_share`).
+> 4. `prescriptions` RLS allows doctor INSERT.
+> 5. `consultation_messages` added to `supabase_realtime` publication with `REPLICA IDENTITY FULL`.
+> 6. `get_my_doctor_id()` SECURITY DEFINER function created — breaks RLS evaluation cycle.
+> 7. All 6 policies on the 3 chat tables rewritten with non-recursive, one-way dependency graph.
 
 ---
 
