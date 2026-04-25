@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../core/responsive/responsive.dart';
 import '../core/theme/app_colors.dart';
 import '../providers/prescription_provider.dart';
 import '../widgets/voxmed_card.dart';
@@ -34,7 +35,7 @@ class LiveConsultationScreen extends ConsumerWidget {
         children: [
           Expanded(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+              padding: EdgeInsets.fromLTRB(Responsive.hPad(context), 8, Responsive.hPad(context), 24),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -124,8 +125,11 @@ class LiveConsultationScreen extends ConsumerWidget {
                 child: const Icon(Icons.mic, color: Colors.white, size: 18),
               ),
               const SizedBox(width: 10),
-              Text('High Fidelity Audio',
-                  style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.white.withValues(alpha: 0.7))),
+              Flexible(
+                child: Text('High Fidelity Audio',
+                    style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.white.withValues(alpha: 0.7)),
+                    overflow: TextOverflow.ellipsis),
+              ),
             ],
           ),
           const SizedBox(height: 4),
@@ -196,7 +200,10 @@ class LiveConsultationScreen extends ConsumerWidget {
           children: [
             Icon(Icons.smart_toy, color: AppColors.primary, size: 18),
             const SizedBox(width: 8),
-            Text('VoxMed AI Insights', style: GoogleFonts.manrope(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.onSurface)),
+            Flexible(
+              child: Text('VoxMed AI Insights', style: GoogleFonts.manrope(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.onSurface),
+                overflow: TextOverflow.ellipsis),
+            ),
           ],
         ),
         const SizedBox(height: 14),

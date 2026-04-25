@@ -181,4 +181,79 @@ class AppointmentRepository {
   Future<void> cancel(String appointmentId) async {
     await cancelAppointment(appointmentId);
   }
+
+  /// List appointments for a doctor within a date range.
+  Future<List<Appointment>> listByDoctorRange(
+    String doctorId,
+    DateTime start,
+    DateTime end,
+  ) async {
+    try {
+      final startUtc = start.toUtc().toIso8601String();
+      final endUtc = end.toUtc().toIso8601String();
+      final data = await supabase
+          .from(Tables.appointments)
+          .select(_appointmentColumns)
+          .eq('doctor_id', doctorId)
+          .gte('scheduled_start_at', startUtc)
+          .lte('scheduled_start_at', endUtc)
+          .order('scheduled_start_at', ascending: true);
+      return (data as List).map((e) => Appointment.fromJson(e)).toList();
+    } on PostgrestException catch (e) {
+      throw AppException.fromPostgrestException(e);
+    } catch (e) {
+      throw AppException(message: 'Failed to load appointments: $e');
+    }
+  }
+
+  /// Get distinct patients who have had appointments with a doctor.
+  Future<List<Map<String, dynamic>>> listDoctorPatients(String doctorId) async {
+    try {
+      final data = await supabase
+          .from(Tables.appointments)
+          .select(
+            'patient_id, scheduled_start_at, '
+            'profiles!appointments_patient_id_fkey(id, full_name, avatar_url, date_of_birth, blood_group, gender)',
+          )
+          .eq('doctor_id', doctorId)
+          .order('scheduled_start_at', ascending: false);
+
+      // Deduplicate by patient_id (keep latest visit per patient).
+      final seen = <String>{};
+      final result = <Map<String, dynamic>>[];
+      for (final row in data as List) {
+        final pid = row['patient_id'] as String;
+        if (!seen.contains(pid)) {
+          seen.add(pid);
+          result.add(Map<String, dynamic>.from(row as Map));
+        }
+      }
+      return result;
+    } on PostgrestException catch (e) {
+      throw AppException.fromPostgrestException(e);
+    } catch (e) {
+      throw AppException(message: 'Failed to load patients: $e');
+    }
+  }
+
+  /// List all appointments between a doctor and a specific patient (for analytics).
+  Future<List<Appointment>> listPatientVisitsForDoctor(
+    String doctorId,
+    String patientId,
+  ) async {
+    try {
+      final data = await supabase
+          .from(Tables.appointments)
+          .select(_appointmentColumns)
+          .eq('doctor_id', doctorId)
+          .eq('patient_id', patientId)
+          .order('scheduled_start_at', ascending: true)
+          .limit(100);
+      return (data as List).map((e) => Appointment.fromJson(e)).toList();
+    } on PostgrestException catch (e) {
+      throw AppException.fromPostgrestException(e);
+    } catch (e) {
+      throw AppException(message: 'Failed to load patient visits: $e');
+    }
+  }
 }

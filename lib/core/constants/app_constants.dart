@@ -21,9 +21,33 @@ class AppRoutes {
 
   // Doctor shell tabs
   static const String clinicalDashboard = '/clinical-dashboard';
+  static const String doctorSchedule = '/doctor-schedule';
+  static const String myPatients = '/my-patients';
   static const String approvalQueue = '/approval-queue';
   static const String collaborativeHub = '/collaborative-hub';
+
+  // Doctor full-screen routes
   static const String liveConsultation = '/live-consultation';
+  static const String patientDetail = '/patient-detail';
+  static const String doctorChat = '/doctor-chat';
+}
+
+/// Doctor approval status values (mirrors doctor_status enum in DB).
+class DoctorStatus {
+  DoctorStatus._();
+
+  static const String pending = 'pending';
+  static const String approved = 'approved';
+  static const String rejected = 'rejected';
+}
+
+/// Hospital approval status values (mirrors hospital_status enum in DB).
+class HospitalStatus {
+  HospitalStatus._();
+
+  static const String pending = 'pending';
+  static const String approved = 'approved';
+  static const String rejected = 'rejected';
 }
 
 /// Supabase table names — single source of truth.
@@ -33,6 +57,9 @@ class Tables {
   static const String profiles = 'profiles';
   static const String hospitals = 'hospitals';
   static const String doctors = 'doctors';
+
+  /// View: only approved doctors visible to patients.
+  static const String publicDoctors = 'public_doctors';
   static const String doctorSchedules = 'doctor_schedules';
   static const String doctorAbsences = 'doctor_absences';
   static const String appointments = 'appointments';

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
+import '../core/responsive/responsive.dart';
 import '../core/theme/app_colors.dart';
 import '../core/config/supabase_config.dart';
 import '../core/constants/app_constants.dart';
@@ -250,7 +251,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       body: _isLoading
           ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
           : SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(20, 8, 20, 40),
+              padding: EdgeInsets.fromLTRB(Responsive.hPad(context), 8, Responsive.hPad(context), 40),
               child: Column(
                 children: [
                   _buildAvatarSection(),
@@ -609,12 +610,15 @@ class _InfoCard extends StatelessWidget {
                 child: Icon(icon, size: 18, color: AppColors.primary),
               ),
               const SizedBox(width: 12),
-              Text(
-                title,
-                style: GoogleFonts.manrope(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.onSurface,
+              Flexible(
+                child: Text(
+                  title,
+                  style: GoogleFonts.manrope(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.onSurface,
+                  ),
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
             ],

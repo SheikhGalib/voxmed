@@ -9,13 +9,13 @@ class HospitalRepository {
   static const String _hospitalColumns =
       'id, name, description, address, city, state, country, zip_code, latitude, longitude, '
       'phone, email, website, logo_url, cover_image_url, operating_hours, services, rating, is_active, '
-      'created_at, updated_at';
+      'status, created_at, updated_at';
 
   List<Hospital>? _hospitalCache;
   final Map<String, List<Hospital>> _searchCache = {};
 
-  /// List all active hospitals.
-  Future<List<Hospital>> listHospitals({int limit = 20, int offset = 0}) async {
+  /// List only approved hospitals (patient-facing).
+  Future<List<Hospital>> getApprovedHospitals({int limit = 50, int offset = 0}) async {
     if (offset == 0 && _hospitalCache != null && _hospitalCache!.isNotEmpty) {
       return _hospitalCache!;
     }
@@ -24,8 +24,8 @@ class HospitalRepository {
       final data = await supabase
           .from(Tables.hospitals)
           .select(_hospitalColumns)
-          .eq('is_active', true)
-          .order('rating', ascending: false)
+          .eq('status', 'approved')
+          .order('created_at', ascending: false)
           .range(offset, offset + limit - 1);
       final hospitals = (data as List).map((e) => Hospital.fromJson(e)).toList();
       if (offset == 0) {
@@ -37,6 +37,11 @@ class HospitalRepository {
     } catch (e) {
       throw AppException(message: 'Failed to load hospitals: $e');
     }
+  }
+
+  /// List all active hospitals.
+  Future<List<Hospital>> listHospitals({int limit = 20, int offset = 0}) async {
+    return getApprovedHospitals(limit: limit, offset: offset);
   }
 
   /// Get a hospital by ID.
@@ -69,7 +74,7 @@ class HospitalRepository {
       final data = await supabase
           .from(Tables.hospitals)
           .select(_hospitalColumns)
-          .eq('is_active', true)
+          .eq('status', 'approved')
           .or('name.ilike.%$normalized%,city.ilike.%$normalized%')
           .order('rating', ascending: false)
           .limit(20);

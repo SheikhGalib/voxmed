@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import '../core/constants/app_constants.dart';
+import '../core/responsive/responsive.dart';
 import '../core/theme/app_colors.dart';
 import '../providers/medical_record_provider.dart';
 import '../providers/prescription_provider.dart';
@@ -18,7 +19,7 @@ class HealthPassportScreen extends ConsumerWidget {
     final prescriptionsAsync = ref.watch(patientPrescriptionsProvider);
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+      padding: EdgeInsets.fromLTRB(Responsive.hPad(context), 16, Responsive.hPad(context), 32),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -26,7 +27,7 @@ class HealthPassportScreen extends ConsumerWidget {
               style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w700, letterSpacing: 2, color: AppColors.primaryDim)),
           const SizedBox(height: 8),
           Text('Your medical identity, digitized and secure.',
-              style: GoogleFonts.manrope(fontSize: 28, fontWeight: FontWeight.w800, color: AppColors.onSurface, height: 1.2)),
+              style: GoogleFonts.manrope(fontSize: Responsive.fontSize(context, 24), fontWeight: FontWeight.w800, color: AppColors.onSurface, height: 1.2)),
           const SizedBox(height: 24),
           _buildUploadRecord(context),
           const SizedBox(height: 16),

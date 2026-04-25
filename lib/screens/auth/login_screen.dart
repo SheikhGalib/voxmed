@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../core/responsive/responsive.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/constants/app_constants.dart';
 import '../../core/utils/validators.dart';
@@ -78,7 +79,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       backgroundColor: AppColors.surface,
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 28),
+          padding: EdgeInsets.symmetric(horizontal: Responsive.hPad(context)),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -132,7 +133,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         Text(
           'Welcome Back',
           style: GoogleFonts.manrope(
-            fontSize: 32,
+            fontSize: Responsive.fontSize(context, 28),
             fontWeight: FontWeight.w800,
             color: AppColors.onSurface,
           ),
@@ -262,7 +263,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   Widget _buildRegisterLink() {
     return Center(
       child: GestureDetector(
-        onTap: () => context.push(AppRoutes.register),
+        onTap: () => context.go(AppRoutes.register),
         child: RichText(
           text: TextSpan(
             style: GoogleFonts.inter(fontSize: 14, color: AppColors.onSurfaceVariant),

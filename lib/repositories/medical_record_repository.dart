@@ -179,4 +179,26 @@ class MedicalRecordRepository {
       throw AppException(message: 'Failed to load medical record: $e');
     }
   }
+
+  /// List medical records for a specific patient (for doctor access).
+  Future<List<MedicalRecord>> listByPatientId(
+    String patientId, {
+    int limit = 50,
+  }) async {
+    try {
+      final data = await supabase
+          .from(Tables.medicalRecords)
+          .select(
+            'id, patient_id, doctor_id, appointment_id, record_type, title, description, data, file_url, ocr_extracted, record_date, created_at, updated_at',
+          )
+          .eq('patient_id', patientId)
+          .order('created_at', ascending: false)
+          .limit(limit);
+      return (data as List).map((e) => MedicalRecord.fromJson(e)).toList();
+    } on PostgrestException catch (e) {
+      throw AppException.fromPostgrestException(e);
+    } catch (e) {
+      throw AppException(message: 'Failed to load patient records: $e');
+    }
+  }
 }

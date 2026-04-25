@@ -5,6 +5,8 @@ import 'package:intl/intl.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import '../core/theme/app_colors.dart';
+import '../core/config/supabase_config.dart';
+import '../core/constants/app_constants.dart';
 import '../providers/prescription_provider.dart';
 
 class AiAssistantScreen extends ConsumerStatefulWidget {
@@ -30,13 +32,22 @@ class _AiAssistantScreenState extends ConsumerState<AiAssistantScreen>
   bool _isSpeaking = false;
   late final AnimationController _pulseController;
   late final Animation<double> _pulseAnimation;
+  late final bool _isDoctor;
 
-  static const String _initialPrompt =
+  static const String _patientInitialPrompt =
       'Hello! I\'m your medical assistant. To help you best, could you describe what symptoms you\'re experiencing and when they started?';
+
+  static const String _doctorInitialPrompt =
+      'Hello, Doctor! I\'m your clinical copilot. I can help with patient insights, clinical decision support, documentation, and workflow productivity. How can I assist you today?';
+
+  String get _initialPrompt =>
+      _isDoctor ? _doctorInitialPrompt : _patientInitialPrompt;
 
   @override
   void initState() {
     super.initState();
+    final role = supabase.auth.currentUser?.userMetadata?['role'] as String?;
+    _isDoctor = role == UserRole.doctor.value;
     _pulseController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 800),
@@ -339,10 +350,11 @@ class _AiAssistantScreenState extends ConsumerState<AiAssistantScreen>
                         boxShadow: [
                           if (isActive)
                             BoxShadow(
-                              color: (_isListening
-                                      ? AppColors.secondary
-                                      : AppColors.primary)
-                                  .withValues(alpha: 0.3),
+                              color:
+                                  (_isListening
+                                          ? AppColors.secondary
+                                          : AppColors.primary)
+                                      .withValues(alpha: 0.3),
                               blurRadius: 30,
                               spreadRadius: 8,
                             ),
@@ -355,10 +367,11 @@ class _AiAssistantScreenState extends ConsumerState<AiAssistantScreen>
                           border: Border.all(
                             color: isActive
                                 ? (_isListening
-                                    ? AppColors.secondary
-                                    : AppColors.primary)
-                                : AppColors.outlineVariant
-                                    .withValues(alpha: 0.3),
+                                      ? AppColors.secondary
+                                      : AppColors.primary)
+                                : AppColors.outlineVariant.withValues(
+                                    alpha: 0.3,
+                                  ),
                             width: isActive ? 3 : 1.5,
                           ),
                         ),
@@ -378,18 +391,20 @@ class _AiAssistantScreenState extends ConsumerState<AiAssistantScreen>
                 _isListening
                     ? 'Listening…'
                     : _isSpeaking
-                        ? 'Dr. Panda is speaking…'
-                        : _isSending
-                            ? 'Thinking…'
-                            : 'Tap the mic to speak',
+                    ? (_isDoctor
+                          ? 'VoxMed Copilot is speaking…'
+                          : 'Dr. Panda is speaking…')
+                    : _isSending
+                    ? 'Thinking…'
+                    : 'Tap the mic to speak',
                 style: GoogleFonts.inter(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
                   color: _isListening
                       ? AppColors.secondary
                       : _isSpeaking
-                          ? AppColors.primary
-                          : AppColors.onSurfaceVariant,
+                      ? AppColors.primary
+                      : AppColors.onSurfaceVariant,
                 ),
               ),
               const SizedBox(height: 16),
@@ -404,7 +419,9 @@ class _AiAssistantScreenState extends ConsumerState<AiAssistantScreen>
                         Container(
                           width: double.infinity,
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 20, vertical: 12),
+                            horizontal: 20,
+                            vertical: 12,
+                          ),
                           decoration: BoxDecoration(
                             color: AppColors.surfaceContainerLow,
                             borderRadius: BorderRadius.circular(16),
@@ -424,13 +441,16 @@ class _AiAssistantScreenState extends ConsumerState<AiAssistantScreen>
                         Container(
                           margin: const EdgeInsets.only(top: 4),
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 20, vertical: 12),
+                            horizontal: 20,
+                            vertical: 12,
+                          ),
                           decoration: BoxDecoration(
                             color: AppColors.surfaceContainerLowest,
                             borderRadius: BorderRadius.circular(16),
                             border: Border.all(
-                              color: AppColors.outlineVariant
-                                  .withValues(alpha: 0.1),
+                              color: AppColors.outlineVariant.withValues(
+                                alpha: 0.1,
+                              ),
                             ),
                           ),
                           child: Text(
@@ -464,8 +484,9 @@ class _AiAssistantScreenState extends ConsumerState<AiAssistantScreen>
     return messagesAsync.when(
       data: (messages) {
         // Auto-speak latest assistant message
-        final assistant =
-            messages.where((m) => (m['role'] as String?) != 'user').toList();
+        final assistant = messages
+            .where((m) => (m['role'] as String?) != 'user')
+            .toList();
         if (assistant.isNotEmpty) {
           final last = assistant.last;
           final id = last['id'] as String?;
@@ -495,21 +516,21 @@ class _AiAssistantScreenState extends ConsumerState<AiAssistantScreen>
             return Container(
               width: double.infinity,
               margin: const EdgeInsets.only(bottom: 8),
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               decoration: BoxDecoration(
                 color: isUser
                     ? AppColors.tertiaryContainer.withValues(alpha: 0.5)
                     : AppColors.surfaceContainerLowest,
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                    color: AppColors.outlineVariant.withValues(alpha: 0.1)),
+                  color: AppColors.outlineVariant.withValues(alpha: 0.1),
+                ),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    isUser ? 'You' : 'Dr. Panda',
+                    isUser ? 'You' : (_isDoctor ? 'Copilot' : 'Dr. Panda'),
                     style: GoogleFonts.inter(
                       fontSize: 11,
                       fontWeight: FontWeight.w700,
@@ -557,10 +578,9 @@ class _AiAssistantScreenState extends ConsumerState<AiAssistantScreen>
                     : (_isListening ? AppColors.secondary : AppColors.primary),
                 boxShadow: [
                   BoxShadow(
-                    color: (_isListening
-                            ? AppColors.secondary
-                            : AppColors.primary)
-                        .withValues(alpha: 0.3),
+                    color:
+                        (_isListening ? AppColors.secondary : AppColors.primary)
+                            .withValues(alpha: 0.3),
                     blurRadius: 16,
                     offset: const Offset(0, 4),
                   ),
@@ -720,7 +740,7 @@ class _AiAssistantScreenState extends ConsumerState<AiAssistantScreen>
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
-                  'AI Triage Active',
+                  _isDoctor ? 'Clinical Copilot Active' : 'AI Triage Active',
                   style: GoogleFonts.inter(
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
@@ -756,7 +776,7 @@ class _AiAssistantScreenState extends ConsumerState<AiAssistantScreen>
               const Icon(Icons.smart_toy, color: AppColors.primary, size: 36),
               const SizedBox(height: 12),
               Text(
-                'AI Triage Assistant',
+                _isDoctor ? 'Clinical Copilot' : 'AI Triage Assistant',
                 style: GoogleFonts.manrope(
                   fontSize: 22,
                   fontWeight: FontWeight.w800,
@@ -765,7 +785,9 @@ class _AiAssistantScreenState extends ConsumerState<AiAssistantScreen>
               ),
               const SizedBox(height: 6),
               Text(
-                'Tell me about your symptoms. I can help guide you to the right care, but I am not a doctor.',
+                _isDoctor
+                    ? 'Your AI-powered assistant for clinical insights, documentation, and workflow support.'
+                    : 'Tell me about your symptoms. I can help guide you to the right care, but I am not a doctor.',
                 textAlign: TextAlign.center,
                 style: GoogleFonts.inter(
                   fontSize: 13,
@@ -1289,10 +1311,7 @@ class _PandaMedicalAvatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return CustomPaint(
-      size: Size(size, size),
-      painter: const _PandaPainter(),
-    );
+    return CustomPaint(size: Size(size, size), painter: const _PandaPainter());
   }
 }
 
@@ -1310,76 +1329,103 @@ class _PandaPainter extends CustomPainter {
 
     // Ears
     canvas.drawCircle(
-        Offset(cx - r * 0.58, cy - r * 0.52), r * 0.28, darkPaint);
+      Offset(cx - r * 0.58, cy - r * 0.52),
+      r * 0.28,
+      darkPaint,
+    );
     canvas.drawCircle(
-        Offset(cx + r * 0.58, cy - r * 0.52), r * 0.28, darkPaint);
+      Offset(cx + r * 0.58, cy - r * 0.52),
+      r * 0.28,
+      darkPaint,
+    );
     // Inner ears
-    canvas.drawCircle(Offset(cx - r * 0.58, cy - r * 0.52), r * 0.15,
-        Paint()..color = const Color(0xFF555555));
-    canvas.drawCircle(Offset(cx + r * 0.58, cy - r * 0.52), r * 0.15,
-        Paint()..color = const Color(0xFF555555));
+    canvas.drawCircle(
+      Offset(cx - r * 0.58, cy - r * 0.52),
+      r * 0.15,
+      Paint()..color = const Color(0xFF555555),
+    );
+    canvas.drawCircle(
+      Offset(cx + r * 0.58, cy - r * 0.52),
+      r * 0.15,
+      Paint()..color = const Color(0xFF555555),
+    );
 
     // Face
     canvas.drawCircle(Offset(cx, cy), r * 0.7, whitePaint);
     canvas.drawCircle(
-        Offset(cx, cy),
-        r * 0.7,
-        Paint()
-          ..color = const Color(0xFFE8E8E8)
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 1.2);
+      Offset(cx, cy),
+      r * 0.7,
+      Paint()
+        ..color = const Color(0xFFE8E8E8)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.2,
+    );
 
     // Eye patches
     canvas.drawOval(
       Rect.fromCenter(
-          center: Offset(cx - r * 0.24, cy - r * 0.1),
-          width: r * 0.36,
-          height: r * 0.28),
+        center: Offset(cx - r * 0.24, cy - r * 0.1),
+        width: r * 0.36,
+        height: r * 0.28,
+      ),
       darkPaint,
     );
     canvas.drawOval(
       Rect.fromCenter(
-          center: Offset(cx + r * 0.24, cy - r * 0.1),
-          width: r * 0.36,
-          height: r * 0.28),
+        center: Offset(cx + r * 0.24, cy - r * 0.1),
+        width: r * 0.36,
+        height: r * 0.28,
+      ),
       darkPaint,
     );
 
     // Eyes
-    canvas.drawCircle(
-        Offset(cx - r * 0.22, cy - r * 0.1), r * 0.1, whitePaint);
-    canvas.drawCircle(
-        Offset(cx + r * 0.22, cy - r * 0.1), r * 0.1, whitePaint);
+    canvas.drawCircle(Offset(cx - r * 0.22, cy - r * 0.1), r * 0.1, whitePaint);
+    canvas.drawCircle(Offset(cx + r * 0.22, cy - r * 0.1), r * 0.1, whitePaint);
     // Pupils
-    canvas.drawCircle(
-        Offset(cx - r * 0.19, cy - r * 0.1), r * 0.05, darkPaint);
-    canvas.drawCircle(
-        Offset(cx + r * 0.19, cy - r * 0.1), r * 0.05, darkPaint);
+    canvas.drawCircle(Offset(cx - r * 0.19, cy - r * 0.1), r * 0.05, darkPaint);
+    canvas.drawCircle(Offset(cx + r * 0.19, cy - r * 0.1), r * 0.05, darkPaint);
     // Eye highlights
     canvas.drawCircle(
-        Offset(cx - r * 0.21, cy - r * 0.13), r * 0.025, whitePaint);
+      Offset(cx - r * 0.21, cy - r * 0.13),
+      r * 0.025,
+      whitePaint,
+    );
     canvas.drawCircle(
-        Offset(cx + r * 0.21, cy - r * 0.13), r * 0.025, whitePaint);
+      Offset(cx + r * 0.21, cy - r * 0.13),
+      r * 0.025,
+      whitePaint,
+    );
 
     // Blush
     final blushPaint = Paint()
       ..color = const Color(0xFFFFCDD2).withValues(alpha: 0.6);
     canvas.drawCircle(
-        Offset(cx - r * 0.38, cy + r * 0.05), r * 0.08, blushPaint);
+      Offset(cx - r * 0.38, cy + r * 0.05),
+      r * 0.08,
+      blushPaint,
+    );
     canvas.drawCircle(
-        Offset(cx + r * 0.38, cy + r * 0.05), r * 0.08, blushPaint);
+      Offset(cx + r * 0.38, cy + r * 0.05),
+      r * 0.08,
+      blushPaint,
+    );
 
     // Nose
     canvas.drawOval(
       Rect.fromCenter(
-          center: Offset(cx, cy + r * 0.1),
-          width: r * 0.14,
-          height: r * 0.1),
+        center: Offset(cx, cy + r * 0.1),
+        width: r * 0.14,
+        height: r * 0.1,
+      ),
       darkPaint,
     );
     // Nose highlight
-    canvas.drawCircle(Offset(cx - r * 0.02, cy + r * 0.08), r * 0.02,
-        Paint()..color = const Color(0xFF555555));
+    canvas.drawCircle(
+      Offset(cx - r * 0.02, cy + r * 0.08),
+      r * 0.02,
+      Paint()..color = const Color(0xFF555555),
+    );
 
     // Mouth
     final mouthPaint = Paint()
@@ -1401,24 +1447,48 @@ class _PandaPainter extends CustomPainter {
     final stethTube = Path()
       ..moveTo(cx - r * 0.32, cy + r * 0.35)
       ..quadraticBezierTo(
-          cx - r * 0.35, cy + r * 0.55, cx - r * 0.1, cy + r * 0.65)
+        cx - r * 0.35,
+        cy + r * 0.55,
+        cx - r * 0.1,
+        cy + r * 0.65,
+      )
       ..quadraticBezierTo(
-          cx + r * 0.05, cy + r * 0.72, cx + r * 0.1, cy + r * 0.65)
+        cx + r * 0.05,
+        cy + r * 0.72,
+        cx + r * 0.1,
+        cy + r * 0.65,
+      )
       ..quadraticBezierTo(
-          cx + r * 0.35, cy + r * 0.55, cx + r * 0.32, cy + r * 0.35);
+        cx + r * 0.35,
+        cy + r * 0.55,
+        cx + r * 0.32,
+        cy + r * 0.35,
+      );
     canvas.drawPath(stethTube, stethPaint);
 
     // Earpieces
-    canvas.drawCircle(Offset(cx - r * 0.32, cy + r * 0.35), r * 0.035,
-        Paint()..color = const Color(0xFF4CAF50));
-    canvas.drawCircle(Offset(cx + r * 0.32, cy + r * 0.35), r * 0.035,
-        Paint()..color = const Color(0xFF4CAF50));
+    canvas.drawCircle(
+      Offset(cx - r * 0.32, cy + r * 0.35),
+      r * 0.035,
+      Paint()..color = const Color(0xFF4CAF50),
+    );
+    canvas.drawCircle(
+      Offset(cx + r * 0.32, cy + r * 0.35),
+      r * 0.035,
+      Paint()..color = const Color(0xFF4CAF50),
+    );
 
     // Chest piece
-    canvas.drawCircle(Offset(cx, cy + r * 0.72), r * 0.07,
-        Paint()..color = const Color(0xFF4CAF50));
-    canvas.drawCircle(Offset(cx, cy + r * 0.72), r * 0.04,
-        Paint()..color = const Color(0xFF66BB6A));
+    canvas.drawCircle(
+      Offset(cx, cy + r * 0.72),
+      r * 0.07,
+      Paint()..color = const Color(0xFF4CAF50),
+    );
+    canvas.drawCircle(
+      Offset(cx, cy + r * 0.72),
+      r * 0.04,
+      Paint()..color = const Color(0xFF66BB6A),
+    );
   }
 
   @override

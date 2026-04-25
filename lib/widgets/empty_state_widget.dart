@@ -43,6 +43,8 @@ class EmptyStateWidget extends StatelessWidget {
             Text(
               title,
               textAlign: TextAlign.center,
+              overflow: TextOverflow.ellipsis,
+              maxLines: 2,
               style: GoogleFonts.manrope(
                 fontSize: 18,
                 fontWeight: FontWeight.w700,

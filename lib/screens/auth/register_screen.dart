@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../core/responsive/responsive.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/constants/app_constants.dart';
 import '../../core/utils/validators.dart';
 import '../../core/utils/error_handler.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/doctor_provider.dart';
+import '../../providers/hospital_provider.dart';
 
 class RegisterScreen extends ConsumerStatefulWidget {
   const RegisterScreen({super.key});
@@ -22,7 +24,13 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
+  // Doctor-specific fields
   final _specialtyController = TextEditingController();
+  final _departmentController = TextEditingController();
+  final _degreeController = TextEditingController();
+  final _licenseController = TextEditingController();
+  String? _selectedHospitalId;
+
   bool _isLoading = false;
   bool _obscurePassword = true;
   bool _obscureConfirm = true;
@@ -35,6 +43,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     _specialtyController.dispose();
+    _departmentController.dispose();
+    _degreeController.dispose();
+    _licenseController.dispose();
     super.dispose();
   }
 
@@ -53,25 +64,31 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       );
 
       if (_selectedRole == UserRole.doctor) {
-        final doctorRepo = ref.read(doctorRepositoryProvider);
-        final profileId = authResponse.user?.id ?? authRepo.currentUser?.id;
+        // authResponse.user is always present after signUp even if email confirmation
+        // is required (session may be null, but the user object is not).
+        final profileId = authResponse.user?.id;
         if (profileId == null) {
-          throw AppException(message: 'Doctor account created, but user session was unavailable. Please sign in again.');
+          throw AppException(
+              message: 'Registration failed. Please try signing in to complete setup.');
         }
 
-        await doctorRepo.ensureDoctorProfile(
-          profileId: profileId,
-          specialty: _specialtyController.text.trim().isEmpty
-              ? 'General Medicine'
-              : _specialtyController.text.trim(),
-        );
+        await ref.read(doctorRepositoryProvider).createFullDoctorProfile(
+              profileId: profileId,
+              hospitalId: _selectedHospitalId!,
+              specialty: _specialtyController.text.trim(),
+              department: _departmentController.text.trim(),
+              licenseNumber: _licenseController.text.trim(),
+              qualifications: [_degreeController.text.trim()],
+            );
       }
 
       if (!mounted) return;
 
-      showSuccessSnackBar(context, 'Account created successfully!');
+      final message = _selectedRole == UserRole.doctor
+          ? 'Account created! Your profile is pending hospital approval.'
+          : 'Account created successfully!';
+      showSuccessSnackBar(context, message);
 
-      // Navigate based on role
       if (_selectedRole == UserRole.doctor) {
         context.go(AppRoutes.clinicalDashboard);
       } else {
@@ -97,12 +114,12 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: AppColors.onSurface),
-          onPressed: () => context.pop(),
+          onPressed: () => context.go(AppRoutes.login),
         ),
       ),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 28),
+          padding: EdgeInsets.symmetric(horizontal: Responsive.hPad(context)),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -163,7 +180,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         const SizedBox(height: 12),
         Row(
           children: [
-            Expanded(child: _RoleCard(
+            Expanded(
+                child: _RoleCard(
               icon: Icons.person_outline,
               label: 'Patient',
               description: 'Book appointments & track health',
@@ -171,7 +189,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
               onTap: () => setState(() => _selectedRole = UserRole.patient),
             )),
             const SizedBox(width: 12),
-            Expanded(child: _RoleCard(
+            Expanded(
+                child: _RoleCard(
               icon: Icons.medical_services_outlined,
               label: 'Doctor',
               description: 'Manage patients & schedules',
@@ -228,11 +247,14 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
               prefixIcon: const Icon(Icons.lock_outline, size: 20),
               suffixIcon: IconButton(
                 icon: Icon(
-                  _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                  _obscurePassword
+                      ? Icons.visibility_off_outlined
+                      : Icons.visibility_outlined,
                   size: 20,
                   color: AppColors.onSurfaceVariant,
                 ),
-                onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                onPressed: () =>
+                    setState(() => _obscurePassword = !_obscurePassword),
               ),
             ),
           ),
@@ -242,43 +264,238 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
           TextFormField(
             controller: _confirmPasswordController,
             obscureText: _obscureConfirm,
-            textInputAction: TextInputAction.done,
-            validator: (v) => Validators.confirmPassword(v, _passwordController.text),
-            onFieldSubmitted: (_) => _handleRegister(),
+            textInputAction: _selectedRole == UserRole.doctor
+                ? TextInputAction.next
+                : TextInputAction.done,
+            validator: (v) =>
+                Validators.confirmPassword(v, _passwordController.text),
+            onFieldSubmitted:
+                _selectedRole == UserRole.doctor ? null : (_) => _handleRegister(),
             decoration: InputDecoration(
               hintText: '••••••••',
               prefixIcon: const Icon(Icons.lock_outline, size: 20),
               suffixIcon: IconButton(
                 icon: Icon(
-                  _obscureConfirm ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                  _obscureConfirm
+                      ? Icons.visibility_off_outlined
+                      : Icons.visibility_outlined,
                   size: 20,
                   color: AppColors.onSurfaceVariant,
                 ),
-                onPressed: () => setState(() => _obscureConfirm = !_obscureConfirm),
+                onPressed: () =>
+                    setState(() => _obscureConfirm = !_obscureConfirm),
               ),
             ),
           ),
           if (_selectedRole == UserRole.doctor) ...[
+            const SizedBox(height: 28),
+            _buildDoctorSectionHeader(),
+            const SizedBox(height: 16),
+            _buildHospitalDropdown(),
+            const SizedBox(height: 20),
+            Text('Department', style: _labelStyle),
+            const SizedBox(height: 8),
+            TextFormField(
+              controller: _departmentController,
+              textInputAction: TextInputAction.next,
+              textCapitalization: TextCapitalization.words,
+              validator: (v) {
+                if (_selectedRole != UserRole.doctor) return null;
+                if (v == null || v.trim().isEmpty) return 'Enter your department';
+                return null;
+              },
+              decoration: const InputDecoration(
+                hintText: 'Cardiology',
+                prefixIcon: Icon(Icons.business_outlined, size: 20),
+              ),
+            ),
             const SizedBox(height: 20),
             Text('Specialty', style: _labelStyle),
             const SizedBox(height: 8),
             TextFormField(
               controller: _specialtyController,
-              textInputAction: TextInputAction.done,
-              validator: (value) {
+              textInputAction: TextInputAction.next,
+              textCapitalization: TextCapitalization.words,
+              validator: (v) {
                 if (_selectedRole != UserRole.doctor) return null;
-                if (value == null || value.trim().isEmpty) {
-                  return 'Please enter your specialty';
-                }
+                if (v == null || v.trim().isEmpty) return 'Enter your specialty';
                 return null;
               },
-              onFieldSubmitted: (_) => _handleRegister(),
               decoration: const InputDecoration(
-                hintText: 'Cardiology',
+                hintText: 'Interventional Cardiology',
                 prefixIcon: Icon(Icons.medical_services_outlined, size: 20),
               ),
             ),
+            const SizedBox(height: 20),
+            Text('Degree / Qualification', style: _labelStyle),
+            const SizedBox(height: 8),
+            TextFormField(
+              controller: _degreeController,
+              textInputAction: TextInputAction.next,
+              textCapitalization: TextCapitalization.characters,
+              validator: (v) {
+                if (_selectedRole != UserRole.doctor) return null;
+                if (v == null || v.trim().isEmpty) return 'Enter your degree';
+                return null;
+              },
+              decoration: const InputDecoration(
+                hintText: 'MBBS, MD',
+                prefixIcon: Icon(Icons.school_outlined, size: 20),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Text('Practice License Number', style: _labelStyle),
+            const SizedBox(height: 8),
+            TextFormField(
+              controller: _licenseController,
+              textInputAction: TextInputAction.done,
+              onFieldSubmitted: (_) => _handleRegister(),
+              validator: (v) {
+                if (_selectedRole != UserRole.doctor) return null;
+                if (v == null || v.trim().isEmpty) {
+                  return 'Enter your license number';
+                }
+                return null;
+              },
+              decoration: const InputDecoration(
+                hintText: 'BMDC-12345',
+                prefixIcon: Icon(Icons.badge_outlined, size: 20),
+              ),
+            ),
+            const SizedBox(height: 12),
+            _buildApprovalNotice(),
           ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDoctorSectionHeader() {
+    return Row(
+      children: [
+        const Icon(Icons.medical_services_outlined,
+            size: 18, color: AppColors.primary),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            'Professional Details',
+            style: GoogleFonts.manrope(
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              color: AppColors.primary,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildHospitalDropdown() {
+    final hospitalsAsync = ref.watch(hospitalsProvider);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Hospital', style: _labelStyle),
+        const SizedBox(height: 8),
+        hospitalsAsync.when(
+          loading: () => Container(
+            height: 56,
+            decoration: BoxDecoration(
+              color: AppColors.surfaceContainerLow,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                  color: AppColors.outlineVariant.withValues(alpha: 0.3)),
+            ),
+            child: const Center(
+              child: SizedBox(
+                height: 20,
+                width: 20,
+                child:
+                    CircularProgressIndicator(strokeWidth: 2),
+              ),
+            ),
+          ),
+          error: (_, __) => Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: AppColors.errorContainer.withValues(alpha: 0.2),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Text(
+              'Could not load hospitals. Please try again.',
+              style: GoogleFonts.inter(
+                  fontSize: 13, color: AppColors.error),
+            ),
+          ),
+          data: (hospitals) => FormField<String>(
+            validator: (v) {
+              if (_selectedRole != UserRole.doctor) return null;
+              if (_selectedHospitalId == null) {
+                return 'Please select a hospital';
+              }
+              return null;
+            },
+            builder: (fieldState) => Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                DropdownButtonFormField<String>(
+                  value: _selectedHospitalId,
+                  isExpanded: true,
+                  decoration: InputDecoration(
+                    hintText: 'Select your hospital',
+                    prefixIcon:
+                        const Icon(Icons.local_hospital_outlined, size: 20),
+                    errorText: fieldState.errorText,
+                  ),
+                  items: hospitals
+                      .map((h) => DropdownMenuItem(
+                            value: h.id,
+                            child: Text(
+                              h.name,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ))
+                      .toList(),
+                  onChanged: (value) {
+                    setState(() => _selectedHospitalId = value);
+                    fieldState.didChange(value);
+                  },
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildApprovalNotice() {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.primaryContainer.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+            color: AppColors.primary.withValues(alpha: 0.3)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(Icons.info_outline,
+              size: 18, color: AppColors.primary),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              'Your profile will be submitted for hospital approval. '
+              'You will appear to patients only after the hospital approves your account.',
+              style: GoogleFonts.inter(
+                fontSize: 12,
+                color: AppColors.primary,
+                height: 1.5,
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -317,10 +534,11 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   Widget _buildLoginLink() {
     return Center(
       child: GestureDetector(
-        onTap: () => context.pop(),
+        onTap: () => context.go(AppRoutes.login),
         child: RichText(
           text: TextSpan(
-            style: GoogleFonts.inter(fontSize: 14, color: AppColors.onSurfaceVariant),
+            style: GoogleFonts.inter(
+                fontSize: 14, color: AppColors.onSurfaceVariant),
             children: [
               const TextSpan(text: 'Already have an account? '),
               TextSpan(
@@ -339,10 +557,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   }
 
   TextStyle get _labelStyle => GoogleFonts.inter(
-    fontSize: 13,
-    fontWeight: FontWeight.w600,
-    color: AppColors.onSurface,
-  );
+        fontSize: 13,
+        fontWeight: FontWeight.w600,
+        color: AppColors.onSurface,
+      );
 }
 
 class _RoleCard extends StatelessWidget {
@@ -368,14 +586,19 @@ class _RoleCard extends StatelessWidget {
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.primaryContainer.withValues(alpha: 0.3) : AppColors.surfaceContainerLow,
+          color: isSelected
+              ? AppColors.primaryContainer.withValues(alpha: 0.3)
+              : AppColors.surfaceContainerLow,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: isSelected ? AppColors.primary : AppColors.outlineVariant.withValues(alpha: 0.15),
+            color: isSelected
+                ? AppColors.primary
+                : AppColors.outlineVariant.withValues(alpha: 0.15),
             width: isSelected ? 2 : 1,
           ),
         ),
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
             Container(
               padding: const EdgeInsets.all(10),
@@ -387,7 +610,8 @@ class _RoleCard extends StatelessWidget {
               ),
               child: Icon(
                 icon,
-                color: isSelected ? AppColors.primary : AppColors.onSurfaceVariant,
+                color:
+                    isSelected ? AppColors.primary : AppColors.onSurfaceVariant,
                 size: 24,
               ),
             ),
@@ -404,6 +628,8 @@ class _RoleCard extends StatelessWidget {
             Text(
               description,
               textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
               style: GoogleFonts.inter(
                 fontSize: 11,
                 color: AppColors.onSurfaceVariant,

@@ -1,4 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import '../core/config/supabase_config.dart';
 import '../core/utils/error_handler.dart';
 import '../repositories/hospital_repository.dart';
 import '../models/hospital.dart';
@@ -44,7 +46,7 @@ class HospitalNotifier extends StateNotifier<HospitalState> {
 
     state = state.copyWith(isLoading: true, clearError: true);
     try {
-      final hospitals = await _repository.listHospitals();
+      final hospitals = await _repository.getApprovedHospitals();
       state = state.copyWith(hospitals: hospitals, isLoading: false, clearError: true);
     } on AppException catch (e) {
       state = state.copyWith(isLoading: false, error: e);
@@ -66,15 +68,34 @@ final hospitalProvider = StateNotifierProvider<HospitalNotifier, HospitalState>(
   return HospitalNotifier(ref.watch(hospitalRepositoryProvider));
 });
 
-/// Lists all hospitals, sorted by rating.
+/// Lists only approved hospitals. Automatically refreshes on Realtime updates.
 final hospitalsProvider = FutureProvider<List<Hospital>>((ref) async {
-  return ref.read(hospitalRepositoryProvider).listHospitals();
+  final repo = ref.watch(hospitalRepositoryProvider);
+
+  // Realtime: invalidate when a hospital becomes approved.
+  final channel = supabase.channel('public:hospitals');
+  channel
+      .onPostgresChanges(
+        event: PostgresChangeEvent.update,
+        schema: 'public',
+        table: 'hospitals',
+        callback: (payload) {
+          if (payload.newRecord['status'] == 'approved') {
+            ref.invalidateSelf();
+          }
+        },
+      )
+      .subscribe();
+
+  ref.onDispose(() => channel.unsubscribe());
+
+  return repo.getApprovedHospitals();
 });
 
-/// Search hospitals by query.
+/// Search approved hospitals by query.
 final hospitalSearchProvider = FutureProvider.family<List<Hospital>, String>((ref, query) async {
   if (query.isEmpty) {
-    return ref.read(hospitalRepositoryProvider).listHospitals();
+    return ref.read(hospitalRepositoryProvider).getApprovedHospitals();
   }
   return ref.read(hospitalRepositoryProvider).searchHospitals(query);
 });

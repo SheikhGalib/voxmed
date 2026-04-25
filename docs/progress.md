@@ -1,6 +1,6 @@
 # VoxMed Connect — Progress Tracker
 
-> **Last Updated:** 2026-04-14
+> **Last Updated:** 2026-04-16
 
 ---
 
@@ -130,8 +130,27 @@ Rollout plan (3 parts):
 |------|--------|------|-------|
 | Clinical Dashboard with live data | ✅ | 2026-04-07 | Dashboard cards and today appointments are live |
 | Fix double AppBar on doctor screens | ✅ | 2026-04-08 | Removed inner Scaffold from ClinicalDashboard + ApprovalQueue |
-| Schedule management | 🔄 | 2026-04-08 | Doctor identity rows now auto-heal on login/sign-up; richer editing still pending |
+| Schedule management | ✅ | 2026-05-28 | Full day/week/month schedule view with appointment list; `DoctorScheduleScreen` in doctor shell |
 | Approval Queue | ✅ | 2026-04-07 | Approve/Deny actions update renewal status |
+| My Patients section | ✅ | 2026-05-28 | `MyPatientsScreen` — searchable patient list; tap opens full patient detail |
+| Patient Detail screen | ✅ | 2026-05-28 | `PatientDetailScreen` — Overview, Prescriptions, Records, Analytics (bar chart, pie chart, medication trends) |
+| Write Prescription from patient detail | ✅ | 2026-05-28 | Bottom sheet form in Prescriptions tab; creates prescription + items in Supabase |
+| Analytics trend charts per patient | ✅ | 2026-05-28 | `fl_chart` bar chart (visit frequency), pie chart (appointment types), medication history bars |
+| Doctor bottom nav updated (4 tabs) | ✅ | 2026-06-01 | Dashboard · Patients · Approvals · Collaborate — Schedule removed from nav |
+| Schedule moved to dashboard section | ✅ | 2026-06-01 | Dashboard shows today's appointments; "Full view" button navigates to `DoctorScheduleScreen` |
+| Doctor theme redesign (blue + white) | ✅ | 2026-06-01 | `DoctorColors` class in `app_colors.dart`; blue `0xFF1565C0` primary |
+| Stat cards redesigned (white + blue border) | ✅ | 2026-06-01 | Replaced dark black header with white cards + `DoctorColors.border` thin border |
+| Compliance Trends removed | ✅ | 2026-06-01 | Section removed from clinical dashboard as redundant |
+| Approval dashboard section | ✅ | 2026-06-01 | Top 3 recent pending approvals on dashboard + "See all" → full approval queue |
+| Approval queue: list/card/sort/detail | ✅ | 2026-06-01 | Card view, list view, newest/oldest sort, bottom-sheet detail with Approve/Deny |
+| "My Patients" → "Patients" rename | ✅ | 2026-06-01 | Nav label and screen header renamed to "Patients" |
+| Patient name overflow fix | ✅ | 2026-06-01 | `maxLines: 1, overflow: TextOverflow.ellipsis` on patient cards |
+| Write Prescription save fix | ✅ | 2026-06-01 | Success snackbar added; real error shown from provider state; outer catch fallback |
+| App logo updated | ✅ | 2026-06-01 | `voxmed_logo.png` in `VoxmedAppBar` via `Image.asset` with Icon fallback |
+| New route constants | ✅ | 2026-05-28 | `doctorSchedule`, `myPatients`, `patientDetail`, `doctorChat` added to `AppRoutes` |
+| Repository additions | ✅ | 2026-05-28 | `listByDoctorRange`, `listDoctorPatients`, `listPatientVisitsForDoctor` (Appointment); `createPrescriptionWithItems` (Prescription); `listByPatientId` (MedicalRecord) |
+| `patient_provider.dart` (new) | ✅ | 2026-05-28 | Riverpod providers for doctor-scoped patient data and prescription creation |
+| Doctor dashboard tests | ✅ | 2026-05-28 | 8 tests in `test/doctor_dashboard_test.dart` — routes, models, chart logic; all passing |
 | Emergency Absence + auto-reschedule | ⏳ | | Pending |
 
 ---
@@ -140,9 +159,20 @@ Rollout plan (3 parts):
 
 | Task | Status | Date | Notes |
 |------|--------|------|-------|
+| Collaborative Hub (doctor messenger list) | ✅ | 2026-06-01 | `CollaborativeHubScreen` — search, specialty filter chips, peer doctor list; tap → chat |
+| Doctor-to-doctor chat (`DoctorChatScreen`) | ✅ | 2026-06-01 | Full chat UI; text messages + patient-share cards; session via `getOrCreateChatSession` |
+| Patient profile sharing in chat | ✅ | 2026-06-01 | "Share Patient" button in chat sends a patient card bubble; tap → `PatientDetailScreen` |
+| Transfer Patient dialog | ✅ | 2026-06-01 | Informational dialog; full DB-level transfer requires schema update (see DB notes below) |
+| `CollaborationRepository` | ✅ | 2026-06-01 | `listPeerDoctors`, `getOrCreateChatSession`, `sendMessage`, `getMessages` |
+| Collaboration tests | ✅ | 2026-06-01 | 13 tests in `test/collaboration_test.dart` — colors, routes, RenewalStatus, repo instantiation |
 | Consultation sessions + realtime chat | ✅ | 2026-04-07 | Session and message data connected to UI |
 | Specialist invitation flow | ⏳ | | Invitation workflow pending |
 | Shared patient data view | ✅ | 2026-04-07 | Collaborative hub shows live consultation content |
+
+> **⚠️ DB Changes Required for full collaboration support:**
+> 1. `consultation_sessions.patient_id` must be **NULLABLE** — doctor-to-doctor chats have no patient context.
+> 2. `consultation_messages` needs a `message_type` column (e.g. `text`, `patient_share`) to render share cards.
+> 3. `prescriptions` RLS policy must allow doctors to INSERT for their own patients (not just `auth.uid() = patient_id`).
 
 ---
 
@@ -168,6 +198,77 @@ Rollout plan (3 parts):
 
 ---
 
+## Phase 10: Video Calling — ZEGOCLOUD Integration (🔄 In Progress)
+
+> **Plan:** See `docs/video_calling_implementation.md` for full 5-phase implementation plan.
+
+### Phase 1 — Basic Video Calling (🔄 In Progress)
+
+| Task | Status | Date | Notes |
+|------|--------|------|-------|
+| Add ZEGOCLOUD & permission_handler dependencies to pubspec.yaml | ✅ | 2026-04-15 | `zego_uikit_prebuilt_call: ^4.22.0`, `zego_uikit_signaling_plugin: ^2.10.0`, `permission_handler: ^11.3.0` |
+| Create `zego_config.dart` (reads ZEGO_APP_ID/ZEGO_APP_SIGN from .env) | ✅ | 2026-04-15 | `lib/core/config/zego_config.dart` |
+| Create `VideoCall` model with `VideoCallStatus` enum | ✅ | 2026-04-15 | `lib/models/video_call.dart` |
+| Create `VideoCallRepository` (Supabase CRUD) | ✅ | 2026-04-15 | `lib/repositories/video_call_repository.dart` — createVideoCall, getByAppointment, updateStatus, completeCall |
+| Create `VideoCallProvider` (Riverpod) | ✅ | 2026-04-15 | `lib/providers/video_call_provider.dart` |
+| Create `VideoCallScreen` with ZEGOCLOUD PrebuiltCall wrapper | ✅ | 2026-04-15 | `lib/screens/video_call_screen.dart` — hang-up confirmation, call status management, duration display |
+| Add `/video-call` route to GoRouter | ✅ | 2026-04-15 | `lib/core/router/app_router.dart` with roomId + videoCallId query params |
+| Add `AppRoutes.videoCall` and `Tables.videoCalls` constants | ✅ | 2026-04-15 | `lib/core/constants/app_constants.dart` |
+| Auto-create video call room in booking flow | ✅ | 2026-04-15 | `_confirmBooking()` in doctor_booking_detail_screen.dart |
+| Add appointment type toggle (In-Person / Video) to booking screen | ✅ | 2026-04-16 | `_buildAppointmentTypeToggle()` — was missing, fixed |
+| Add Android permissions for ZEGOCLOUD | ✅ | 2026-04-16 | CAMERA, WIFI, NETWORK, BLUETOOTH, VIBRATE, FULL_SCREEN_INTENT, SCHEDULE_EXACT_ALARM |
+| Add video icon + "Join Call" button to patient dashboard tile | ✅ | 2026-04-16 | `_UpcomingAppointmentTile` shows videocam icon and Join button for video appointments |
+| Add video indicator to doctor daily schedule | ✅ | 2026-04-16 | `_ScheduleItem` shows videocam icon for video appointments |
+| Update `database_schema.md` with video calling tables | ✅ | 2026-04-16 | Added `video_calls`, `call_transcripts`, `emergency_call_requests` tables, RLS, indexes, enum updates |
+| Create Supabase `video_calls` table in database | ⏳ | | SQL in `video_calling_implementation.md` §6.1 |
+| Create Supabase `call_transcripts` table | ⏳ | | SQL in §6.2 |
+| Create Supabase `emergency_call_requests` table | ⏳ | | SQL in §6.3 |
+| Add new `notification_type` enum values | ⏳ | | SQL in §6.4: video_call_scheduled, video_call_starting, etc. |
+| Test end-to-end video call flow | ⏳ | | Requires ZEGOCLOUD credentials in .env |
+
+### Phase 2–5 — Not Started
+
+---
+
+## Cross-Platform: Shared Database (voxmed + voxmedweb)
+
+> **Context:** The Flutter app and the React web management dashboard use the same Supabase project (`jedgnisrjwemhazherro`). RLS bugs in one app affect the other.
+
+| Task | Status | Date | Notes |
+|------|--------|------|-------|
+| Identify shared database between Flutter app and web dashboard | ✅ | 2026-04-24 | Same Supabase project; `user_role` enum covers all 6 roles |
+| Update `database_schema.md` to reflect actual cloud schema | ✅ | 2026-04-24 | Added `hospital_staff` table, `hospital_status`/`doctor_status` enums, approval fields on `doctors` and `hospitals`, updated architecture overview |
+| Diagnose doctor-not-appearing-for-approval bug | ✅ | 2026-04-24 | Root cause: missing INSERT RLS policy on `doctors` for authenticated users — see `docs/rls_fix_doctor_visibility.md` |
+| Create fix doc for RLS issue | ✅ | 2026-04-24 | `docs/rls_fix_doctor_visibility.md` — full root cause analysis, fix SQL, verification steps |
+| Create migration `002_fix_rls_policies.sql` | ✅ | 2026-04-24 | At `voxmedweb/supabase/migrations/002_fix_rls_policies.sql` |
+| Apply RLS fix in Supabase cloud | ✅ | 2026-04-24 | Migration applied — hospital dashboard now shows doctors |
+| Fix stale "Approval Pending" after sign-in (Flutter) | ✅ | 2026-04-24 | `currentDoctorProvider` now watches `authStateProvider` — auto-invalidates on sign-in/out |
+| Fix `is_available` column mismatch in doctor_schedules (web) | ✅ | 2026-04-24 | Renamed to `is_active` in server Zod schema |
+| Fix `max_patients` column not found in doctor_schedules (web) | ✅ | 2026-04-24 | Renamed to `slot_duration_minutes` in server + client form |
+| Fix ON CONFLICT error when saving doctor schedule (web) | ✅ | 2026-04-25 | Replaced `.upsert()` with select-then-update-or-insert; created migration `003` for DB constraint |
+| Create migration `003_add_doctor_schedules_unique_constraint.sql` | ⚠️ | 2026-04-25 | **ACTION REQUIRED** — run in Supabase SQL Editor to add `UNIQUE(doctor_id, day_of_week)` |
+| Write Flutter scheduling unit tests | ✅ | 2026-04-25 | `test/scheduling_test.dart` — 12 tests covering fromJson, toJson, day names, slot count |
+| Write web scheduling unit tests | ✅ | 2026-04-25 | `server/src/test/scheduling.test.js` — 21 tests covering Zod schema, slot count, upsert logic |
+
+### ⚠️ Supabase Action Required — Doctor Schedules Unique Constraint
+
+Run the contents of `voxmedweb/supabase/migrations/003_add_doctor_schedules_unique_constraint.sql` in the **Supabase SQL Editor**:
+
+1. Open https://supabase.com/dashboard → project `jedgnisrjwemhazherro`
+2. Navigate to **SQL Editor → New query**
+3. Paste and run the migration
+
+This adds `UNIQUE(doctor_id, day_of_week)` to `doctor_schedules`. The server already works without it (select-then-update-or-insert), but the constraint provides database-level enforcement as a safety net.
+
+| Phase | Description | Status |
+|-------|-------------|--------|
+| Phase 2 | Scheduled Meetings & Notifications (call invitations, push) | ⏳ |
+| Phase 3 | Emergency Calling (early responder queue) | ⏳ |
+| Phase 4 | Real-Time ASR Transcription (Deepgram streaming) | ⏳ |
+| Phase 5 | SOAP Notes Generation (Gemini edge function) | ⏳ |
+
+---
+
 ## Recent Fixes
 
 | Task | Status | Date | Notes |
@@ -179,6 +280,16 @@ Rollout plan (3 parts):
 | Expand Find Care search to doctors | ✅ | 2026-04-08 | Shared search bar now filters doctor results by name, specialty, and hospital |
 | Implement AI Chat Part 1 code path | ✅ | 2026-04-14 | Added `gemini-triage` function source, AI repository invocation, and chat session history controls |
 | Configure Supabase CLI + cloud deploy for AI chat | ✅ | 2026-04-14 | Installed local CLI flow (`npx supabase`), linked cloud project, set secrets, verified endpoint no longer returns 404 |
+| Fix missing `_buildAppointmentTypeToggle()` method | ✅ | 2026-04-16 | Method was called but never defined — compile error from disconnected previous session |
+| Add ZEGOCLOUD Android permissions | ✅ | 2026-04-16 | AndroidManifest.xml was missing CAMERA, WIFI, NETWORK, BLUETOOTH permissions |
+| Add video call UI integration to dashboards | ✅ | 2026-04-16 | Patient dashboard "Join Call" button + doctor schedule video icon |
+| Update database_schema.md for video calling | ✅ | 2026-04-16 | 3 new tables (§3.20–3.22), RLS policies, indexes, notification_type enum |
+| Fix Java 17 toolchain missing error | ✅ | 2026-04-16 | Added `foojay-resolver-convention 0.9.0` to `settings.gradle.kts` for JDK 17 auto-download |
+| Fix `zego_zim 2.28.0` API breakage | ✅ | 2026-04-16 | `dependency_overrides: zego_zim: 2.27.0` — signaling plugin incompatible with 2.28.0 |
+| Fix `permission_handler` version conflict | ✅ | 2026-04-16 | Changed from `^11.3.0` to `^12.0.1` (required by ZEGOCLOUD v4.x) |
+| Migrate `video_call_screen.dart` to ZEGOCLOUD v4.x API | ✅ | 2026-04-16 | `onHangUpConfirmation`/`onCallEnd` → `events` param; `durationConfig` → `duration` |
+| Document build fixes | ✅ | 2026-04-16 | `docs/build_fixes.md` — 4 issues with root cause analysis and solutions |
+| **Fix register screen not showing / back button broken** | ✅ | 2026-04-22 | **Root cause:** `_GoRouterRefreshStream` (in `app_router.dart`) fired on every Supabase auth event (token refreshes, initial state loads) — not just real login/logout changes. GoRouter's `refreshListenable` re-runs the redirect and internally calls `go()` to re-navigate, wiping the push-navigation back stack. After `context.push('/register')`, the stack `[login, register]` was instantly replaced with `[register]` alone, so `context.pop()` had nothing to pop. **Fix 1:** `_GoRouterRefreshStream` now tracks `_prevHasSession` and only calls `notifyListeners()` when the session null→non-null state actually changes. **Fix 2:** Login screen navigation changed from `context.push(AppRoutes.register)` to `context.go(AppRoutes.register)` (correct for auth flows). **Fix 3:** Register screen back button and "Sign In" link changed from `context.pop()` to `context.go(AppRoutes.login)` — deterministic regardless of back-stack state. Files: `app_router.dart`, `login_screen.dart`, `register_screen.dart`. |
 
 ---
 
