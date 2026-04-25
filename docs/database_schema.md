@@ -371,9 +371,9 @@ Multi-doctor collaborative care sessions.
 | Column            | Type                  | Constraints                          | Description                         |
 |-------------------|-----------------------|--------------------------------------|-------------------------------------|
 | `id`              | `uuid`                | PK, DEFAULT `gen_random_uuid()`      |                                     |
-| `patient_id`      | `uuid`                | NOT NULL, FK → `profiles.id`        | Patient being discussed             |
-| `created_by`      | `uuid`                | NOT NULL, FK → `doctors.id`         | Primary doctor who initiated        |
-| `title`           | `text`                |                                      | Session title                       |
+| `patient_id`      | `uuid`                | NULLABLE, FK → `profiles.id`        | Patient being discussed; NULL for doctor-only chats |
+| `created_by`      | `uuid`                | NULLABLE, FK → `doctors.id`         | Primary doctor who initiated; NULL guard via RLS |
+| `title`           | `text`                | UNIQUE                               | Session title; `dr_chat:sortedId1:sortedId2` for peer chats |
 | `status`          | `consultation_status` | NOT NULL, DEFAULT `'active'`         | Enum: `active`, `closed`            |
 | `notes`           | `text`                |                                      | Shared clinical notes               |
 | `soap_note`       | `jsonb`               |                                      | `{ subjective, objective, assessment, plan }` |
@@ -852,65 +852,65 @@ CREATE POLICY "Patients manage own ai messages" ON ai_messages
 ```
 
 ### `consultation_sessions` & `consultation_members` & `consultation_messages`
+
+> **Implementation note (migration 007):** All three tables use a `SECURITY DEFINER` helper function `get_my_doctor_id()` to resolve the current user's `doctors.id` outside the RLS evaluation context. This eliminates the cross-table recursion (42P17) that occurred when `sessions_select` queried `consultation_members` and `members_select` queried back into `consultation_sessions`. The dependency is now strictly one-way: `sessions` and `messages` policies reference `consultation_members`; `members` policy references neither.
+
 ```sql
-CREATE POLICY "Doctors view consultation sessions" ON consultation_sessions
+-- SECURITY DEFINER helper — resolves auth.uid() → doctors.id
+-- without triggering any RLS policy on doctors or the 3 chat tables.
+CREATE OR REPLACE FUNCTION get_my_doctor_id()
+RETURNS uuid
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT id FROM doctors WHERE profile_id = auth.uid() LIMIT 1;
+$$;
+
+-- consultation_sessions
+CREATE POLICY "sessions_select" ON consultation_sessions
   FOR SELECT USING (
-    created_by IN (SELECT id FROM doctors WHERE profile_id = auth.uid()) OR
-    EXISTS (
-      SELECT 1 FROM consultation_members m
-      JOIN doctors d ON d.id = m.doctor_id
-      WHERE m.session_id = consultation_sessions.id AND d.profile_id = auth.uid()
+    created_by = get_my_doctor_id()
+    OR id IN (
+      SELECT session_id FROM consultation_members
+      WHERE doctor_id = get_my_doctor_id()
     )
   );
 
-CREATE POLICY "Doctors create consultation sessions" ON consultation_sessions
+-- Enforces created_by = the requesting doctor (prevents spoofing)
+CREATE POLICY "sessions_insert" ON consultation_sessions
   FOR INSERT WITH CHECK (
-    created_by IN (SELECT id FROM doctors WHERE profile_id = auth.uid())
+    created_by = get_my_doctor_id()
   );
 
-CREATE POLICY "Members update consultation sessions" ON consultation_sessions
-  FOR UPDATE USING (
-    created_by IN (SELECT id FROM doctors WHERE profile_id = auth.uid()) OR
-    EXISTS (
-      SELECT 1 FROM consultation_members m
-      JOIN doctors d ON d.id = m.doctor_id
-      WHERE m.session_id = consultation_sessions.id AND d.profile_id = auth.uid()
-    )
-  );
-
-CREATE POLICY "Doctors view associated members" ON consultation_members
+-- consultation_members — MUST NOT reference consultation_sessions
+CREATE POLICY "members_select" ON consultation_members
   FOR SELECT USING (
-    EXISTS (
-      SELECT 1 FROM consultation_sessions s
-      WHERE s.id = consultation_members.session_id AND s.created_by IN (SELECT id FROM doctors WHERE profile_id = auth.uid())
-    ) OR
-    doctor_id IN (SELECT id FROM doctors WHERE profile_id = auth.uid()) OR
-    EXISTS (
-      SELECT 1 FROM consultation_members m
-      WHERE m.session_id = consultation_members.session_id AND m.doctor_id IN (SELECT id FROM doctors WHERE profile_id = auth.uid())
-    )
+    doctor_id = get_my_doctor_id()
   );
 
-CREATE POLICY "Creators manage consultation members" ON consultation_members
-  FOR ALL USING (
-    EXISTS (
-      SELECT 1 FROM consultation_sessions s
-      WHERE s.id = consultation_members.session_id AND s.created_by IN (SELECT id FROM doctors WHERE profile_id = auth.uid())
-    )
-  );
-
-CREATE POLICY "Members view consultation messages" ON consultation_messages
-  FOR SELECT USING (
-    EXISTS (SELECT 1 FROM consultation_sessions s WHERE s.id = consultation_messages.session_id AND s.created_by IN (SELECT id FROM doctors WHERE profile_id = auth.uid())) OR
-    EXISTS (SELECT 1 FROM consultation_members m WHERE m.session_id = consultation_messages.session_id AND m.doctor_id IN (SELECT id FROM doctors WHERE profile_id = auth.uid()))
-  );
-
-CREATE POLICY "Members insert consultation messages" ON consultation_messages
+CREATE POLICY "members_insert" ON consultation_members
   FOR INSERT WITH CHECK (
-    sender_id = auth.uid() AND
-    (
-      EXISTS (SELECT 1 FROM consultation_sessions s WHERE s.id = session_id AND s.created_by IN (SELECT id FROM doctors WHERE profile_id = auth.uid())) OR
-      EXISTS (SELECT 1 FROM consultation_members m WHERE m.session_id = session_id AND m.doctor_id IN (SELECT id FROM doctors WHERE profile_id = auth.uid()))
+    get_my_doctor_id() IS NOT NULL
+  );
+
+-- consultation_messages
+CREATE POLICY "messages_select" ON consultation_messages
+  FOR SELECT USING (
+    session_id IN (
+      SELECT session_id FROM consultation_members
+      WHERE doctor_id = get_my_doctor_id()
+    )
+  );
+
+-- sender_id = auth.uid() prevents sender identity spoofing
+CREATE POLICY "messages_insert" ON consultation_messages
+  FOR INSERT WITH CHECK (
+    sender_id = auth.uid()
+    AND session_id IN (
+      SELECT session_id FROM consultation_members
+      WHERE doctor_id = get_my_doctor_id()
     )
   );
 ```

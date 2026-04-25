@@ -125,7 +125,7 @@ class _DoctorChatScreenState extends ConsumerState<DoctorChatScreen> {
                   const SizedBox(height: 14),
                   Text('Could not open chat', style: GoogleFonts.manrope(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.onSurface)),
                   const SizedBox(height: 8),
-                  Text('This feature requires the consultation_sessions table to allow null patient_id. See docs/doctor_collaboration.md for the required DB migration.',
+                  Text(e.toString(),
                       textAlign: TextAlign.center, style: GoogleFonts.inter(fontSize: 13, color: AppColors.onSurfaceVariant, height: 1.5)),
                   const SizedBox(height: 16),
                   ElevatedButton(
@@ -174,7 +174,7 @@ class _DoctorChatScreenState extends ConsumerState<DoctorChatScreen> {
               itemCount: messages.length,
               itemBuilder: (ctx, i) {
                 final msg = messages[i];
-                final isMe = msg['sender_id'] == myDoctorId;
+                final isMe = msg['sender_id'] == supabase.auth.currentUser?.id;
                 final type = msg['message_type'] as String? ?? 'text';
                 final content = msg['content'] as String? ?? '';
                 final createdAt = DateTime.tryParse(msg['created_at'] ?? '');
@@ -249,7 +249,7 @@ class _DoctorChatScreenState extends ConsumerState<DoctorChatScreen> {
     setState(() => _sending = true);
     try {
       await ref.read(_collabRepoForChatProvider).sendMessage(
-          sessionId: sessionId, senderDoctorId: myDoctorId, content: text);
+          sessionId: sessionId, senderDoctorId: supabase.auth.currentUser!.id, content: text);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -279,7 +279,7 @@ class _DoctorChatScreenState extends ConsumerState<DoctorChatScreen> {
           try {
             final content = 'patient:$patientId:$patientName';
             await ref.read(_collabRepoForChatProvider).sendMessage(
-                sessionId: sessionId, senderDoctorId: myDoctorId, content: content, messageType: 'patient_share');
+                sessionId: sessionId, senderDoctorId: supabase.auth.currentUser!.id, content: content, messageType: 'patient_share');
           } catch (e) {
             if (context.mounted) {
               ScaffoldMessenger.of(context).showSnackBar(

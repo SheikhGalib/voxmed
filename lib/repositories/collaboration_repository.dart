@@ -32,49 +32,43 @@ class CollaborationRepository {
 
   /// Get or create a direct chat session between two doctors.
   /// Returns the session id.
+  ///
+  /// Uses a deterministic title lookup on consultation_sessions instead of
+  /// a cross-membership query. The old two-step approach queried
+  /// consultation_members for the OTHER doctor's rows, but migration 007's
+  /// members_select policy only allows seeing your OWN rows
+  /// (doctor_id = get_my_doctor_id()), so that query always returned 0 rows
+  /// and a new session was created every time — breaking message persistence.
+  ///
+  /// The sessions_select policy DOES allow seeing sessions you are a member
+  /// of (via the id IN consultation_members branch), so querying by the
+  /// deterministic title works correctly for both the creator and the other
+  /// doctor.
   Future<String> getOrCreateChatSession(
       String currentDoctorId, String otherDoctorId) async {
     try {
-      // Look for existing session with both doctors as members
-      final myMemberships = await supabase
-          .from(Tables.consultationMembers)
-          .select('session_id')
-          .eq('doctor_id', currentDoctorId);
+      // Deterministic title — sorted so A→B and B→A resolve to the same key.
+      final title =
+          'dr_chat:${([currentDoctorId, otherDoctorId]..sort()).join(':')}';
 
-      final mySessionIds = (myMemberships as List)
-          .map((m) => m['session_id'] as String)
-          .toList();
+      // Single lookup: sessions_select allows this doctor to see any session
+      // where they are a member, so both the creator and the invited doctor
+      // will find the same row here.
+      final existing = await supabase
+          .from(Tables.consultationSessions)
+          .select('id')
+          .eq('title', title)
+          .maybeSingle();
 
-      if (mySessionIds.isNotEmpty) {
-        final otherMemberships = await supabase
-            .from(Tables.consultationMembers)
-            .select('session_id')
-            .eq('doctor_id', otherDoctorId)
-            .inFilter('session_id', mySessionIds);
-
-        final sharedIds = (otherMemberships as List)
-            .map((m) => m['session_id'] as String)
-            .toList();
-
-        // Verify session is a doctor-chat type (title starts with 'dr_chat:')
-        for (final sid in sharedIds) {
-          final session = await supabase
-              .from(Tables.consultationSessions)
-              .select('id, title')
-              .eq('id', sid)
-              .maybeSingle();
-          if (session != null &&
-              (session['title'] as String? ?? '').startsWith('dr_chat:')) {
-            return sid;
-          }
-        }
+      if (existing != null) {
+        return existing['id'] as String;
       }
 
-      // Create new session — patient_id is nullable (doctor chat has no patient)
+      // No existing session — create one.
       final sessionData = await supabase
           .from(Tables.consultationSessions)
           .insert({
-            'title': 'dr_chat:${[currentDoctorId, otherDoctorId]..sort()..join(':')}',
+            'title': title,
             'notes': '',
             'created_by': currentDoctorId,
           })
