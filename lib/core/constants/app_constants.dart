@@ -30,6 +30,11 @@ class AppRoutes {
   static const String liveConsultation = '/live-consultation';
   static const String patientDetail = '/patient-detail';
   static const String doctorChat = '/doctor-chat';
+
+  // Shared full-screen routes
+  static const String recordDetail = '/record-detail';
+  static const String medicationSchedule = '/medication-schedule';
+  static const String commitRate = '/commit-rate';
 }
 
 /// Doctor approval status values (mirrors doctor_status enum in DB).
@@ -76,6 +81,8 @@ class Tables {
   static const String notifications = 'notifications';
   static const String reviews = 'reviews';
   static const String wearableData = 'wearable_data';
+  static const String medicationSchedules = 'medication_schedules';
+  static const String medicalTests = 'medical_tests';
 }
 
 /// Storage bucket names.
@@ -257,6 +264,43 @@ enum AdherenceStatus {
       orElse: () => AdherenceStatus.pending,
     );
   }
+}
+
+/// OCR engine selector — choose between cloud AI or local offline OCR.
+enum OcrEngine {
+  /// Google Gemini Vision — structured extraction, requires internet.
+  gemini,
+
+  /// Tesseract — runs fully on-device, no internet required.
+  tesseract;
+
+  String get value => name;
+
+  String get label {
+    switch (this) {
+      case OcrEngine.gemini:
+        return 'Gemini AI';
+      case OcrEngine.tesseract:
+        return 'Tesseract (Offline)';
+    }
+  }
+
+  static OcrEngine fromString(String value) {
+    return OcrEngine.values.firstWhere(
+      (e) => e.name == value,
+      orElse: () => OcrEngine.gemini,
+    );
+  }
+}
+
+/// Source type of a scanned document.
+enum DocumentSourceType {
+  camera,
+  gallery,
+  pdfFile;
+
+  bool get isPdf => this == DocumentSourceType.pdfFile;
+  bool get isImage => this != DocumentSourceType.pdfFile;
 }
 
 /// Notification type matching the database `notification_type` enum.

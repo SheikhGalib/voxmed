@@ -1,6 +1,6 @@
 # VoxMed Connect — Progress Tracker
 
-> **Last Updated:** 2026-04-25 (rev 4)
+> **Last Updated:** 2026-04-28 (rev 8)
 
 ---
 
@@ -68,8 +68,19 @@
 |------|--------|------|-------|
 | Build `MedicalRecord` model + repository | ✅ | 2026-04-07 | Repository/provider wired to Supabase records |
 | Connect Health Passport screen to live data | ✅ | 2026-04-07 | Passport now renders recent records and prescriptions |
-| Implement Scan Records (camera + upload) | ✅ | 2026-04-10 | Camera/gallery pick → Supabase Storage → DB record; null FK guard fix |
-| Deploy `gemini-ocr` Edge Function | ⏳ | | Pending backend function deployment |
+| Implement Scan Records (camera + gallery) | ✅ | 2026-04-10 | Camera/gallery pick; null FK guard fix |
+| **Local-first file storage** | ✅ | 2026-04-26 | Files stored in `getApplicationDocumentsDirectory()/records/`; no Supabase Storage upload; `saveFileLocally()` + `resolveLocalFilePath()` in `MedicalRecordRepository` |
+| **Dual OCR engine (Gemini + Tesseract)** | ✅ | 2026-04-26 | `lib/repositories/ocr_service.dart` — `OcrService.extractFromImage()` and `extractFromPdf()`; engine selectable at runtime; Tesseract auto-disabled for PDFs |
+| **PDF upload & OCR** | ✅ | 2026-04-26 | `file_picker` integration in `ScanRecordsScreen`; PDFs always use Gemini; file type stored in `data.file_type` |
+| **OCR engine selector UI** | ✅ | 2026-04-26 | Toggle chip between Gemini AI / Tesseract Offline; auto-fills title from extracted fields |
+| **`OcrEngine` + `DocumentSourceType` enums** | ✅ | 2026-04-26 | Added to `app_constants.dart` |
+| **`MedicalRecord` OCR convenience getters** | ✅ | 2026-04-26 | `localFilePath`, `ocrEngine`, `ocrRawText`, `isPdf` derived from `data` JSONB |
+| **Refactor `MedicalRecordsNotifier`** | ✅ | 2026-04-26 | `saveRecordLocally()` replaces `uploadRecord()`; backward-compat shim kept |
+| **New packages** | ✅ | 2026-04-26 | `google_generative_ai`, `flutter_tesseract_ocr`, `file_picker`, `path_provider`, `path` |
+| **OCR unit tests** | ✅ | 2026-04-26 | `test/ocr_test.dart` — 28 new tests (enums, OcrResult, model getters, fromJson); 113/113 total passing |
+| **Clickable record cards (patient + doctor)** | ✅ | 2026-04-26 | Tapping any record in Health Passport (Clinical History) or Doctor's Patient Detail → Records tab navigates to `RecordDetailScreen` via `/record-detail?recordId=` |
+| **`RecordDetailScreen`** | ✅ | 2026-04-26 | Full-screen detail view: header card (type, engine chip, date), structured OCR fields, scrollable raw text with expand/collapse, `SelectableText` for copy; `lib/screens/record_detail_screen.dart` |
+| Deploy `gemini-ocr` Edge Function | ⏳ | | No longer required — Gemini called directly from device via `google_generative_ai` SDK; `GEMINI_API_KEY` in `.env` |
 | Profile editing (avatar upload) | ⏳ | | Pending |
 | Dashboard digital passport card routing | ✅ | 2026-04-10 | Card now navigates to Health Passport panel |
 | Dashboard recent reports auto-fetch | ✅ | 2026-04-08 | Switched to `recentMedicalRecordsProvider` (auto-fetches) |
@@ -203,6 +214,36 @@ Rollout plan (3 parts):
 | Adherence charts + vitals trends | ✅ | 2026-04-07 | Health analytics screen now binds to wearable/adherence data |
 | Compliance score visualization | ✅ | 2026-04-07 | Dashboard analytics are data-backed |
 | Wearable data scaffolding | ✅ | 2026-04-07 | Wearable repository/provider path is active via Supabase data |
+
+---
+
+## Phase 11: Medication Scheduling & Notifications (✅ Completed — 2026-04-27)
+
+| Task | Status | Date | Notes |
+|------|--------|------|-------|
+| `MedicationSchedule` model | ✅ | 2026-04-27 | `lib/models/medication_schedule.dart` — `todayDoseTimes()`, `recentlyDueTimes()`, `fromJson/toJson/copyWith` |
+| `NotificationService` | ✅ | 2026-04-27 | `lib/repositories/notification_service.dart` — singleton; exact-time scheduling; 2 Android channels (standard + alarm); stable ID algorithm |
+| `MedicationScheduleRepository` | ✅ | 2026-04-27 | `lib/repositories/medication_schedule_repository.dart` — Supabase CRUD; adherence logging; `getAdherenceTrend`, `getUpcomingDoses`, `hasOverdueDose` |
+| `MedicationScheduleProvider` | ✅ | 2026-04-27 | `lib/providers/medication_schedule_provider.dart` — 5 providers + `MedicationScheduleNotifier` with notification sync |
+| `MedicationScheduleScreen` | ✅ | 2026-04-27 | `lib/screens/medication_schedule_screen.dart` — per-prescription time picker, day-of-week toggles, save triggers notification scheduling |
+| Route `/medication-schedule` | ✅ | 2026-04-27 | Added to `app_router.dart`; `AppRoutes.medicationSchedule` constant |
+| `Tables.medicationSchedules` constant | ✅ | 2026-04-27 | Added to `app_constants.dart` |
+| Dashboard redesign: "MONITORING" card | ✅ | 2026-04-27 | Removed wearable data; "UPCOMING MEDICATION" shows next dose; "SCHEDULE YOUR MEDICINE" navigates to scheduler |
+| Dashboard: removed "Health Pulse" card | ✅ | 2026-04-27 | Replaced row with Digital Passport + Schedule Medicine card |
+| Health Insights screen redesign | ✅ | 2026-04-27 | Removed Oura Ring / BP / HR wearable widgets; replaced with Commit Rate gauge, 14-day stacked bar chart, upcoming doses list, record trends |
+| Doc-Panda AI nudge | ✅ | 2026-04-27 | AI assistant speaks medication reminder if overdue dose found on session start (patient role only) |
+| Android permissions + receivers | ✅ | 2026-04-27 | POST_NOTIFICATIONS, SCHEDULE_EXACT_ALARM, USE_EXACT_ALARM, RECEIVE_BOOT_COMPLETED, VIBRATE, WAKE_LOCK + 3 BroadcastReceivers in AndroidManifest.xml |
+| DB migration 009 | ✅ | 2026-04-27 | `supabase/migrations/009_medication_schedules.sql` — `medication_schedules` table + RLS; extends `adherence_logs`; **user must run manually** |
+| Notification tests | ✅ | 2026-04-27 | `test/notification_test.dart` — 22 tests (model, dose times, window logic, ID stability); all passing |
+| Architecture doc | ✅ | 2026-04-27 | `docs/notification_system.md` |
+| **Upcoming Doses card → clickable** | ✅ | 2026-04-28 | `health_analytics_screen.dart` — `GestureDetector` wraps entire card; tapping navigates to `/medication-schedule`; icon updated to `Icons.alarm` + chevron indicator |
+| **Dashboard Waveform → Health page** | ✅ | 2026-04-28 | `dashboard_screen.dart` — waveform/graph section wrapped with `GestureDetector`; tap navigates to `/health` tab |
+| **Medication Schedule auto-toggle per prescription** | ✅ | 2026-04-28 | `medication_schedule_screen.dart` — `Switch` in card header auto-enables/disables schedule using `_defaultTimesFromFrequency()`; shows spinner during creation; expand only when schedule active |
+| **Prescriptions quick card → detail bottom sheet** | ✅ | 2026-04-28 | `health_passport_screen.dart` — `GestureDetector` on Prescriptions card; `_showPrescriptionDetail()` opens `_PrescriptionDetailSheet` showing full prescription: diagnosis, doctor, dates, items list |
+| **Passport Records tabbed browser** | ✅ | 2026-04-28 | `health_passport_screen.dart` — "Records" section below Clinical History; 4 tabs: All / Prescriptions / Reports / Lab Results; each item tappable — prescriptions → detail bottom sheet, records → `/record-detail?recordId=...` |
+
+> **⚠️ ACTION REQUIRED — Run migration 009:**
+> Run `supabase/migrations/009_medication_schedules.sql` in the Supabase SQL Editor before testing medication scheduling.
 
 ---
 
