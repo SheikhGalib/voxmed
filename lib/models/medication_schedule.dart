@@ -1,3 +1,5 @@
+import '../core/constants/app_constants.dart';
+
 /// A patient's medication reminder schedule for one prescription item.
 class MedicationSchedule {
   final String id;
@@ -53,17 +55,16 @@ class MedicationSchedule {
   }
 
   Map<String, dynamic> toJson() => {
-        'patient_id': patientId,
-        if (prescriptionItemId != null)
-          'prescription_item_id': prescriptionItemId,
-        'medication_name': medicationName,
-        'dosage': dosage,
-        'frequency': frequency,
-        'times_of_day': timesOfDay,
-        if (daysOfWeek != null) 'days_of_week': daysOfWeek,
-        'is_active': isActive,
-        if (notes != null) 'notes': notes,
-      };
+    'patient_id': patientId,
+    if (prescriptionItemId != null) 'prescription_item_id': prescriptionItemId,
+    'medication_name': medicationName,
+    'dosage': dosage,
+    'frequency': frequency,
+    'times_of_day': timesOfDay,
+    if (daysOfWeek != null) 'days_of_week': daysOfWeek,
+    'is_active': isActive,
+    if (notes != null) 'notes': notes,
+  };
 
   MedicationSchedule copyWith({
     String? medicationName,
@@ -111,7 +112,98 @@ class MedicationSchedule {
   List<DateTime> recentlyDueTimes({int windowMinutes = 120}) {
     final now = DateTime.now();
     return todayDoseTimes()
-        .where((t) => t.isBefore(now) && now.difference(t).inMinutes <= windowMinutes)
+        .where(
+          (t) =>
+              t.isBefore(now) && now.difference(t).inMinutes <= windowMinutes,
+        )
         .toList();
+  }
+
+  static String formatDoseTimeLabel(DateTime time) {
+    final local = time.toLocal();
+    final period = local.hour >= 12 ? 'PM' : 'AM';
+    final hour = local.hour % 12 == 0 ? 12 : local.hour % 12;
+    final minute = local.minute.toString().padLeft(2, '0');
+    return '$hour:$minute $period';
+  }
+}
+
+class MedicationAdherenceEntry {
+  final String id;
+  final String? scheduleId;
+  final String? prescriptionItemId;
+  final String medicationName;
+  final String? dosage;
+  final DateTime scheduledTime;
+  final DateTime? responseTime;
+  final AdherenceStatus status;
+  final bool isDerived;
+
+  const MedicationAdherenceEntry({
+    required this.id,
+    this.scheduleId,
+    this.prescriptionItemId,
+    required this.medicationName,
+    this.dosage,
+    required this.scheduledTime,
+    this.responseTime,
+    required this.status,
+    this.isDerived = false,
+  });
+
+  factory MedicationAdherenceEntry.fromJson(Map<String, dynamic> json) {
+    final schedule = json['medication_schedules'] as Map<String, dynamic>?;
+    final item = json['prescription_items'] as Map<String, dynamic>?;
+
+    return MedicationAdherenceEntry(
+      id: json['id'] as String? ?? '',
+      scheduleId: json['schedule_id'] as String?,
+      prescriptionItemId: json['prescription_item_id'] as String?,
+      medicationName:
+          json['medication_name'] as String? ??
+          schedule?['medication_name'] as String? ??
+          item?['medication_name'] as String? ??
+          'Medication',
+      dosage:
+          schedule?['dosage'] as String? ??
+          item?['dosage'] as String? ??
+          json['dosage'] as String?,
+      scheduledTime: DateTime.parse(json['scheduled_time'] as String).toLocal(),
+      responseTime: json['response_time'] == null
+          ? null
+          : DateTime.parse(json['response_time'] as String).toLocal(),
+      status: AdherenceStatus.fromString(json['status'] as String? ?? 'missed'),
+    );
+  }
+
+  factory MedicationAdherenceEntry.derivedMissed({
+    required MedicationSchedule schedule,
+    required DateTime scheduledTime,
+  }) {
+    return MedicationAdherenceEntry(
+      id: 'derived:${schedule.id}:${scheduledTime.toUtc().toIso8601String()}',
+      scheduleId: schedule.id,
+      prescriptionItemId: schedule.prescriptionItemId,
+      medicationName: schedule.medicationName,
+      dosage: schedule.dosage,
+      scheduledTime: scheduledTime,
+      status: AdherenceStatus.missed,
+      isDerived: true,
+    );
+  }
+
+  String get timeLabel => MedicationSchedule.formatDoseTimeLabel(scheduledTime);
+
+  String get statusLabel {
+    switch (status) {
+      case AdherenceStatus.taken:
+        return 'Taken';
+      case AdherenceStatus.missed:
+        return 'Missed';
+      case AdherenceStatus.skipped:
+        return 'Skipped';
+      case AdherenceStatus.pending:
+        return 'Pending';
+    }
   }
 }

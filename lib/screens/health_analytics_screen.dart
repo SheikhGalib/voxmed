@@ -22,24 +22,33 @@ class HealthAnalyticsScreen extends ConsumerWidget {
 
     return SingleChildScrollView(
       padding: EdgeInsets.fromLTRB(
-          Responsive.hPad(context), 16, Responsive.hPad(context), 32),
+        Responsive.hPad(context),
+        16,
+        Responsive.hPad(context),
+        32,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Health Insights',
-              style: GoogleFonts.manrope(
-                  fontSize: Responsive.fontSize(context, 26),
-                  fontWeight: FontWeight.w800,
-                  color: AppColors.onSurface)),
+          Text(
+            'Health Insights',
+            style: GoogleFonts.manrope(
+              fontSize: Responsive.fontSize(context, 26),
+              fontWeight: FontWeight.w800,
+              color: AppColors.onSurface,
+            ),
+          ),
           const SizedBox(height: 8),
           Text(
-              'Your medication commitment and health record trends.',
-              style: GoogleFonts.inter(
-                  fontSize: 14,
-                  color: AppColors.onSurfaceVariant,
-                  height: 1.5)),
+            'Your medication commitment and health record trends.',
+            style: GoogleFonts.inter(
+              fontSize: 14,
+              color: AppColors.onSurfaceVariant,
+              height: 1.5,
+            ),
+          ),
           const SizedBox(height: 24),
-          _buildCommitRate(adherenceAsync),
+          _buildCommitRate(context, adherenceAsync),
           const SizedBox(height: 16),
           _buildIntakeTrendChart(trendAsync),
           const SizedBox(height: 16),
@@ -53,51 +62,83 @@ class HealthAnalyticsScreen extends ConsumerWidget {
 
   // ── Commit Rate ──────────────────────────────────────────────────────────
 
-  Widget _buildCommitRate(AsyncValue<Map<String, dynamic>> adherenceAsync) {
+  Widget _buildCommitRate(
+    BuildContext context,
+    AsyncValue<Map<String, dynamic>> adherenceAsync,
+  ) {
     final rate = adherenceAsync.when(
       data: (stats) => (stats['rate'] as int?) ?? 0,
       loading: () => 0,
       error: (_, _) => 0,
     );
-    final grade =
-        rate >= 90 ? 'Excellent' : rate >= 70 ? 'Good' : rate >= 50 ? 'Fair' : 'Needs Attention';
+    final grade = rate >= 90
+        ? 'Excellent'
+        : rate >= 70
+        ? 'Good'
+        : rate >= 50
+        ? 'Fair'
+        : 'Needs Attention';
     final gradeColor = rate >= 90
         ? AppColors.primary
         : rate >= 70
-            ? Colors.green.shade600
-            : rate >= 50
-                ? Colors.orange.shade600
-                : AppColors.error;
+        ? Colors.green.shade600
+        : rate >= 50
+        ? Colors.orange.shade600
+        : AppColors.error;
 
     return VoxmedCard(
+      onTap: () => context.push(AppRoutes.commitRate),
       child: Row(
         children: [
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Commit Rate',
-                    style: GoogleFonts.manrope(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.onSurface)),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'Commit Rate',
+                        style: GoogleFonts.manrope(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.onSurface,
+                        ),
+                      ),
+                    ),
+                    const Icon(
+                      Icons.chevron_right,
+                      color: AppColors.onSurfaceVariant,
+                      size: 20,
+                    ),
+                  ],
+                ),
                 const SizedBox(height: 4),
-                Text('30-Day medication adherence',
-                    style: GoogleFonts.inter(
-                        fontSize: 12, color: AppColors.onSurfaceVariant)),
+                Text(
+                  '30-Day medication adherence',
+                  style: GoogleFonts.inter(
+                    fontSize: 12,
+                    color: AppColors.onSurfaceVariant,
+                  ),
+                ),
                 const SizedBox(height: 12),
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
                     color: gradeColor.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(100),
                   ),
-                  child: Text(grade,
-                      style: GoogleFonts.inter(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                          color: gradeColor)),
+                  child: Text(
+                    grade,
+                    style: GoogleFonts.inter(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: gradeColor,
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -116,11 +157,14 @@ class HealthAnalyticsScreen extends ConsumerWidget {
                   strokeCap: StrokeCap.round,
                 ),
               ),
-              Text('$rate%',
-                  style: GoogleFonts.manrope(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w800,
-                      color: gradeColor)),
+              Text(
+                '$rate%',
+                style: GoogleFonts.manrope(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                  color: gradeColor,
+                ),
+              ),
             ],
           ),
         ],
@@ -131,35 +175,49 @@ class HealthAnalyticsScreen extends ConsumerWidget {
   // ── 30-Day Intake Trend ───────────────────────────────────────────────────
 
   Widget _buildIntakeTrendChart(
-      AsyncValue<List<Map<String, dynamic>>> trendAsync) {
+    AsyncValue<List<Map<String, dynamic>>> trendAsync,
+  ) {
     return VoxmedCard(
       color: AppColors.surfaceContainerLow,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('30-Day Intake Trend',
-              style: GoogleFonts.manrope(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.onSurface)),
+          Text(
+            '30-Day Intake Trend',
+            style: GoogleFonts.manrope(
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              color: AppColors.onSurface,
+            ),
+          ),
           const SizedBox(height: 4),
-          Text('Daily doses taken vs. missed',
-              style: GoogleFonts.inter(
-                  fontSize: 12, color: AppColors.onSurfaceVariant)),
+          Text(
+            'Daily doses taken vs. missed',
+            style: GoogleFonts.inter(
+              fontSize: 12,
+              color: AppColors.onSurfaceVariant,
+            ),
+          ),
           const SizedBox(height: 20),
           trendAsync.when(
-            loading: () =>
-                const SizedBox(height: 80, child: Center(child: CircularProgressIndicator())),
+            loading: () => const SizedBox(
+              height: 80,
+              child: Center(child: CircularProgressIndicator()),
+            ),
             error: (_, _) => const SizedBox(height: 80),
             data: (trend) {
               if (trend.isEmpty) {
                 return SizedBox(
                   height: 80,
                   child: Center(
-                    child: Text('No data yet. Start scheduling your medicines.',
-                        style: GoogleFonts.inter(
-                            fontSize: 13, color: AppColors.onSurfaceVariant),
-                        textAlign: TextAlign.center),
+                    child: Text(
+                      'No data yet. Start scheduling your medicines.',
+                      style: GoogleFonts.inter(
+                        fontSize: 13,
+                        color: AppColors.onSurfaceVariant,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
                   ),
                 );
               }
@@ -168,8 +226,8 @@ class HealthAnalyticsScreen extends ConsumerWidget {
                   ? trend.sublist(trend.length - 14)
                   : trend;
               final maxVal = data.fold<int>(1, (m, e) {
-                final t = (e['taken'] as int? ?? 0) +
-                    (e['missed'] as int? ?? 0);
+                final t =
+                    (e['taken'] as int? ?? 0) + (e['missed'] as int? ?? 0);
                 return t > m ? t : m;
               });
 
@@ -207,7 +265,10 @@ class HealthAnalyticsScreen extends ConsumerWidget {
             children: [
               _Legend(color: AppColors.primary, label: 'Taken'),
               const SizedBox(width: 16),
-              _Legend(color: AppColors.error.withValues(alpha: 0.7), label: 'Missed'),
+              _Legend(
+                color: AppColors.error.withValues(alpha: 0.7),
+                label: 'Missed',
+              ),
             ],
           ),
         ],
@@ -218,95 +279,110 @@ class HealthAnalyticsScreen extends ConsumerWidget {
   // ── Upcoming Schedule ─────────────────────────────────────────────────────
 
   Widget _buildUpcomingScheduleCard(
-      BuildContext context,
-      AsyncValue<List<Map<String, String>>> upcomingAsync) {
+    BuildContext context,
+    AsyncValue<List<Map<String, String>>> upcomingAsync,
+  ) {
     return GestureDetector(
       onTap: () => context.push(AppRoutes.medicationSchedule),
       child: VoxmedCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text('Upcoming Doses',
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Upcoming Doses',
                   style: GoogleFonts.manrope(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.onSurface)),
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: AppColors.primaryContainer.withValues(alpha: 0.3),
-                  borderRadius: BorderRadius.circular(12),
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.onSurface,
+                  ),
                 ),
-                child: const Icon(Icons.alarm,
-                    color: AppColors.primary, size: 18),
-              ),
-              const SizedBox(width: 4),
-              const Icon(Icons.chevron_right,
-                  color: AppColors.onSurfaceVariant, size: 18),
-            ],
-          ),
-          const SizedBox(height: 16),
-          upcomingAsync.when(
-            loading: () => const SizedBox(
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryContainer.withValues(alpha: 0.3),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(
+                    Icons.alarm,
+                    color: AppColors.primary,
+                    size: 18,
+                  ),
+                ),
+                const SizedBox(width: 4),
+                const Icon(
+                  Icons.chevron_right,
+                  color: AppColors.onSurfaceVariant,
+                  size: 18,
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            upcomingAsync.when(
+              loading: () => const SizedBox(
                 height: 60,
-                child: Center(child: CircularProgressIndicator())),
-            error: (_, _) =>
-                const SizedBox(height: 60),
-            data: (doses) {
-              if (doses.isEmpty) {
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: Text('No upcoming doses for today.',
-                      style: GoogleFonts.inter(
-                          fontSize: 13,
-                          color: AppColors.onSurfaceVariant)),
-                );
-              }
-              return Column(
-                children: doses.take(3).map((d) {
+                child: Center(child: CircularProgressIndicator()),
+              ),
+              error: (_, _) => const SizedBox(height: 60),
+              data: (doses) {
+                if (doses.isEmpty) {
                   return Padding(
-                    padding: const EdgeInsets.only(bottom: 10),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 8,
-                          height: 8,
-                          decoration: BoxDecoration(
-                            color: AppColors.primary,
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Text(
-                            d['medication_name'] ?? '',
-                            style: GoogleFonts.inter(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
-                                color: AppColors.onSurface),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        Text(
-                          d['time'] ?? '',
-                          style: GoogleFonts.inter(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.primary),
-                        ),
-                      ],
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Text(
+                      'No upcoming doses for today.',
+                      style: GoogleFonts.inter(
+                        fontSize: 13,
+                        color: AppColors.onSurfaceVariant,
+                      ),
                     ),
                   );
-                }).toList(),
-              );
-            },
-          ),
-        ],
+                }
+                return Column(
+                  children: doses.take(3).map((d) {
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 8,
+                            height: 8,
+                            decoration: BoxDecoration(
+                              color: AppColors.primary,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              d['medication_name'] ?? '',
+                              style: GoogleFonts.inter(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.onSurface,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          Text(
+                            d['time'] ?? '',
+                            style: GoogleFonts.inter(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.primary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }).toList(),
+                );
+              },
+            ),
+          ],
+        ),
       ),
-    ),
     );
   }
 
@@ -318,26 +394,38 @@ class HealthAnalyticsScreen extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Report Trends',
-              style: GoogleFonts.manrope(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.onSurface)),
+          Text(
+            'Report Trends',
+            style: GoogleFonts.manrope(
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              color: AppColors.onSurface,
+            ),
+          ),
           const SizedBox(height: 4),
-          Text('Health records uploaded by type',
-              style: GoogleFonts.inter(
-                  fontSize: 12, color: AppColors.onSurfaceVariant)),
+          Text(
+            'Health records uploaded by type',
+            style: GoogleFonts.inter(
+              fontSize: 12,
+              color: AppColors.onSurfaceVariant,
+            ),
+          ),
           const SizedBox(height: 16),
           records.when(
             loading: () => const SizedBox(
-                height: 60,
-                child: Center(child: CircularProgressIndicator())),
+              height: 60,
+              child: Center(child: CircularProgressIndicator()),
+            ),
             error: (_, _) => const SizedBox(height: 60),
             data: (recs) {
               if (recs.isEmpty) {
-                return Text('No reports uploaded yet.',
-                    style: GoogleFonts.inter(
-                        fontSize: 13, color: AppColors.onSurfaceVariant));
+                return Text(
+                  'No reports uploaded yet.',
+                  style: GoogleFonts.inter(
+                    fontSize: 13,
+                    color: AppColors.onSurfaceVariant,
+                  ),
+                );
               }
 
               // Count by type using the stable .value getter
@@ -359,15 +447,21 @@ class HealthAnalyticsScreen extends ConsumerWidget {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text(_typeLabel(e.key),
-                                style: GoogleFonts.inter(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w600,
-                                    color: AppColors.onSurface)),
-                            Text('${e.value}',
-                                style: GoogleFonts.inter(
-                                    fontSize: 12,
-                                    color: AppColors.onSurfaceVariant)),
+                            Text(
+                              _typeLabel(e.key),
+                              style: GoogleFonts.inter(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.onSurface,
+                              ),
+                            ),
+                            Text(
+                              '${e.value}',
+                              style: GoogleFonts.inter(
+                                fontSize: 12,
+                                color: AppColors.onSurfaceVariant,
+                              ),
+                            ),
                           ],
                         ),
                         const SizedBox(height: 4),
@@ -378,7 +472,8 @@ class HealthAnalyticsScreen extends ConsumerWidget {
                             minHeight: 6,
                             backgroundColor: AppColors.surfaceContainerHighest,
                             valueColor: const AlwaysStoppedAnimation<Color>(
-                                AppColors.primary),
+                              AppColors.primary,
+                            ),
                           ),
                         ),
                       ],
@@ -414,11 +509,12 @@ class _StackedBar extends StatelessWidget {
   final int total;
   final int maxVal;
 
-  const _StackedBar(
-      {required this.taken,
-      required this.missed,
-      required this.total,
-      required this.maxVal});
+  const _StackedBar({
+    required this.taken,
+    required this.missed,
+    required this.total,
+    required this.maxVal,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -465,14 +561,20 @@ class _Legend extends StatelessWidget {
         Container(
           width: 12,
           height: 12,
-          decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(3)),
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(3),
+          ),
         ),
         const SizedBox(width: 6),
-        Text(label,
-            style: GoogleFonts.inter(
-                fontSize: 11,
-                color: AppColors.onSurfaceVariant,
-                fontWeight: FontWeight.w500)),
+        Text(
+          label,
+          style: GoogleFonts.inter(
+            fontSize: 11,
+            color: AppColors.onSurfaceVariant,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
       ],
     );
   }

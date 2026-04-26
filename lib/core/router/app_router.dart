@@ -23,14 +23,15 @@ import '../../screens/doctor_chat_screen.dart';
 import '../../screens/profile_screen.dart';
 import '../../screens/record_detail_screen.dart';
 import '../../screens/medication_schedule_screen.dart';
+import '../../screens/commit_rate_screen.dart';
 import '../../core/theme/app_colors.dart';
 import '../../widgets/voxmed_app_bar.dart';
 import '../../widgets/voxmed_bottom_nav.dart';
 import '../../widgets/ai_fab.dart';
 import '../../core/config/supabase_config.dart';
 import '../../core/constants/app_constants.dart';
+import 'navigation_service.dart';
 
-final _rootNavigatorKey = GlobalKey<NavigatorState>();
 final _patientShellKey = GlobalKey<NavigatorState>();
 final _doctorShellKey = GlobalKey<NavigatorState>();
 final _authRefreshListenable = _GoRouterRefreshStream(
@@ -38,7 +39,7 @@ final _authRefreshListenable = _GoRouterRefreshStream(
 );
 
 final appRouter = GoRouter(
-  navigatorKey: _rootNavigatorKey,
+  navigatorKey: rootNavigatorKey,
   initialLocation: AppRoutes.login,
   refreshListenable: _authRefreshListenable,
   redirect: (context, state) {
@@ -69,12 +70,12 @@ final appRouter = GoRouter(
     // Auth routes (no shell)
     GoRoute(
       path: AppRoutes.login,
-      parentNavigatorKey: _rootNavigatorKey,
+      parentNavigatorKey: rootNavigatorKey,
       builder: (context, state) => const LoginScreen(),
     ),
     GoRoute(
       path: AppRoutes.register,
-      parentNavigatorKey: _rootNavigatorKey,
+      parentNavigatorKey: rootNavigatorKey,
       builder: (context, state) => const RegisterScreen(),
     ),
 
@@ -141,70 +142,77 @@ final appRouter = GoRouter(
     // Full-screen routes (no bottom nav)
     GoRoute(
       path: AppRoutes.profile,
-      parentNavigatorKey: _rootNavigatorKey,
+      parentNavigatorKey: rootNavigatorKey,
       builder: (context, state) => const ProfileScreen(),
     ),
     GoRoute(
       path: AppRoutes.aiAssistant,
-      parentNavigatorKey: _rootNavigatorKey,
+      parentNavigatorKey: rootNavigatorKey,
       builder: (context, state) => const AiAssistantScreen(),
     ),
     GoRoute(
       path: AppRoutes.doctorBooking,
-      parentNavigatorKey: _rootNavigatorKey,
+      parentNavigatorKey: rootNavigatorKey,
       builder: (context, state) => DoctorBookingDetailScreen(
         doctorId: state.uri.queryParameters['doctorId'],
       ),
     ),
     GoRoute(
       path: AppRoutes.scanRecords,
-      parentNavigatorKey: _rootNavigatorKey,
+      parentNavigatorKey: rootNavigatorKey,
       builder: (context, state) => const ScanRecordsScreen(),
     ),
     GoRoute(
       path: AppRoutes.prescriptionRenewals,
-      parentNavigatorKey: _rootNavigatorKey,
+      parentNavigatorKey: rootNavigatorKey,
       builder: (context, state) => const PrescriptionRenewalsScreen(),
     ),
     GoRoute(
       path: AppRoutes.liveConsultation,
-      parentNavigatorKey: _rootNavigatorKey,
+      parentNavigatorKey: rootNavigatorKey,
       builder: (context, state) => const LiveConsultationScreen(),
     ),
     GoRoute(
       path: AppRoutes.patientDetail,
-      parentNavigatorKey: _rootNavigatorKey,
+      parentNavigatorKey: rootNavigatorKey,
       builder: (context, state) => PatientDetailScreen(
         patientId: state.uri.queryParameters['patientId'] ?? '',
       ),
     ),
     GoRoute(
       path: AppRoutes.doctorSchedule,
-      parentNavigatorKey: _rootNavigatorKey,
+      parentNavigatorKey: rootNavigatorKey,
       builder: (context, state) => const DoctorScheduleScreen(),
     ),
     GoRoute(
       path: AppRoutes.doctorChat,
-      parentNavigatorKey: _rootNavigatorKey,
+      parentNavigatorKey: rootNavigatorKey,
       builder: (context, state) => DoctorChatScreen(
         otherDoctorId: state.uri.queryParameters['doctorId'] ?? '',
         otherDoctorName: Uri.decodeComponent(
-            state.uri.queryParameters['name'] ?? 'Doctor'),
+          state.uri.queryParameters['name'] ?? 'Doctor',
+        ),
         otherDoctorSpecialty: Uri.decodeComponent(
-            state.uri.queryParameters['specialty'] ?? ''),
+          state.uri.queryParameters['specialty'] ?? '',
+        ),
       ),
     ),
     GoRoute(
       path: AppRoutes.recordDetail,
-      parentNavigatorKey: _rootNavigatorKey,
+      parentNavigatorKey: rootNavigatorKey,
       builder: (context, state) => RecordDetailScreen(
         recordId: state.uri.queryParameters['recordId'] ?? '',
       ),
     ),
     GoRoute(
       path: AppRoutes.medicationSchedule,
-      parentNavigatorKey: _rootNavigatorKey,
-      builder: (_, __) => const MedicationScheduleScreen(),
+      parentNavigatorKey: rootNavigatorKey,
+      builder: (context, state) => const MedicationScheduleScreen(),
+    ),
+    GoRoute(
+      path: AppRoutes.commitRate,
+      parentNavigatorKey: rootNavigatorKey,
+      builder: (context, state) => const CommitRateScreen(),
     ),
   ],
 );
@@ -307,7 +315,10 @@ class _DoctorShell extends StatelessWidget {
           labelTextStyle: WidgetStateProperty.resolveWith((states) {
             if (states.contains(WidgetState.selected)) {
               return const TextStyle(
-                  color: DoctorColors.primary, fontWeight: FontWeight.w700, fontSize: 11);
+                color: DoctorColors.primary,
+                fontWeight: FontWeight.w700,
+                fontSize: 11,
+              );
             }
             return const TextStyle(color: Color(0xFF5A6061), fontSize: 11);
           }),

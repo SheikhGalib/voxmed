@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
@@ -5,7 +7,10 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:timezone/data/latest_all.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 
+import '../core/constants/app_constants.dart';
+import '../core/router/navigation_service.dart';
 import '../models/medication_schedule.dart';
+import 'medication_schedule_repository.dart';
 
 /// Channel identifiers for Android notification categories.
 class _Channels {
@@ -59,14 +64,22 @@ class NotificationService {
 
     await _createChannels();
     _initialized = true;
+
+    final launchDetails = await _plugin.getNotificationAppLaunchDetails();
+    final launchResponse = launchDetails?.notificationResponse;
+    if ((launchDetails?.didNotificationLaunchApp ?? false) &&
+        launchResponse != null) {
+      unawaited(handleNotificationResponse(launchResponse));
+    }
   }
 
   Future<void> _createChannels() async {
     if (!Platform.isAndroid) return;
 
-    final androidPlugin =
-        _plugin.resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>();
+    final androidPlugin = _plugin
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >();
 
     await androidPlugin?.createNotificationChannel(
       const AndroidNotificationChannel(
@@ -120,6 +133,7 @@ class NotificationService {
     required String dosage,
     required DateTime scheduledTime,
     bool asAlarm = false,
+    String? payload,
   }) async {
     if (!_initialized) await initialize();
 
@@ -128,8 +142,9 @@ class NotificationService {
     final androidDetails = AndroidNotificationDetails(
       asAlarm ? _Channels.alarmId : _Channels.medicationId,
       asAlarm ? _Channels.alarmName : _Channels.medicationName,
-      channelDescription:
-          asAlarm ? _Channels.alarmDesc : _Channels.medicationDesc,
+      channelDescription: asAlarm
+          ? _Channels.alarmDesc
+          : _Channels.medicationDesc,
       importance: asAlarm ? Importance.max : Importance.high,
       priority: asAlarm ? Priority.max : Priority.high,
       fullScreenIntent: asAlarm,
@@ -139,10 +154,16 @@ class NotificationService {
       ticker: 'Medication reminder',
       icon: '@mipmap/ic_launcher',
       actions: [
-        const AndroidNotificationAction('taken', 'Taken ✓',
-            showsUserInterface: false),
-        const AndroidNotificationAction('snooze', 'Snooze 10 min',
-            showsUserInterface: false),
+        const AndroidNotificationAction(
+          'taken',
+          'Taken ✓',
+          showsUserInterface: false,
+        ),
+        const AndroidNotificationAction(
+          'snooze',
+          'Snooze 10 min',
+          showsUserInterface: false,
+        ),
       ],
     );
 
@@ -157,6 +178,7 @@ class NotificationService {
       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
       uiLocalNotificationDateInterpretation:
           UILocalNotificationDateInterpretation.absoluteTime,
+      payload: payload,
     );
   }
 
@@ -185,8 +207,7 @@ class NotificationService {
         final h = int.tryParse(parts[0]) ?? 8;
         final m = int.tryParse(parts.length > 1 ? parts[1] : '0') ?? 0;
 
-        final doseTime =
-            DateTime(day.year, day.month, day.day, h, m);
+        final doseTime = DateTime(day.year, day.month, day.day, h, m);
 
         if (doseTime.isBefore(now)) continue;
 
@@ -198,6 +219,14 @@ class NotificationService {
           medicationName: schedule.medicationName,
           dosage: schedule.dosage,
           scheduledTime: doseTime,
+          payload: buildMedicationPayload(
+            patientId: schedule.patientId,
+            scheduleId: schedule.id,
+            prescriptionItemId: schedule.prescriptionItemId,
+            medicationName: schedule.medicationName,
+            dosage: schedule.dosage,
+            scheduledTime: doseTime,
+          ),
         );
       }
     }
@@ -229,6 +258,105 @@ class NotificationService {
 
   // ─────────────────────────── Helpers ─────────────────────────────────────
 
+  Future<void> handleNotificationResponse(NotificationResponse response) async {
+    final actionId = response.actionId ?? '';
+    final payload = parseMedicationPayload(response.payload);
+
+    debugPrint(
+      '[NotificationService] tapped: ${response.id} action: $actionId',
+    );
+
+    if (actionId == 'taken') {
+      await _logTaken(payload);
+      return;
+    }
+
+    if (actionId == 'snooze') {
+      await _snooze(payload);
+      return;
+    }
+
+    final targetRoute =
+        payload['target_route'] as String? ?? AppRoutes.commitRate;
+    navigateToAppRoute(targetRoute);
+  }
+
+  @visibleForTesting
+  static String buildMedicationPayload({
+    required String patientId,
+    required String scheduleId,
+    required String medicationName,
+    required String dosage,
+    required DateTime scheduledTime,
+    String? prescriptionItemId,
+    String targetRoute = AppRoutes.commitRate,
+  }) {
+    final payload = <String, dynamic>{
+      'type': 'medication_reminder',
+      'target_route': targetRoute,
+      'patient_id': patientId,
+      'schedule_id': scheduleId,
+      'medication_name': medicationName,
+      'dosage': dosage,
+      'scheduled_time': scheduledTime.toUtc().toIso8601String(),
+    };
+    if (prescriptionItemId != null) {
+      payload['prescription_item_id'] = prescriptionItemId;
+    }
+
+    return jsonEncode(payload);
+  }
+
+  @visibleForTesting
+  static Map<String, dynamic> parseMedicationPayload(String? payload) {
+    if (payload == null || payload.isEmpty) return {};
+
+    try {
+      final decoded = jsonDecode(payload);
+      if (decoded is! Map) return {};
+      return Map<String, dynamic>.from(decoded);
+    } catch (_) {
+      return {};
+    }
+  }
+
+  Future<void> _logTaken(Map<String, dynamic> payload) async {
+    final patientId = payload['patient_id'] as String?;
+    final scheduledTimeRaw = payload['scheduled_time'] as String?;
+    if (patientId == null || scheduledTimeRaw == null) return;
+
+    final scheduledTime = DateTime.tryParse(scheduledTimeRaw);
+    if (scheduledTime == null) return;
+
+    await MedicationScheduleRepository().logAdherence(
+      patientId: patientId,
+      scheduledTime: scheduledTime,
+      status: AdherenceStatus.taken.value,
+      scheduleId: payload['schedule_id'] as String?,
+      prescriptionItemId: payload['prescription_item_id'] as String?,
+      medicationName: payload['medication_name'] as String?,
+    );
+  }
+
+  Future<void> _snooze(Map<String, dynamic> payload) async {
+    final medicationName = payload['medication_name'] as String?;
+    final dosage = payload['dosage'] as String?;
+    if (medicationName == null || dosage == null) return;
+
+    final snoozeTime = DateTime.now().add(const Duration(minutes: 10));
+    final id = snoozeTime.millisecondsSinceEpoch % 2147483647;
+    await scheduleMedicationReminder(
+      id: id,
+      medicationName: medicationName,
+      dosage: dosage,
+      scheduledTime: snoozeTime,
+      payload: jsonEncode({
+        ...payload,
+        'scheduled_time': snoozeTime.toUtc().toIso8601String(),
+      }),
+    );
+  }
+
   /// Deterministic notification ID that fits in a 32-bit signed integer.
   int _stableId(String scheduleId, int dayOffset, int hour, int minute) {
     // Use a simple polynomial hash that fits in 2^31-1.
@@ -245,13 +373,10 @@ class NotificationService {
 // callbacks (must be top-level / static functions).
 @pragma('vm:entry-point')
 void _onNotificationTap(NotificationResponse response) {
-  // Notification tap handled inside the app; routing happens via app state.
-  debugPrint(
-      '[NotificationService] tapped: ${response.id} action: ${response.actionId}');
+  unawaited(NotificationService().handleNotificationResponse(response));
 }
 
 @pragma('vm:entry-point')
 void _onBackgroundNotificationTap(NotificationResponse response) {
-  debugPrint(
-      '[NotificationService] background tap: ${response.id} action: ${response.actionId}');
+  unawaited(NotificationService().handleNotificationResponse(response));
 }

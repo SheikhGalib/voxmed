@@ -38,6 +38,14 @@ final adherenceTrendProvider =
       .getAdherenceTrend(days: 30);
 });
 
+/// Detailed 30-day medication intake rows for the commit-rate page.
+final adherenceDetailsProvider =
+    FutureProvider<List<MedicationAdherenceEntry>>((ref) async {
+  return ref
+      .read(medicationScheduleRepositoryProvider)
+      .getAdherenceDetails(days: 30);
+});
+
 /// Returns the first overdue dose from the last 2 hours that hasn't been taken.
 /// Returns null if all doses are on track.
 final overdueReminderProvider =

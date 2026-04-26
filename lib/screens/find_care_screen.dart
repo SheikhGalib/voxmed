@@ -8,8 +8,11 @@ import '../core/responsive/responsive.dart';
 import '../core/theme/app_colors.dart';
 import '../models/doctor.dart';
 import '../models/hospital.dart';
+import '../models/medical_test.dart';
 import '../providers/doctor_provider.dart';
 import '../providers/hospital_provider.dart';
+import '../providers/medical_test_provider.dart';
+import '../repositories/medical_test_repository.dart';
 import '../widgets/empty_state_widget.dart';
 import '../widgets/error_widget.dart';
 import '../widgets/loading_indicator.dart';
@@ -26,7 +29,61 @@ class _FindCareScreenState extends ConsumerState<FindCareScreen> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
   String _selectedSpecialty = 'All Specialties';
+  String _selectedTestCategory = 'All Tests';
+  MedicalTestSort _testSort = MedicalTestSort.priceLowToHigh;
   String? _selectedHospitalId;
+  int _selectedCareTab = 0;
+
+  Widget _buildCareSwitcher() {
+    final tabs = ['Hospitals', 'Doctors', 'Tests'];
+
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: AppColors.outlineVariant.withValues(alpha: 0.14),
+        ),
+      ),
+      child: Row(
+        children: List.generate(tabs.length, (index) {
+          final isSelected = _selectedCareTab == index;
+
+          return Expanded(
+            child: GestureDetector(
+              onTap: () {
+                setState(() {
+                  _selectedCareTab = index;
+                });
+              },
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 180),
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                decoration: BoxDecoration(
+                  color: isSelected
+                      ? AppColors.primary
+                      : Colors.transparent,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Text(
+                  tabs[index],
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.inter(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: isSelected
+                        ? AppColors.onPrimary
+                        : AppColors.onSurfaceVariant,
+                  ),
+                ),
+              ),
+            ),
+          );
+        }),
+      ),
+    );
+  }
 
   @override
   void dispose() {
@@ -39,7 +96,12 @@ class _FindCareScreenState extends ConsumerState<FindCareScreen> {
     final hospitalsAsync = ref.watch(hospitalSearchProvider(_searchQuery));
 
     return SingleChildScrollView(
-      padding: EdgeInsets.fromLTRB(Responsive.hPad(context), 16, Responsive.hPad(context), 32),
+      padding: EdgeInsets.fromLTRB(
+        Responsive.hPad(context),
+        16,
+        Responsive.hPad(context),
+        32,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -63,31 +125,27 @@ class _FindCareScreenState extends ConsumerState<FindCareScreen> {
           const SizedBox(height: 20),
           _buildSearchBar(),
           const SizedBox(height: 20),
-          Text(
-            'Hospitals',
-            style: GoogleFonts.manrope(
-              fontSize: 18,
-              fontWeight: FontWeight.w700,
-              color: AppColors.onSurface,
-            ),
-          ),
-          const SizedBox(height: 12),
-          hospitalsAsync.when(
-            loading: () => const SizedBox(
-              height: 120,
-              child: VoxmedLoadingIndicator(message: 'Loading hospitals...'),
-            ),
-            error: (error, _) => SizedBox(
-              height: 150,
-              child: VoxmedErrorWidget(
-                message: error.toString(),
-                onRetry: () => ref.invalidate(hospitalSearchProvider(_searchQuery)),
+          _buildCareSwitcher(),
+          const SizedBox(height: 16),
+          if (_selectedCareTab == 0)
+            hospitalsAsync.when(
+              loading: () => const SizedBox(
+                height: 120,
+                child: VoxmedLoadingIndicator(message: 'Loading hospitals...'),
               ),
-            ),
-            data: (hospitals) => _buildHospitalSection(hospitals),
-          ),
-          const SizedBox(height: 22),
-          _buildDoctorsSection(),
+              error: (error, _) => SizedBox(
+                height: 150,
+                child: VoxmedErrorWidget(
+                  message: error.toString(),
+                  onRetry: () => ref.invalidate(hospitalSearchProvider(_searchQuery)),
+                ),
+              ),
+              data: (hospitals) => _buildHospitalSection(hospitals),
+            )
+          else if (_selectedCareTab == 1)
+            _buildDoctorsSection()
+          else
+            _buildTestsSection(),
         ],
       ),
     );
@@ -109,7 +167,7 @@ class _FindCareScreenState extends ConsumerState<FindCareScreen> {
             child: TextField(
               controller: _searchController,
               decoration: InputDecoration(
-                hintText: 'Search hospitals or doctors',
+                hintText: 'Search hospitals, doctors, or lab tests',
                 hintStyle: GoogleFonts.inter(
                   fontSize: 14,
                   color: AppColors.onSurfaceVariant,
@@ -141,12 +199,12 @@ class _FindCareScreenState extends ConsumerState<FindCareScreen> {
 
   Widget _buildHospitalSection(List<Hospital> hospitals) {
     if (hospitals.isEmpty) {
-      return const SizedBox(
-        height: 180,
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 20),
         child: EmptyStateWidget(
           icon: Icons.local_hospital_outlined,
-          title: 'No hospitals found',
-          subtitle: 'Try a different search query.',
+          title: 'Nothing similar found',
+          subtitle: 'Try searching with another hospital name or location.',
         ),
       );
     }
@@ -223,7 +281,7 @@ class _FindCareScreenState extends ConsumerState<FindCareScreen> {
                   ),
                   const Spacer(),
                   Text(
-                    isSelected ? 'Selected' : 'Tap to view doctors',
+                    isSelected ? 'Selected' : 'Tap to view doctors & tests',
                     style: GoogleFonts.inter(
                       fontSize: 11,
                       fontWeight: FontWeight.w600,
@@ -304,14 +362,12 @@ class _FindCareScreenState extends ConsumerState<FindCareScreen> {
             }
 
             if (filteredDoctors.isEmpty) {
-              return SizedBox(
-                height: 180,
+              return Padding(
+                padding: const EdgeInsets.symmetric(vertical: 20),
                 child: EmptyStateWidget(
                   icon: Icons.person_search,
-                  title: 'No doctors available',
-                  subtitle: _searchQuery.isNotEmpty
-                      ? 'Try a different doctor name, specialty, or hospital.'
-                      : 'Try another specialty or hospital.',
+                  title: 'Nothing similar found',
+                  subtitle: 'Try searching with another doctor name, specialty, or hospital.',
                 ),
               );
             }
@@ -324,6 +380,86 @@ class _FindCareScreenState extends ConsumerState<FindCareScreen> {
               itemBuilder: (context, index) {
                 final doctor = filteredDoctors[index];
                 return _DoctorTile(doctor: doctor);
+              },
+            );
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTestsSection() {
+    final filters = MedicalTestFilters(
+      hospitalId: _selectedHospitalId,
+      query: _searchQuery,
+      category: _selectedTestCategory,
+      sort: _testSort,
+    );
+    final testsAsync = ref.watch(
+      medicalTestsProvider(filters),
+    );
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                _selectedHospitalId == null
+                    ? 'Lab Tests'
+                    : 'Lab Tests in Selected Hospital',
+                style: GoogleFonts.manrope(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.onSurface,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        Wrap(
+          spacing: 10,
+          runSpacing: 10,
+          children: [
+            _buildTestCategoryFilter(),
+            _buildTestSortFilter(),
+          ],
+        ),
+        const SizedBox(height: 12),
+        testsAsync.when(
+          loading: () => const SizedBox(
+            height: 120,
+            child: VoxmedLoadingIndicator(message: 'Loading lab tests...'),
+          ),
+          error: (error, _) => SizedBox(
+            height: 150,
+            child: VoxmedErrorWidget(
+              message: error.toString(),
+              onRetry: () => ref.invalidate(medicalTestsProvider(filters)),
+            ),
+          ),
+          data: (tests) {
+            if (tests.isEmpty) {
+              return Padding(
+                padding: const EdgeInsets.symmetric(vertical: 20),
+                child: EmptyStateWidget(
+                  icon: Icons.biotech_outlined,
+                  title: 'Nothing similar found',
+                  subtitle: 'Try searching with another test name or category.',
+                ),
+              );
+            }
+
+            return ListView.separated(
+              itemCount: tests.length,
+              physics: const NeverScrollableScrollPhysics(),
+              shrinkWrap: true,
+              separatorBuilder: (_, _) => const SizedBox(height: 12),
+              itemBuilder: (context, index) {
+                return _MedicalTestTile(test: tests[index]);
               },
             );
           },
@@ -350,6 +486,77 @@ class _FindCareScreenState extends ConsumerState<FindCareScreen> {
           setState(() => _selectedSpecialty = value);
         },
       ),
+    );
+  }
+
+  Widget _buildTestCategoryFilter() {
+    return _FilterPill(
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          value: _selectedTestCategory,
+          borderRadius: BorderRadius.circular(12),
+          items: const [
+            DropdownMenuItem(value: 'All Tests', child: Text('All Tests')),
+            DropdownMenuItem(value: 'Blood', child: Text('Blood')),
+            DropdownMenuItem(value: 'Pathology', child: Text('Pathology')),
+            DropdownMenuItem(value: 'Radiology', child: Text('Radiology')),
+            DropdownMenuItem(value: 'Imaging', child: Text('Imaging')),
+            DropdownMenuItem(value: 'Cardiology', child: Text('Cardiology')),
+            DropdownMenuItem(value: 'General', child: Text('General')),
+          ],
+          onChanged: (value) {
+            if (value == null) return;
+            setState(() => _selectedTestCategory = value);
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTestSortFilter() {
+    return _FilterPill(
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<MedicalTestSort>(
+          value: _testSort,
+          borderRadius: BorderRadius.circular(12),
+          items: const [
+            DropdownMenuItem(
+              value: MedicalTestSort.priceLowToHigh,
+              child: Text('Price: Low'),
+            ),
+            DropdownMenuItem(
+              value: MedicalTestSort.priceHighToLow,
+              child: Text('Price: High'),
+            ),
+          ],
+          onChanged: (value) {
+            if (value == null) return;
+            setState(() => _testSort = value);
+          },
+        ),
+      ),
+    );
+  }
+}
+
+class _FilterPill extends StatelessWidget {
+  final Widget child;
+
+  const _FilterPill({required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 44,
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: AppColors.outlineVariant.withValues(alpha: 0.16),
+        ),
+      ),
+      child: child,
     );
   }
 }
@@ -454,6 +661,84 @@ class _DoctorTile extends StatelessWidget {
             child: ElevatedButton(
               onPressed: () => context.push('${AppRoutes.doctorBooking}?doctorId=${doctor.id}'),
               child: const Text('Book Appointment'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MedicalTestTile extends StatelessWidget {
+  final MedicalTest test;
+
+  const _MedicalTestTile({required this.test});
+
+  @override
+  Widget build(BuildContext context) {
+    return VoxmedCard(
+      color: AppColors.surfaceContainerLow,
+      padding: const EdgeInsets.all(16),
+      child: Row(
+        children: [
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: AppColors.primaryContainer.withValues(alpha: 0.24),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: const Icon(Icons.biotech, color: AppColors.primary),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  test.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.manrope(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.onSurface,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  test.hospitalName == null
+                      ? test.displayCategory
+                      : '${test.displayCategory} - ${test.hospitalName}',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.inter(
+                    fontSize: 12,
+                    color: AppColors.onSurfaceVariant,
+                  ),
+                ),
+                if (test.description != null && test.description!.isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    test.description!,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: GoogleFonts.inter(
+                      fontSize: 11,
+                      color: AppColors.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          Text(
+            test.priceLabel,
+            style: GoogleFonts.manrope(
+              fontSize: 14,
+              fontWeight: FontWeight.w800,
+              color: AppColors.primary,
             ),
           ),
         ],
