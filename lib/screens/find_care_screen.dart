@@ -32,11 +32,10 @@ class _FindCareScreenState extends ConsumerState<FindCareScreen> {
   String _selectedTestCategory = 'All Tests';
   MedicalTestSort _testSort = MedicalTestSort.priceLowToHigh;
   String? _selectedHospitalId;
-  int _selectedCareTab = 0;
+  int _selectedCareTab = 0; // 0 = Doctors, 1 = Tests
 
-  Widget _buildCareSwitcher() {
-    final tabs = ['Hospitals', 'Doctors', 'Tests'];
-
+  Widget _buildDoctorsTestsSwitcher() {
+    final tabs = ['Doctors', 'Tests'];
     return Container(
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
@@ -49,7 +48,6 @@ class _FindCareScreenState extends ConsumerState<FindCareScreen> {
       child: Row(
         children: List.generate(tabs.length, (index) {
           final isSelected = _selectedCareTab == index;
-
           return Expanded(
             child: GestureDetector(
               onTap: () {
@@ -125,24 +123,26 @@ class _FindCareScreenState extends ConsumerState<FindCareScreen> {
           const SizedBox(height: 20),
           _buildSearchBar(),
           const SizedBox(height: 20),
-          _buildCareSwitcher(),
+          // Hospitals always on top
+          hospitalsAsync.when(
+            loading: () => const SizedBox(
+              height: 120,
+              child: VoxmedLoadingIndicator(message: 'Loading hospitals...'),
+            ),
+            error: (error, _) => SizedBox(
+              height: 150,
+              child: VoxmedErrorWidget(
+                message: error.toString(),
+                onRetry: () => ref.invalidate(hospitalSearchProvider(_searchQuery)),
+              ),
+            ),
+            data: (hospitals) => _buildHospitalSection(hospitals),
+          ),
+          const SizedBox(height: 24),
+          // Doctors/Tests switcher
+          _buildDoctorsTestsSwitcher(),
           const SizedBox(height: 16),
           if (_selectedCareTab == 0)
-            hospitalsAsync.when(
-              loading: () => const SizedBox(
-                height: 120,
-                child: VoxmedLoadingIndicator(message: 'Loading hospitals...'),
-              ),
-              error: (error, _) => SizedBox(
-                height: 150,
-                child: VoxmedErrorWidget(
-                  message: error.toString(),
-                  onRetry: () => ref.invalidate(hospitalSearchProvider(_searchQuery)),
-                ),
-              ),
-              data: (hospitals) => _buildHospitalSection(hospitals),
-            )
-          else if (_selectedCareTab == 1)
             _buildDoctorsSection()
           else
             _buildTestsSection(),
