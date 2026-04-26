@@ -1,6 +1,6 @@
 # VoxMed Connect — Progress Tracker
 
-> **Last Updated:** 2026-04-25 (rev 4)
+> **Last Updated:** 2026-04-26 (rev 6)
 
 ---
 
@@ -68,8 +68,19 @@
 |------|--------|------|-------|
 | Build `MedicalRecord` model + repository | ✅ | 2026-04-07 | Repository/provider wired to Supabase records |
 | Connect Health Passport screen to live data | ✅ | 2026-04-07 | Passport now renders recent records and prescriptions |
-| Implement Scan Records (camera + upload) | ✅ | 2026-04-10 | Camera/gallery pick → Supabase Storage → DB record; null FK guard fix |
-| Deploy `gemini-ocr` Edge Function | ⏳ | | Pending backend function deployment |
+| Implement Scan Records (camera + gallery) | ✅ | 2026-04-10 | Camera/gallery pick; null FK guard fix |
+| **Local-first file storage** | ✅ | 2026-04-26 | Files stored in `getApplicationDocumentsDirectory()/records/`; no Supabase Storage upload; `saveFileLocally()` + `resolveLocalFilePath()` in `MedicalRecordRepository` |
+| **Dual OCR engine (Gemini + Tesseract)** | ✅ | 2026-04-26 | `lib/repositories/ocr_service.dart` — `OcrService.extractFromImage()` and `extractFromPdf()`; engine selectable at runtime; Tesseract auto-disabled for PDFs |
+| **PDF upload & OCR** | ✅ | 2026-04-26 | `file_picker` integration in `ScanRecordsScreen`; PDFs always use Gemini; file type stored in `data.file_type` |
+| **OCR engine selector UI** | ✅ | 2026-04-26 | Toggle chip between Gemini AI / Tesseract Offline; auto-fills title from extracted fields |
+| **`OcrEngine` + `DocumentSourceType` enums** | ✅ | 2026-04-26 | Added to `app_constants.dart` |
+| **`MedicalRecord` OCR convenience getters** | ✅ | 2026-04-26 | `localFilePath`, `ocrEngine`, `ocrRawText`, `isPdf` derived from `data` JSONB |
+| **Refactor `MedicalRecordsNotifier`** | ✅ | 2026-04-26 | `saveRecordLocally()` replaces `uploadRecord()`; backward-compat shim kept |
+| **New packages** | ✅ | 2026-04-26 | `google_generative_ai`, `flutter_tesseract_ocr`, `file_picker`, `path_provider`, `path` |
+| **OCR unit tests** | ✅ | 2026-04-26 | `test/ocr_test.dart` — 28 new tests (enums, OcrResult, model getters, fromJson); 113/113 total passing |
+| **Clickable record cards (patient + doctor)** | ✅ | 2026-04-26 | Tapping any record in Health Passport (Clinical History) or Doctor's Patient Detail → Records tab navigates to `RecordDetailScreen` via `/record-detail?recordId=` |
+| **`RecordDetailScreen`** | ✅ | 2026-04-26 | Full-screen detail view: header card (type, engine chip, date), structured OCR fields, scrollable raw text with expand/collapse, `SelectableText` for copy; `lib/screens/record_detail_screen.dart` |
+| Deploy `gemini-ocr` Edge Function | ⏳ | | No longer required — Gemini called directly from device via `google_generative_ai` SDK; `GEMINI_API_KEY` in `.env` |
 | Profile editing (avatar upload) | ⏳ | | Pending |
 | Dashboard digital passport card routing | ✅ | 2026-04-10 | Card now navigates to Health Passport panel |
 | Dashboard recent reports auto-fetch | ✅ | 2026-04-08 | Switched to `recentMedicalRecordsProvider` (auto-fetches) |

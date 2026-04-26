@@ -1,14 +1,19 @@
 import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:path/path.dart' as p;
 import '../core/constants/app_constants.dart';
 import '../core/utils/error_handler.dart';
 import '../models/medical_record.dart';
 import '../repositories/medical_record_repository.dart';
+import '../repositories/ocr_service.dart';
 
 /// Provides the MedicalRecordRepository instance.
 final medicalRecordRepositoryProvider = Provider<MedicalRecordRepository>((ref) {
   return MedicalRecordRepository();
 });
+
+/// Persisted OCR engine preference (survives hot-reload; reset per session).
+final ocrEngineProvider = StateProvider<OcrEngine>((ref) => OcrEngine.gemini);
 
 /// State for medical records list with loading/error handling.
 class MedicalRecordsState {
@@ -52,62 +57,64 @@ class MedicalRecordsNotifier extends StateNotifier<MedicalRecordsState> {
     }
   }
 
-  /// Upload a record file and create a record in database.
-  Future<MedicalRecord?> uploadRecord({
+  /// Local-first save: copy file to device, run OCR, persist metadata to DB.
+  ///
+  /// No Supabase Storage upload is performed.
+  /// Returns the created [MedicalRecord] or null on failure.
+  Future<MedicalRecord?> saveRecordLocally({
     required File file,
     required String fileName,
     required String title,
     required RecordType recordType,
+    required OcrEngine ocrEngine,
     String? description,
     DateTime? recordDate,
+    bool isPdf = false,
   }) async {
     try {
-      // Upload file to storage
-      final fileUrl = await _repository.uploadRecordFile(
-        file: file,
-        fileName: fileName,
-        bucket: Buckets.reports,
-      );
+      // 1. Copy file into app documents directory
+      final relPath = await _repository.saveFileLocally(file, fileName);
 
-      // Extract data via OCR (async, non-blocking)
-      Map<String, dynamic>? extractedData;
+      // 2. Run OCR (non-blocking on failure)
+      OcrResult? ocrResult;
       try {
-        extractedData = await _repository.extractDataFromRecord(fileUrl);
-      } catch (e) {
-        print('OCR extraction failed (non-critical): $e'); // ignore: avoid_print
+        ocrResult = await _repository.runOcr(file, ocrEngine, isPdf: isPdf);
+      } catch (_) {
+        // OCR is non-critical — record is still saved without extracted data
       }
 
-      // Create record in database
+      // 3. Persist to database
       final record = await _repository.createRecord(
         title: title,
         recordType: recordType,
         description: description,
-        fileUrl: fileUrl,
-        extractedData: extractedData,
+        localRelativePath: relPath,
+        isPdf: isPdf,
+        ocrResult: ocrResult,
         recordDate: recordDate,
       );
 
-      // Add to local state
-      state = state.copyWith(
-        records: [record, ...state.records],
-      );
-
+      // 4. Prepend to in-memory list
+      state = state.copyWith(records: [record, ...state.records]);
       return record;
     } on AppException catch (e) {
       state = state.copyWith(error: e);
       return null;
+    } catch (e) {
+      state = state.copyWith(
+        error: AppException(message: 'Failed to save record: $e'),
+      );
+      return null;
     }
   }
 
-  /// Delete a medical record.
+  /// Delete a medical record (removes local file + DB row).
   Future<void> deleteRecord(String recordId) async {
     try {
       await _repository.deleteRecord(recordId);
-
-      // Remove from local state
-      final updatedRecords =
-          state.records.where((r) => r.id != recordId).toList();
-      state = state.copyWith(records: updatedRecords);
+      state = state.copyWith(
+        records: state.records.where((r) => r.id != recordId).toList(),
+      );
     } on AppException catch (e) {
       state = state.copyWith(error: e);
     }
@@ -138,3 +145,44 @@ final recentMedicalRecordsProvider = FutureProvider<List<MedicalRecord>>((ref) a
   final repository = ref.read(medicalRecordRepositoryProvider);
   return repository.listByUser(limit: 10);
 });
+
+/// Resolves the absolute path for a [MedicalRecord] that has a local file.
+final localFilePathProvider =
+    FutureProvider.family<String?, MedicalRecord>((ref, record) async {
+  final rel = record.localFilePath;
+  if (rel == null) return null;
+  final repository = ref.read(medicalRecordRepositoryProvider);
+  return repository.resolveLocalFilePath(rel);
+});
+
+// ── Backward-compat shim (old uploadRecord callers) ──────────────────────────
+
+extension MedicalRecordsNotifierCompat on MedicalRecordsNotifier {
+  /// Deprecated: use [saveRecordLocally] instead.
+  ///
+  /// Kept to avoid breaking any callers while migration is in progress.
+  @Deprecated('Use saveRecordLocally — files are kept on-device, not uploaded.')
+  Future<MedicalRecord?> uploadRecord({
+    required File file,
+    required String fileName,
+    required String title,
+    required RecordType recordType,
+    String? description,
+    DateTime? recordDate,
+  }) {
+    final ext = p.extension(fileName).toLowerCase();
+    final isPdf = ext == '.pdf';
+    return saveRecordLocally(
+      file: file,
+      fileName: fileName,
+      title: title,
+      recordType: recordType,
+      ocrEngine: OcrEngine.gemini,
+      description: description,
+      recordDate: recordDate,
+      isPdf: isPdf,
+    );
+  }
+}
+
+

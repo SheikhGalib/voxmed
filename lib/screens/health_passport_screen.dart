@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import '../core/constants/app_constants.dart';
 import '../core/responsive/responsive.dart';
 import '../core/theme/app_colors.dart';
+import '../models/medical_record.dart';
 import '../providers/medical_record_provider.dart';
 import '../providers/prescription_provider.dart';
 import '../widgets/voxmed_card.dart';
@@ -87,10 +88,11 @@ class HealthPassportScreen extends ConsumerWidget {
                   final record = records[i];
                   final isUrgent = record.title.toLowerCase().contains('urgent');
                   return _buildTimelineItem(
+                    context: context,
+                    record: record,
                     date: record.recordDate != null ? DateFormat('MMM dd, yyyy').format(record.recordDate!).toUpperCase() : 'UNKNOWN DATE',
                     title: record.title,
                     description: record.description ?? '',
-                    tags: record.fileUrl != null ? ['VIEW FILE'] : [],
                     isFirst: i == 0,
                     isLast: i == records.length - 1,
                     urgent: isUrgent,
@@ -171,10 +173,11 @@ class HealthPassportScreen extends ConsumerWidget {
   }
 
   Widget _buildTimelineItem({
+    required BuildContext context,
+    required MedicalRecord record,
     required String date,
     required String title,
     required String description,
-    List<String> tags = const [],
     bool isFirst = false,
     bool isLast = false,
     bool urgent = false,
@@ -207,39 +210,76 @@ class HealthPassportScreen extends ConsumerWidget {
           ),
           const SizedBox(width: 12),
           Expanded(
-            child: Padding(
-              padding: const EdgeInsets.only(bottom: 24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(date,
-                      style: GoogleFonts.inter(
-                        fontSize: 10,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 1,
-                        color: urgent ? AppColors.error : AppColors.onSurfaceVariant,
-                      )),
-                  const SizedBox(height: 6),
-                  Text(title,
-                      style: GoogleFonts.manrope(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.onSurface)),
-                  const SizedBox(height: 4),
-                  Text(description,
-                      style: GoogleFonts.inter(fontSize: 13, color: AppColors.onSurfaceVariant, height: 1.5)),
-                  if (tags.isNotEmpty) ...[
-                    const SizedBox(height: 10),
-                    Wrap(
-                      spacing: 8,
-                      children: tags.map((tag) => Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                        decoration: BoxDecoration(
-                          color: AppColors.surfaceContainerLow,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(tag, style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w600, color: AppColors.onSurfaceVariant)),
-                      )).toList(),
+            child: GestureDetector(
+              onTap: () => context.push(
+                '${AppRoutes.recordDetail}?recordId=${record.id}',
+              ),
+              child: Container(
+                margin: const EdgeInsets.only(bottom: 24),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.04),
+                      blurRadius: 6,
+                      offset: const Offset(0, 1),
                     ),
                   ],
-                ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(date,
+                        style: GoogleFonts.inter(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 1,
+                          color: urgent ? AppColors.error : AppColors.onSurfaceVariant,
+                        )),
+                    const SizedBox(height: 4),
+                    Text(title,
+                        style: GoogleFonts.manrope(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.onSurface)),
+                    if (description.isNotEmpty) ...[  
+                      const SizedBox(height: 4),
+                      Text(description,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: GoogleFonts.inter(
+                              fontSize: 12,
+                              color: AppColors.onSurfaceVariant,
+                              height: 1.5)),
+                    ],
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Text(record.recordType.value,
+                            style: GoogleFonts.inter(
+                                fontSize: 10,
+                                color: AppColors.primary,
+                                fontWeight: FontWeight.w600)),
+                        if (record.ocrExtracted) ...[  
+                          const SizedBox(width: 8),
+                          const Icon(Icons.auto_awesome,
+                              size: 11, color: AppColors.primary),
+                          const SizedBox(width: 3),
+                          Text('OCR',
+                              style: GoogleFonts.inter(
+                                  fontSize: 10,
+                                  color: AppColors.primary,
+                                  fontWeight: FontWeight.w600)),
+                        ],
+                        const Spacer(),
+                        const Icon(Icons.chevron_right,
+                            size: 16, color: AppColors.onSurfaceVariant),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
           ),

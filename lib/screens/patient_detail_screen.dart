@@ -1,6 +1,7 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import '../core/constants/app_constants.dart';
@@ -950,7 +951,11 @@ class _RecordCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return GestureDetector(
+      onTap: () => context.push(
+        '${AppRoutes.recordDetail}?recordId=${record.id}',
+      ),
+      child: Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -1003,7 +1008,10 @@ class _RecordCard extends StatelessWidget {
           if (record.fileUrl != null)
             const Icon(Icons.attach_file,
                 size: 18, color: AppColors.onSurfaceVariant),
+          const Icon(Icons.chevron_right,
+              size: 18, color: AppColors.onSurfaceVariant),
         ],
+      ),
       ),
     );
   }

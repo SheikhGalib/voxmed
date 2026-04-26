@@ -31,6 +31,24 @@ class MedicalRecord {
     required this.updatedAt,
   });
 
+  // ── Convenience getters backed by the JSONB data field ──────────────────────
+
+  /// Local on-device file path stored in [data]['local_file_path'].
+  String? get localFilePath => data?['local_file_path'] as String?;
+
+  /// Which OCR engine produced the extracted data, stored in [data]['ocr_engine'].
+  OcrEngine? get ocrEngine {
+    final v = data?['ocr_engine'] as String?;
+    if (v == null) return null;
+    return OcrEngine.fromString(v);
+  }
+
+  /// Raw text extracted by OCR, stored in [data]['raw_text'].
+  String? get ocrRawText => data?['raw_text'] as String?;
+
+  /// Whether the record came from a PDF (vs an image).
+  bool get isPdf => (data?['file_type'] as String?) == 'pdf';
+
   factory MedicalRecord.fromJson(Map<String, dynamic> json) {
     return MedicalRecord(
       id: json['id'] as String,
