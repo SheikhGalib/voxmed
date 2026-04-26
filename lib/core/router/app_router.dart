@@ -22,6 +22,7 @@ import '../../screens/patient_detail_screen.dart';
 import '../../screens/doctor_chat_screen.dart';
 import '../../screens/profile_screen.dart';
 import '../../screens/record_detail_screen.dart';
+import '../../screens/medication_schedule_screen.dart';
 import '../../core/theme/app_colors.dart';
 import '../../widgets/voxmed_app_bar.dart';
 import '../../widgets/voxmed_bottom_nav.dart';
@@ -199,6 +200,11 @@ final appRouter = GoRouter(
       builder: (context, state) => RecordDetailScreen(
         recordId: state.uri.queryParameters['recordId'] ?? '',
       ),
+    ),
+    GoRoute(
+      path: AppRoutes.medicationSchedule,
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (_, __) => const MedicationScheduleScreen(),
     ),
   ],
 );

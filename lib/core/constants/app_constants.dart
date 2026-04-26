@@ -33,6 +33,7 @@ class AppRoutes {
 
   // Shared full-screen routes
   static const String recordDetail = '/record-detail';
+  static const String medicationSchedule = '/medication-schedule';
 }
 
 /// Doctor approval status values (mirrors doctor_status enum in DB).
@@ -79,6 +80,7 @@ class Tables {
   static const String notifications = 'notifications';
   static const String reviews = 'reviews';
   static const String wearableData = 'wearable_data';
+  static const String medicationSchedules = 'medication_schedules';
 }
 
 /// Storage bucket names.

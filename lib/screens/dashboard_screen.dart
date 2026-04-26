@@ -12,6 +12,7 @@ import '../providers/appointment_provider.dart';
 import '../providers/auth_provider.dart';
 import '../providers/prescription_provider.dart';
 import '../providers/medical_record_provider.dart';
+import '../providers/medication_schedule_provider.dart';
 import '../widgets/empty_state_widget.dart';
 import '../widgets/error_widget.dart';
 import '../widgets/loading_indicator.dart';
@@ -24,8 +25,8 @@ class DashboardScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final profileAsync = ref.watch(currentUserProfileProvider);
     final adherenceAsync = ref.watch(adherenceStatsProvider);
-    final wearableAsync = ref.watch(wearableDataProvider);
     final recordsAsync = ref.watch(recentMedicalRecordsProvider);
+    final upcomingDosesAsync = ref.watch(upcomingDosesProvider);
 
     final firstName = profileAsync.when(
       data: (p) => p?.fullName.split(' ').first ?? 'User',
@@ -40,15 +41,15 @@ class DashboardScreen extends ConsumerWidget {
         children: [
           _buildWelcomeBanner(context, firstName, ref),
           const SizedBox(height: 24),
-          _buildVoiceAdherenceTracker(context, adherenceAsync),
+          _buildMonitoringCard(context, adherenceAsync, upcomingDosesAsync),
           const SizedBox(height: 16),
           _buildUpcomingAppointments(context, ref),
           const SizedBox(height: 16),
           Row(
             children: [
-              Expanded(child: _buildHealthPulse(context, wearableAsync)),
-              const SizedBox(width: 12),
               Expanded(child: _buildDigitalPassport()),
+              const SizedBox(width: 12),
+              Expanded(child: _buildScheduleMedicineCard(context)),
             ],
           ),
           const SizedBox(height: 24),
@@ -177,11 +178,21 @@ class DashboardScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildVoiceAdherenceTracker(BuildContext context, AsyncValue<Map<String, dynamic>> adherenceAsync) {
+  Widget _buildMonitoringCard(
+    BuildContext context,
+    AsyncValue<Map<String, dynamic>> adherenceAsync,
+    AsyncValue<List<Map<String, String>>> upcomingDosesAsync,
+  ) {
     final rate = adherenceAsync.when(
       data: (stats) => '${stats['rate'] ?? 0}%',
       loading: () => '...',
       error: (_, _) => '—',
+    );
+
+    final nextDose = upcomingDosesAsync.when(
+      data: (doses) => doses.isEmpty ? null : doses.first,
+      loading: () => null,
+      error: (_, _) => null,
     );
 
     return VoxmedCard(
@@ -196,7 +207,7 @@ class DashboardScreen extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'LIVE MONITORING',
+                      'MONITORING',
                       style: GoogleFonts.inter(
                         fontSize: 10,
                         fontWeight: FontWeight.w700,
@@ -206,7 +217,7 @@ class DashboardScreen extends ConsumerWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Voice Adherence Tracker',
+                      'Medication Tracker',
                       overflow: TextOverflow.ellipsis,
                       style: GoogleFonts.manrope(
                         fontSize: 20,
@@ -224,14 +235,17 @@ class DashboardScreen extends ConsumerWidget {
                   color: AppColors.primaryContainer.withValues(alpha: 0.3),
                   borderRadius: BorderRadius.circular(16),
                 ),
-                child: const Icon(Icons.settings_voice, color: AppColors.primary, size: 22),
+                child: const Icon(Icons.medication, color: AppColors.primary, size: 22),
               ),
             ],
           ),
           const SizedBox(height: 20),
           Row(
             children: [
-              Expanded(child: _buildWaveform()),
+              Expanded(child: Builder(builder: (ctx) => GestureDetector(
+                onTap: () => ctx.go(AppRoutes.health),
+                child: _buildWaveform(),
+              ))),
               const SizedBox(width: 12),
               Flexible(
                 child: Column(
@@ -250,7 +264,7 @@ class DashboardScreen extends ConsumerWidget {
                       ),
                     ),
                     Text(
-                      'Clarity Score',
+                      'Commit Rate',
                       overflow: TextOverflow.ellipsis,
                       style: GoogleFonts.inter(
                         fontSize: 12,
@@ -276,32 +290,73 @@ class DashboardScreen extends ConsumerWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('TONE ANALYSIS', style: _chipLabel),
+                      Text('UPCOMING MEDICATION', style: _chipLabel),
                       const SizedBox(height: 4),
-                      Text('Stable', style: GoogleFonts.manrope(
-                        fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.primary)),
+                      nextDose == null
+                          ? Text('All done today',
+                              style: GoogleFonts.manrope(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.primary))
+                          : Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  nextDose['medication_name'] ?? '',
+                                  overflow: TextOverflow.ellipsis,
+                                  style: GoogleFonts.manrope(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w700,
+                                      color: AppColors.onSurface),
+                                ),
+                                Text(
+                                  nextDose['time'] ?? '',
+                                  style: GoogleFonts.inter(
+                                      fontSize: 11,
+                                      color: AppColors.onSurfaceVariant),
+                                ),
+                              ],
+                            ),
                     ],
                   ),
                 ),
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: Container(
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: AppColors.surfaceContainerLow,
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('RESPIRATION', style: _chipLabel),
-                      const SizedBox(height: 4),
-                      Text('Optimal', style: GoogleFonts.manrope(
-                        fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.primary)),
-                    ],
-                  ),
-                ),
+                child: Builder(builder: (ctx) {
+                  return GestureDetector(
+                    onTap: () => ctx.push(AppRoutes.medicationSchedule),
+                    child: Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: AppColors.primaryContainer.withValues(alpha: 0.18),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: AppColors.primary.withValues(alpha: 0.2),
+                        ),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('SCHEDULE YOUR MEDICINE', style: _chipLabel),
+                          const SizedBox(height: 4),
+                          Row(
+                            children: [
+                              Text('Set up',
+                                  style: GoogleFonts.manrope(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w700,
+                                      color: AppColors.primary)),
+                              const SizedBox(width: 4),
+                              const Icon(Icons.arrow_forward,
+                                  size: 14, color: AppColors.primary),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }),
               ),
             ],
           ),
@@ -425,56 +480,51 @@ class DashboardScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildHealthPulse(BuildContext context, AsyncValue<Map<String, dynamic>> wearableAsync) {
-    final bpm = wearableAsync.when(
-      data: (data) {
-        final hrList = data['heart_rate'] as List? ?? [];
-        if (hrList.isEmpty) return '--';
-        final val = hrList.first['value'];
-        if (val is Map) return '${val['bpm'] ?? '--'}';
-        return '--';
-      },
-      loading: () => '...',
-      error: (_, _) => '--',
-    );
-
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: AppColors.secondaryContainer,
-        borderRadius: BorderRadius.circular(24),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Icon(Icons.favorite, color: AppColors.onSecondaryContainer, size: 20),
-              const SizedBox(width: 8),
-              Text('Health Pulse', style: GoogleFonts.manrope(
-                fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.onSecondaryContainer)),
-            ],
+  Widget _buildScheduleMedicineCard(BuildContext context) {
+    return Builder(builder: (ctx) {
+      return GestureDetector(
+        onTap: () => ctx.push(AppRoutes.medicationSchedule),
+        child: Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: AppColors.secondaryContainer,
+            borderRadius: BorderRadius.circular(24),
           ),
-          const SizedBox(height: 16),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(bpm, style: GoogleFonts.manrope(
-                fontSize: Responsive.fontSize(context, 36), fontWeight: FontWeight.w800, color: AppColors.onSecondaryFixed)),
-              const SizedBox(width: 4),
-              Padding(
-                padding: const EdgeInsets.only(bottom: 6),
-                child: Text('BPM', style: GoogleFonts.manrope(
-                  fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.onSecondaryContainer)),
+              Row(
+                children: [
+                  const Icon(Icons.alarm_add, color: AppColors.onSecondaryContainer, size: 20),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text('Schedule Medicine',
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.manrope(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.onSecondaryContainer)),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              Text('Set reminders for\nyour prescriptions',
+                  style: GoogleFonts.inter(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: AppColors.onSecondaryContainer
+                          .withValues(alpha: 0.8),
+                      height: 1.5)),
+              const SizedBox(height: 12),
+              const Align(
+                alignment: Alignment.centerRight,
+                child: Icon(Icons.arrow_forward, color: AppColors.onSecondaryContainer),
               ),
             ],
           ),
-          const SizedBox(height: 4),
-          Text('Excellent', style: GoogleFonts.inter(
-            fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.onSecondaryContainer)),
-        ],
-      ),
-    );
+        ),
+      );
+    });
   }
 
   Widget _buildDigitalPassport() {

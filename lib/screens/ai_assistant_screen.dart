@@ -8,6 +8,7 @@ import '../core/theme/app_colors.dart';
 import '../core/config/supabase_config.dart';
 import '../core/constants/app_constants.dart';
 import '../providers/prescription_provider.dart';
+import '../providers/medication_schedule_provider.dart';
 
 class AiAssistantScreen extends ConsumerStatefulWidget {
   const AiAssistantScreen({super.key});
@@ -121,9 +122,25 @@ class _AiAssistantScreenState extends ConsumerState<AiAssistantScreen>
       // Non-critical; TTS availability varies by device.
     }
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
       if (_voiceMode) {
+        // Check for overdue medication before using the default greeting
+        if (!_isDoctor) {
+          try {
+            final overdue = await ref.read(overdueReminderProvider.future);
+            if (overdue != null && mounted) {
+              final name = overdue['medication_name'] as String? ?? 'your medication';
+              final time = overdue['time_label'] as String? ?? '';
+              final nudge =
+                  'Hi! Did you take your $name${time.isNotEmpty ? " — it was scheduled for $time" : ""}? Let me know and I can help you track it.';
+              _speak(nudge);
+              return;
+            }
+          } catch (_) {
+            // Fall through to default prompt
+          }
+        }
         _speak(_initialPrompt);
       }
     });
