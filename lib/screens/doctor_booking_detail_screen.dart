@@ -200,7 +200,7 @@ class _DoctorBookingDetailScreenState extends ConsumerState<DoctorBookingDetailS
                 Text(
                   doctor.consultationFee == null
                       ? 'Consultation fee unavailable'
-                      : 'Consultation fee: \$${doctor.consultationFee!.toStringAsFixed(0)}',
+                      : 'Consultation fee: ৳${doctor.consultationFee!.toStringAsFixed(0)}',
                   style: GoogleFonts.inter(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,

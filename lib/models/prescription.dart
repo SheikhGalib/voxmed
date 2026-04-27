@@ -60,6 +60,19 @@ class Prescription {
     );
   }
 
+  /// True when `validUntil` is set and has already passed.
+  bool get isExpired {
+    if (validUntil == null) return false;
+    return validUntil!.isBefore(DateTime.now());
+  }
+
+  /// True when `validUntil` is set and will pass within the next 30 days.
+  bool get isNearExpiry {
+    if (validUntil == null) return false;
+    final threshold = DateTime.now().add(const Duration(days: 30));
+    return !isExpired && validUntil!.isBefore(threshold);
+  }
+
   Map<String, dynamic> toJson() {
     return {
       'patient_id': patientId,
@@ -101,6 +114,7 @@ class PrescriptionItem {
   });
 
   factory PrescriptionItem.fromJson(Map<String, dynamic> json) {
+    final qty = json['quantity'] as int?;
     return PrescriptionItem(
       id: json['id'] as String,
       prescriptionId: json['prescription_id'] as String,
@@ -109,8 +123,8 @@ class PrescriptionItem {
       frequency: json['frequency'] as String,
       durationDays: json['duration_days'] as int?,
       instructions: json['instructions'] as String?,
-      quantity: json['quantity'] as int?,
-      remaining: json['remaining'] as int?,
+      quantity: qty,
+      remaining: json['remaining'] as int? ?? qty,
       createdAt: DateTime.parse(json['created_at'] as String),
     );
   }

@@ -70,11 +70,24 @@ class PrescriptionRenewalsScreen extends ConsumerWidget {
                           progress: progress.clamp(0.0, 1.0),
                           status: rx.status == PrescriptionStatus.active ? 'Active' : '',
                           isAutomated: true,
-                          onRequestRenewal: () {
-                            ref.read(prescriptionRepositoryProvider).requestRenewal(rx.id);
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Renewal requested')),
-                            );
+                          onRequestRenewal: () async {
+                            try {
+                              await ref.read(prescriptionRepositoryProvider).requestRenewal(rx.id);
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Renewal request sent to your doctor.'),
+                                    backgroundColor: Colors.green,
+                                  ),
+                                );
+                              }
+                            } catch (e) {
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('Failed: $e')),
+                                );
+                              }
+                            }
                           },
                         ),
                       );

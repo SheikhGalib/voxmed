@@ -1,8 +1,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../core/config/supabase_config.dart';
 import '../core/constants/app_constants.dart';
 import '../models/prescription.dart';
 import '../repositories/ai_repository.dart';
+import '../repositories/notification_service.dart';
 import '../repositories/prescription_repository.dart';
 
 final prescriptionRepositoryProvider = Provider<PrescriptionRepository>((ref) {
@@ -128,13 +130,22 @@ final wearableDataProvider = FutureProvider<Map<String, dynamic>>((ref) async {
 });
 
 /// Doctor's appointment list for today (clinical dashboard schedule).
-final doctorTodayAppointmentsProvider = FutureProvider<List<Map<String, dynamic>>>((
-  ref,
-) async {
-  final uid = supabase.auth.currentUser?.id;
-  if (uid == null) return [];
+/// Subscribes to Supabase Realtime so new bookings and status changes
+/// appear instantly without a manual refresh.
+final doctorTodayAppointmentsProvider =
+    AsyncNotifierProvider<_DoctorTodayNotifier, List<Map<String, dynamic>>>(
+  _DoctorTodayNotifier.new,
+);
 
-  try {
+class _DoctorTodayNotifier
+    extends AsyncNotifier<List<Map<String, dynamic>>> {
+  RealtimeChannel? _channel;
+
+  @override
+  Future<List<Map<String, dynamic>>> build() async {
+    final uid = supabase.auth.currentUser?.id;
+    if (uid == null) return [];
+
     final doctorRow = await supabase
         .from(Tables.doctors)
         .select('id')
@@ -142,38 +153,95 @@ final doctorTodayAppointmentsProvider = FutureProvider<List<Map<String, dynamic>
         .maybeSingle();
     if (doctorRow == null) return [];
 
-    final today = DateTime.now();
-    final startOfDay = DateTime(
-      today.year,
-      today.month,
-      today.day,
-    ).toUtc().toIso8601String();
-    final endOfDay = DateTime(
-      today.year,
-      today.month,
-      today.day,
-      23,
-      59,
-      59,
-    ).toUtc().toIso8601String();
+    final doctorId = doctorRow['id'] as String;
 
-    final data = await supabase
-        .from(Tables.appointments)
-        .select(
-          'id, scheduled_start_at, scheduled_end_at, status, type, reason, profiles!appointments_patient_id_fkey(full_name, avatar_url)',
+    // Real-time: any INSERT / UPDATE / DELETE on appointments for this doctor
+    _channel?.unsubscribe();
+    _channel = supabase
+        .channel('doctor_today_appts:$doctorId')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: Tables.appointments,
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'doctor_id',
+            value: doctorId,
+          ),
+          callback: (_) => _reload(doctorId),
         )
-        .eq('doctor_id', doctorRow['id'])
-        .gte('scheduled_start_at', startOfDay)
-        .lte('scheduled_start_at', endOfDay)
-        .order('scheduled_start_at', ascending: true);
+        .subscribe();
 
-    return List<Map<String, dynamic>>.from(data);
-  } catch (e) {
-    return [];
+    ref.onDispose(() => _channel?.unsubscribe());
+
+    return _fetch(doctorId);
   }
-});
+
+  Future<void> _reload(String doctorId) async {
+    state = await AsyncValue.guard(() => _fetch(doctorId));
+  }
+
+  Future<List<Map<String, dynamic>>> _fetch(String doctorId) async {
+    try {
+      final today = DateTime.now();
+      final startOfDay =
+          DateTime(today.year, today.month, today.day).toUtc().toIso8601String();
+      final endOfDay = DateTime(today.year, today.month, today.day, 23, 59, 59)
+          .toUtc()
+          .toIso8601String();
+
+      final data = await supabase
+          .from(Tables.appointments)
+          .select(
+            'id, scheduled_start_at, scheduled_end_at, status, type, reason, '
+            'profiles!appointments_patient_id_fkey(full_name, avatar_url)',
+          )
+          .eq('doctor_id', doctorId)
+          .gte('scheduled_start_at', startOfDay)
+          .lte('scheduled_start_at', endOfDay)
+          .order('scheduled_start_at', ascending: true);
+
+      final fetched = List<Map<String, dynamic>>.from(data);
+      _scheduleLocalReminders(fetched);
+      return fetched;
+    } catch (_) {
+      return [];
+    }
+  }
+
+  /// Schedules local push reminders on the doctor's device for each upcoming
+  /// appointment in [appointments] that is still in the future.
+  /// Uses a stable ID so re-scheduling on every realtime reload is idempotent.
+  void _scheduleLocalReminders(List<Map<String, dynamic>> appointments) {
+    final now = DateTime.now();
+    for (final appt in appointments) {
+      final startStr = appt['scheduled_start_at'] as String?;
+      final apptId = appt['id'] as String?;
+      if (startStr == null || apptId == null) continue;
+
+      final startAt = DateTime.tryParse(startStr)?.toLocal();
+      if (startAt == null) continue;
+
+      // Only schedule if the reminder time (15 min before) is still in the future.
+      if (startAt.subtract(const Duration(minutes: 15)).isBefore(now)) continue;
+
+      final patientProfile = appt['profiles'] as Map<String, dynamic>?;
+      final patientName = patientProfile?['full_name'] as String? ?? 'Patient';
+
+      NotificationService().scheduleAppointmentReminder(
+        appointmentId: apptId,
+        scheduledAt: startAt,
+        otherPartyName: patientName,
+        isDoctor: true,
+      );
+    }
+  }
+}
 
 /// Doctor's active patient count + stats.
+/// "Active patients" = distinct patients with at least one COMPLETED appointment
+/// with this doctor. This updates in real time as the hospital staff marks
+/// appointments complete — no dependency on the stale `patients_count` column.
 final doctorStatsProvider = FutureProvider<Map<String, dynamic>>((ref) async {
   final uid = supabase.auth.currentUser?.id;
   if (uid == null) return {};
@@ -181,10 +249,21 @@ final doctorStatsProvider = FutureProvider<Map<String, dynamic>>((ref) async {
   try {
     final doctorRow = await supabase
         .from(Tables.doctors)
-        .select('id, patients_count, reviews_count, rating')
+        .select('id, reviews_count, rating')
         .eq('profile_id', uid)
         .maybeSingle();
     if (doctorRow == null) return {};
+
+    // Count distinct patients with at least one completed appointment.
+    final completedAppts = await supabase
+        .from(Tables.appointments)
+        .select('patient_id')
+        .eq('doctor_id', doctorRow['id'])
+        .eq('status', 'completed');
+    final distinctPatients = (completedAppts as List)
+        .map((e) => e['patient_id'] as String)
+        .toSet()
+        .length;
 
     // Count pending renewals
     final renewals = await supabase
@@ -193,7 +272,7 @@ final doctorStatsProvider = FutureProvider<Map<String, dynamic>>((ref) async {
         .eq('doctor_id', doctorRow['id'])
         .eq('status', 'pending');
 
-    // Count pending lab reviews (medical records without notes from this doctor)
+    // Count unreviewed lab results uploaded for this doctor
     final labReviews = await supabase
         .from(Tables.medicalRecords)
         .select('id')
@@ -203,7 +282,7 @@ final doctorStatsProvider = FutureProvider<Map<String, dynamic>>((ref) async {
         .limit(20);
 
     return {
-      'patients_count': doctorRow['patients_count'] ?? 0,
+      'patients_count': distinctPatients,
       'rating': doctorRow['rating'] ?? 0.0,
       'reviews_count': doctorRow['reviews_count'] ?? 0,
       'pending_renewals': (renewals as List).length,

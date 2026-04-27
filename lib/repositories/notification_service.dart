@@ -23,6 +23,11 @@ class _Channels {
   static const String alarmName = 'Medication Alarms';
   static const String alarmDesc =
       'Alarm-style notifications for critical medication times.';
+
+  static const String generalId = 'general';
+  static const String generalName = 'General Notifications';
+  static const String generalDesc =
+      'Appointment updates, lab results, and other alerts.';
 }
 
 /// Central notification service used by the app.
@@ -103,6 +108,17 @@ class NotificationService {
         sound: const RawResourceAndroidNotificationSound('alarm_sound'),
       ),
     );
+
+    await androidPlugin?.createNotificationChannel(
+      const AndroidNotificationChannel(
+        _Channels.generalId,
+        _Channels.generalName,
+        description: _Channels.generalDesc,
+        importance: Importance.high,
+        playSound: true,
+        enableVibration: true,
+      ),
+    );
   }
 
   // ─────────────────────────── Permissions ─────────────────────────────────
@@ -119,6 +135,44 @@ class NotificationService {
     await Permission.scheduleExactAlarm.request();
 
     return notifStatus.isGranted;
+  }
+
+  // ─────────────────────────── Generic Push ────────────────────────────────
+
+  /// Shows an immediate push notification (no scheduling).
+  /// Used for in-app Supabase notification events (appointments, lab results, etc.)
+  Future<void> showPush({
+    required String title,
+    required String body,
+    String? payload,
+  }) async {
+    if (!_initialized) await initialize();
+
+    // Stable ID based on title+body hash so duplicate events don't double-notify
+    var hash = 7;
+    for (final c in '$title$body'.codeUnits) {
+      hash = 31 * hash + c;
+    }
+    final id = hash.abs() % 2147483647;
+
+    const androidDetails = AndroidNotificationDetails(
+      _Channels.generalId,
+      _Channels.generalName,
+      channelDescription: _Channels.generalDesc,
+      importance: Importance.high,
+      priority: Priority.high,
+      playSound: true,
+      enableVibration: true,
+      icon: '@mipmap/ic_launcher',
+    );
+
+    await _plugin.show(
+      id,
+      title,
+      body,
+      const NotificationDetails(android: androidDetails),
+      payload: payload,
+    );
   }
 
   // ─────────────────────────── Schedule ────────────────────────────────────
@@ -356,6 +410,74 @@ class NotificationService {
       }),
     );
   }
+
+  // ─────────────────────── Appointment Reminders ───────────────────────────
+
+  /// Schedules a local push 15 minutes before [scheduledAt].
+  ///
+  /// Uses a stable ID derived from [appointmentId] so re-scheduling the same
+  /// appointment (e.g. after a realtime reload) never creates a duplicate.
+  ///
+  /// [isDoctor] controls the notification copy:
+  ///   - false (patient): "Appointment in 15 minutes – with Dr. NAME at TIME"
+  ///   - true  (doctor):  "Patient arriving in 15 minutes – NAME at TIME"
+  Future<void> scheduleAppointmentReminder({
+    required String appointmentId,
+    required DateTime scheduledAt,
+    required String otherPartyName,
+    required bool isDoctor,
+  }) async {
+    if (!_initialized) await initialize();
+
+    final reminderTime = scheduledAt.subtract(const Duration(minutes: 15));
+    if (reminderTime.isBefore(DateTime.now())) return;
+
+    final id = _stableId(appointmentId, 0, scheduledAt.hour, scheduledAt.minute);
+    final timeStr =
+        '${scheduledAt.hour.toString().padLeft(2, '0')}:${scheduledAt.minute.toString().padLeft(2, '0')}';
+
+    final title = isDoctor ? 'Patient arriving soon' : 'Appointment in 15 minutes';
+    final body = isDoctor
+        ? '$otherPartyName at $timeStr'
+        : 'With Dr. $otherPartyName at $timeStr';
+
+    const androidDetails = AndroidNotificationDetails(
+      _Channels.generalId,
+      _Channels.generalName,
+      channelDescription: _Channels.generalDesc,
+      importance: Importance.high,
+      priority: Priority.high,
+      playSound: true,
+      enableVibration: true,
+      icon: '@mipmap/ic_launcher',
+      category: AndroidNotificationCategory.reminder,
+    );
+
+    final tzTime = tz.TZDateTime.from(reminderTime, tz.local);
+    await _plugin.zonedSchedule(
+      id,
+      title,
+      body,
+      tzTime,
+      const NotificationDetails(android: androidDetails),
+      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      uiLocalNotificationDateInterpretation:
+          UILocalNotificationDateInterpretation.absoluteTime,
+      payload: appointmentId,
+    );
+  }
+
+  /// Cancels the appointment reminder scheduled for [appointmentId].
+  Future<void> cancelAppointmentReminder(
+    String appointmentId,
+    DateTime scheduledAt,
+  ) async {
+    if (!_initialized) return;
+    final id = _stableId(appointmentId, 0, scheduledAt.hour, scheduledAt.minute);
+    await _plugin.cancel(id);
+  }
+
+  // ─────────────────────────── Helpers ─────────────────────────────────────
 
   /// Deterministic notification ID that fits in a 32-bit signed integer.
   int _stableId(String scheduleId, int dayOffset, int hour, int minute) {

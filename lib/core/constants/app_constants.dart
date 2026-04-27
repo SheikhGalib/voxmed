@@ -35,6 +35,7 @@ class AppRoutes {
   static const String recordDetail = '/record-detail';
   static const String medicationSchedule = '/medication-schedule';
   static const String commitRate = '/commit-rate';
+  static const String notifications = '/notifications';
 }
 
 /// Doctor approval status values (mirrors doctor_status enum in DB).
@@ -237,11 +238,16 @@ enum RenewalStatus {
   pending,
   approved,
   rejected,
-  modified;
+  modified,
+  followUp;
 
-  String get value => name;
+  String get value {
+    if (this == RenewalStatus.followUp) return 'follow_up';
+    return name;
+  }
 
   static RenewalStatus fromString(String value) {
+    if (value == 'follow_up') return RenewalStatus.followUp;
     return RenewalStatus.values.firstWhere(
       (e) => e.name == value,
       orElse: () => RenewalStatus.pending,
@@ -307,11 +313,13 @@ enum DocumentSourceType {
 enum NotificationType {
   appointmentReminder,
   appointmentRescheduled,
+  appointmentCompleted,
   appointmentCancelled,
   medicationReminder,
   renewalRequest,
   renewalApproved,
   renewalRejected,
+  renewalFollowUp,
   newLabResult,
   consultationInvite,
   aiTriageResult,
