@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:speech_to_text/speech_to_text.dart';
@@ -680,7 +681,12 @@ class _AiAssistantScreenState extends ConsumerState<AiAssistantScreen>
               } else {
                 // assistant or system
                 final followUps = metadata?['follow_ups'] as List?;
-                if (followUps != null && followUps.isNotEmpty) {
+                final triagePreview = metadata?['triage_result_preview'] as Map<String, dynamic>?;
+                final doctorCards = triagePreview?['suggested_doctor_cards'] as List?;
+                final hasFollowUps = followUps != null && followUps.isNotEmpty;
+                final hasDoctorCards = doctorCards != null && doctorCards.isNotEmpty;
+
+                if (hasFollowUps || hasDoctorCards) {
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 12),
                     child: _buildBotMessage(
@@ -697,16 +703,43 @@ class _AiAssistantScreenState extends ConsumerState<AiAssistantScreen>
                               height: 1.5,
                             ),
                           ),
-                          const SizedBox(height: 14),
-                          ...followUps.map(
-                            (f) => Padding(
-                              padding: const EdgeInsets.only(bottom: 8),
-                              child: _FollowUpChip(
-                                label: f.toString(),
-                                icon: Icons.help_outline,
+                          if (hasDoctorCards) ...[
+                            const SizedBox(height: 14),
+                            Text(
+                              'SUGGESTED DOCTORS',
+                              style: GoogleFonts.inter(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: 1,
+                                color: AppColors.onSurfaceVariant,
                               ),
                             ),
-                          ),
+                            const SizedBox(height: 8),
+                            SizedBox(
+                              height: 140,
+                              child: ListView.separated(
+                                scrollDirection: Axis.horizontal,
+                                itemCount: doctorCards!.length,
+                                separatorBuilder: (_, __) => const SizedBox(width: 10),
+                                itemBuilder: (context, i) {
+                                  final card = doctorCards[i] as Map<String, dynamic>;
+                                  return _DoctorSuggestionCard(card: card);
+                                },
+                              ),
+                            ),
+                          ],
+                          if (hasFollowUps) ...[
+                            const SizedBox(height: 14),
+                            ...followUps!.map(
+                              (f) => Padding(
+                                padding: const EdgeInsets.only(bottom: 8),
+                                child: _FollowUpChip(
+                                  label: f.toString(),
+                                  icon: Icons.help_outline,
+                                ),
+                              ),
+                            ),
+                          ],
                         ],
                       ),
                     ),
@@ -1510,6 +1543,80 @@ class _PandaPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+class _DoctorSuggestionCard extends StatelessWidget {
+  final Map<String, dynamic> card;
+  const _DoctorSuggestionCard({required this.card});
+
+  @override
+  Widget build(BuildContext context) {
+    final id = card['id'] as String? ?? '';
+    final name = card['name'] as String? ?? 'Doctor';
+    final specialty = card['specialty'] as String? ?? '';
+    final hospital = card['hospital'] as String? ?? '';
+    final city = card['city'] as String? ?? '';
+    final fee = card['fee'];
+    final rating = card['rating'];
+    final feeText = fee != null ? '৳${fee.toString()}' : '';
+    final ratingNum = (rating as num?)?.toDouble() ?? 0.0;
+
+    return GestureDetector(
+      onTap: id.isNotEmpty ? () => context.push('${AppRoutes.doctorBooking}?doctorId=$id') : null,
+      child: Container(
+        width: 180,
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: AppColors.surfaceContainerLow,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: AppColors.outlineVariant.withValues(alpha: 0.2)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(children: [
+              CircleAvatar(
+                radius: 18,
+                backgroundColor: AppColors.primaryContainer.withValues(alpha: 0.4),
+                child: Text(
+                  name.isNotEmpty ? name[0].toUpperCase() : '?',
+                  style: GoogleFonts.manrope(fontSize: 14, fontWeight: FontWeight.w800, color: AppColors.primary),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(child: Text(
+                name,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: GoogleFonts.manrope(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.onSurface),
+              )),
+            ]),
+            const SizedBox(height: 6),
+            Text(specialty, style: GoogleFonts.inter(fontSize: 11, color: AppColors.primary, fontWeight: FontWeight.w600)),
+            const SizedBox(height: 2),
+            if (hospital.isNotEmpty)
+              Text(
+                city.isNotEmpty ? '$hospital · $city' : hospital,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: GoogleFonts.inter(fontSize: 10, color: AppColors.onSurfaceVariant),
+              ),
+            const Spacer(),
+            Row(children: [
+              if (ratingNum > 0) ...[
+                const Icon(Icons.star_rounded, size: 12, color: Color(0xFFF59E0B)),
+                const SizedBox(width: 2),
+                Text(ratingNum.toStringAsFixed(1), style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.onSurface)),
+                const SizedBox(width: 6),
+              ],
+              if (feeText.isNotEmpty)
+                Text(feeText, style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w700, color: AppColors.primary)),
+            ]),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 class _FollowUpChip extends StatelessWidget {
