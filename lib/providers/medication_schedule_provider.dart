@@ -20,13 +20,36 @@ final medicationSchedulesProvider =
       .listByPatient();
 });
 
-/// Next 5 upcoming dose times for today.
+/// Next 5 upcoming dose times for today, derived from the in-memory schedule
+/// list held by [medicationScheduleNotifierProvider].
+/// Automatically recomputes whenever the notifier refreshes (create/update/delete).
 /// Shape: [{'medication_name': '...', 'dosage': '...', 'time': 'HH:MM', 'schedule_id': '...'}]
 final upcomingDosesProvider =
-    FutureProvider<List<Map<String, String>>>((ref) async {
-  return ref
-      .read(medicationScheduleRepositoryProvider)
-      .getUpcomingDoses();
+    Provider<AsyncValue<List<Map<String, String>>>>((ref) {
+  final schedulesAsync = ref.watch(medicationScheduleNotifierProvider);
+  return schedulesAsync.whenData((schedules) {
+    final now = DateTime.now();
+    final upcoming = <Map<String, String>>[];
+    for (final s in schedules) {
+      for (final doseTime in s.todayDoseTimes()) {
+        if (doseTime.isAfter(now)) {
+          final hh = doseTime.hour.toString().padLeft(2, '0');
+          final mm = doseTime.minute.toString().padLeft(2, '0');
+          upcoming.add({
+            'medication_name': s.medicationName,
+            'dosage': s.dosage,
+            'time': MedicationSchedule.formatDoseTimeLabel(doseTime),
+            'time_24h': '$hh:$mm',
+            'schedule_id': s.id,
+          });
+        }
+      }
+    }
+    upcoming.sort(
+      (a, b) => (a['time_24h'] ?? '').compareTo(b['time_24h'] ?? ''),
+    );
+    return upcoming.take(5).toList();
+  });
 });
 
 /// 30-day daily adherence trend.

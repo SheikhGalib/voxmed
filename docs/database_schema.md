@@ -130,6 +130,8 @@ Extends `auth.users`. Created automatically via trigger on sign-up.
 | `created_at`       | `timestamptz`    | DEFAULT `now()`              |                                      |
 | `updated_at`       | `timestamptz`    | DEFAULT `now()`              |                                      |
 
+> **Mobile App — Hospital Call Button:** The `phone` column is used by the Flutter Find Care screen to display a call button on each hospital card. Tapping it launches the device's native phone dialer via `tel:` URI (`url_launcher`). No schema change required — `phone` has been part of this table since the initial migration.
+
 ---
 
 ### 3.3 `hospital_staff`

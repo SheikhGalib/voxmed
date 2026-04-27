@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import 'package:url_launcher/url_launcher.dart';
+
 import '../core/constants/app_constants.dart';
 import '../core/responsive/responsive.dart';
 import '../core/theme/app_colors.dart';
@@ -280,15 +282,43 @@ class _FindCareScreenState extends ConsumerState<FindCareScreen> {
                     ),
                   ),
                   const Spacer(),
-                  Text(
-                    isSelected ? 'Selected' : 'Tap to view doctors & tests',
-                    style: GoogleFonts.inter(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      color: isSelected
-                          ? AppColors.primary
-                          : AppColors.onSurfaceVariant,
-                    ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          isSelected ? 'Selected' : 'Tap to view doctors & tests',
+                          style: GoogleFonts.inter(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: isSelected
+                                ? AppColors.primary
+                                : AppColors.onSurfaceVariant,
+                          ),
+                        ),
+                      ),
+                      if (hospital.phone != null && hospital.phone!.isNotEmpty)
+                        GestureDetector(
+                          onTap: () async {
+                            final uri = Uri(scheme: 'tel', path: hospital.phone);
+                            if (await canLaunchUrl(uri)) {
+                              await launchUrl(uri);
+                            }
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.all(6),
+                            decoration: BoxDecoration(
+                              color: AppColors.primary,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Icon(
+                              Icons.phone,
+                              size: 14,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
                 ],
               ),
@@ -623,7 +653,8 @@ class _DoctorTile extends StatelessWidget {
               Text(
                 doctor.consultationFee == null
                     ? 'Fee N/A'
-                    : '\$${doctor.consultationFee!.toStringAsFixed(0)}',
+                    : '৳${doctor.consultationFee!.toStringAsFixed(0)}',
+
                 style: GoogleFonts.manrope(
                   fontSize: 14,
                   fontWeight: FontWeight.w700,

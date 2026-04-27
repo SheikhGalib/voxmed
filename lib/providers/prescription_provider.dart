@@ -174,6 +174,9 @@ final doctorTodayAppointmentsProvider = FutureProvider<List<Map<String, dynamic>
 });
 
 /// Doctor's active patient count + stats.
+/// "Active patients" = distinct patients with at least one COMPLETED appointment
+/// with this doctor. This updates in real time as the hospital staff marks
+/// appointments complete — no dependency on the stale `patients_count` column.
 final doctorStatsProvider = FutureProvider<Map<String, dynamic>>((ref) async {
   final uid = supabase.auth.currentUser?.id;
   if (uid == null) return {};
@@ -181,10 +184,21 @@ final doctorStatsProvider = FutureProvider<Map<String, dynamic>>((ref) async {
   try {
     final doctorRow = await supabase
         .from(Tables.doctors)
-        .select('id, patients_count, reviews_count, rating')
+        .select('id, reviews_count, rating')
         .eq('profile_id', uid)
         .maybeSingle();
     if (doctorRow == null) return {};
+
+    // Count distinct patients with at least one completed appointment.
+    final completedAppts = await supabase
+        .from(Tables.appointments)
+        .select('patient_id')
+        .eq('doctor_id', doctorRow['id'])
+        .eq('status', 'completed');
+    final distinctPatients = (completedAppts as List)
+        .map((e) => e['patient_id'] as String)
+        .toSet()
+        .length;
 
     // Count pending renewals
     final renewals = await supabase
@@ -193,7 +207,7 @@ final doctorStatsProvider = FutureProvider<Map<String, dynamic>>((ref) async {
         .eq('doctor_id', doctorRow['id'])
         .eq('status', 'pending');
 
-    // Count pending lab reviews (medical records without notes from this doctor)
+    // Count unreviewed lab results uploaded for this doctor
     final labReviews = await supabase
         .from(Tables.medicalRecords)
         .select('id')
@@ -203,7 +217,7 @@ final doctorStatsProvider = FutureProvider<Map<String, dynamic>>((ref) async {
         .limit(20);
 
     return {
-      'patients_count': doctorRow['patients_count'] ?? 0,
+      'patients_count': distinctPatients,
       'rating': doctorRow['rating'] ?? 0.0,
       'reviews_count': doctorRow['reviews_count'] ?? 0,
       'pending_renewals': (renewals as List).length,
