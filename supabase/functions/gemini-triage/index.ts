@@ -13,11 +13,6 @@ type GeminiJsonResponse = {
   };
 };
 
-type LoadedPrompts = {
-  patient: string;
-  doctor: string;
-};
-
 const corsHeaders: Record<string, string> = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -28,15 +23,13 @@ const DEFAULT_DISCLAIMER =
   "I can help with triage guidance, but I am not a substitute for a licensed clinician. For chest pain, breathing difficulty, stroke symptoms, severe bleeding, seizures, or loss of consciousness, seek emergency care immediately.";
 
 const DEFAULT_PATIENT_PROMPT =
-  "You are a safety-first patient triage assistant. Help users identify appropriate doctors, hospitals, and tests. Do not prescribe medications or provide dosage instructions.";
+  "You are VoxMed Care Guide, a calm and safety-first clinical triage assistant for patients. Your goals are to: 1) understand symptoms and urgency, 2) recommend the right doctor specialty and care venue, 3) suggest what diagnostic tests to discuss with a licensed clinician, and 4) help compare test options and likely costs using available app data. Ask concise follow-up questions when information is missing. If app pricing data is unavailable, say that clearly and suggest how to proceed. Safety rules: never prescribe medications, never provide dosage instructions, never replace a doctor, and always include emergency escalation guidance when red-flag symptoms are present.";
 
 const DEFAULT_DOCTOR_PROMPT =
-  "You are a safety-first doctor workflow assistant. Help with patient summaries, analytics, scheduling priorities, and renewal workflows. Do not fabricate clinical facts.";
+  "You are VoxMed Clinical Copilot, a productivity and insight assistant for doctors. Your goals are to: 1) summarize relevant patient context and trends, 2) highlight adherence and analytics signals, 3) help plan workload and schedule priorities, and 4) support prescription renewal and consultation workflows. Keep outputs concise, structured, and clinically responsible. Safety rules: do not fabricate patient facts, do not provide final diagnosis claims without uncertainty language, and do not generate treatment dosage decisions autonomously. Recommend clinical verification steps and document assumptions clearly.";
 
 const DEFAULT_MODEL = "gemini-2.5-flash";
 const GEMINI_ENDPOINT_BASE = "https://generativelanguage.googleapis.com/v1beta/models";
-
-let promptCache: LoadedPrompts | null = null;
 
 function jsonResponse(status: number, body: Record<string, unknown>) {
   return new Response(JSON.stringify(body), {
@@ -48,33 +41,8 @@ function jsonResponse(status: number, body: Record<string, unknown>) {
   });
 }
 
-async function loadSystemPrompts(): Promise<LoadedPrompts> {
-  if (promptCache) return promptCache;
-
-  try {
-    const fileUrl = new URL("./system_prompts.json", import.meta.url);
-    const raw = await Deno.readTextFile(fileUrl);
-    const parsed = JSON.parse(raw) as Partial<LoadedPrompts>;
-
-    promptCache = {
-      patient:
-        typeof parsed.patient === "string" && parsed.patient.trim().length > 0
-          ? parsed.patient.trim()
-          : DEFAULT_PATIENT_PROMPT,
-      doctor:
-        typeof parsed.doctor === "string" && parsed.doctor.trim().length > 0
-          ? parsed.doctor.trim()
-          : DEFAULT_DOCTOR_PROMPT,
-    };
-  } catch (error) {
-    console.error("Failed to load system_prompts.json, using built-in defaults:", error);
-    promptCache = {
-      patient: DEFAULT_PATIENT_PROMPT,
-      doctor: DEFAULT_DOCTOR_PROMPT,
-    };
-  }
-
-  return promptCache;
+function getSystemPrompt(role: "patient" | "doctor"): string {
+  return role === "doctor" ? DEFAULT_DOCTOR_PROMPT : DEFAULT_PATIENT_PROMPT;
 }
 
 function getGeminiKeys(): string[] {
@@ -340,8 +308,7 @@ Deno.serve(async (req: Request) => {
       throw new Error(`Failed to read message history: ${historyError.message}`);
     }
 
-    const prompts = await loadSystemPrompts();
-    const basePrompt = role === "doctor" ? prompts.doctor : prompts.patient;
+    const basePrompt = getSystemPrompt(role);
 
     const outputInstruction = [
       "Output must be strict JSON only (no markdown, no code fences).",
@@ -394,23 +361,95 @@ Deno.serve(async (req: Request) => {
       "I can help triage your concern. Could you share symptom duration, severity, and any known conditions?",
     );
 
-    if (sanitized.triageResult.specialty.length > 0) {
-      const specialty = sanitized.triageResult.specialty;
-      const { data: doctors, error: doctorsError } = await supabase
-        .from("doctors")
-        .select(
-          "id, specialty, rating, consultation_fee, hospital_id, profiles!doctors_profile_id_fkey(full_name), hospitals(name, city)",
-        )
-        .ilike("specialty", `%${specialty}%`)
-        .order("rating", { ascending: false })
-        .limit(5);
+    // Extend the triage result with a mutable object so we can attach doctor cards.
+    const triageResultWithCards: Record<string, unknown> = { ...sanitized.triageResult };
 
-      if (!doctorsError && doctors && doctors.length > 0) {
-        if (sanitized.triageResult.suggested_doctors.length === 0) {
-          sanitized.triageResult.suggested_doctors = doctors
-            .map((doctor) => String((doctor as Record<string, unknown>).id ?? ""))
-            .filter((id) => id.length > 0);
+    if (sanitized.triageResult.specialty.length > 0) {
+      // Normalize Gemini specialty names to actual DB values.
+      // Gemini often returns "Family Medicine", "General Practitioner", "PCP" etc.
+      // but our DB uses "General Medicine", "Internal Medicine", "ENT", etc.
+      const normalizeSpecialty = (s: string): string[] => {
+        const lower = s.toLowerCase();
+        if (lower.includes("family") || lower.includes("general pract") || lower.includes("primary care") || lower.includes("pcp")) {
+          return ["General Medicine", "Internal Medicine"];
         }
+        if (lower.includes("ent") || lower.includes("otolar") || lower.includes("ear") || lower.includes("throat")) {
+          return ["ENT"];
+        }
+        if (lower.includes("gynae") || lower.includes("gyneco") || lower.includes("obstet") || lower.includes("ob/gyn")) {
+          return ["Gynaecology & Obstetrics", "Obstetrics"];
+        }
+        if (lower.includes("ortho")) return ["Orthopedics"];
+        if (lower.includes("cardio")) return ["Cardiology"];
+        if (lower.includes("neuro")) return ["Neurology"];
+        if (lower.includes("pediatr") || lower.includes("paediatr")) return ["Pediatrics"];
+        if (lower.includes("derma") || lower.includes("skin")) return ["Dermatology"];
+        if (lower.includes("ophthal") || lower.includes("eye")) return ["Ophthalmology"];
+        if (lower.includes("radio")) return ["Radiology"];
+        if (lower.includes("surg")) return ["General Surgery"];
+        if (lower.includes("internal") || lower.includes("general med")) return ["General Medicine", "Internal Medicine"];
+        // Return original as-is for other specialties
+        return [s];
+      };
+
+      const specialtyTerms = normalizeSpecialty(sanitized.triageResult.specialty);
+
+      // Try each normalized specialty term until we get results.
+      let doctors: Record<string, unknown>[] | null = null;
+      let doctorsError: unknown = null;
+
+      for (const term of specialtyTerms) {
+        const result = await supabase
+          .from("doctors")
+          .select(
+            "id, specialty, rating, consultation_fee, profiles!doctors_profile_id_fkey(full_name), hospitals(name, city)",
+          )
+          .ilike("specialty", `%${term}%`)
+          .eq("status", "approved")
+          .order("rating", { ascending: false })
+          .limit(5);
+
+        doctorsError = result.error;
+        if (!result.error && result.data && result.data.length > 0) {
+          doctors = result.data as Record<string, unknown>[];
+          break;
+        }
+      }
+
+      // Fallback: if still no results, return top-rated approved doctors regardless of specialty.
+      if (!doctorsError && (!doctors || doctors.length === 0)) {
+        const fallback = await supabase
+          .from("doctors")
+          .select(
+            "id, specialty, rating, consultation_fee, profiles!doctors_profile_id_fkey(full_name), hospitals(name, city)",
+          )
+          .eq("status", "approved")
+          .order("rating", { ascending: false })
+          .limit(5);
+
+        if (!fallback.error && fallback.data && fallback.data.length > 0) {
+          doctors = fallback.data as Record<string, unknown>[];
+        }
+      }
+
+      if (doctors && doctors.length > 0) {
+        sanitized.triageResult.suggested_doctors = doctors
+          .map((d) => String(d.id ?? ""))
+          .filter((id) => id.length > 0);
+
+        triageResultWithCards["suggested_doctor_cards"] = doctors.map((d) => {
+          const profile = d.profiles as Record<string, unknown> | null;
+          const hospital = d.hospitals as Record<string, unknown> | null;
+          return {
+            id: d.id,
+            name: profile?.full_name ?? "Unknown Doctor",
+            specialty: d.specialty ?? sanitized.triageResult.specialty,
+            hospital: hospital?.name ?? "",
+            city: hospital?.city ?? "",
+            fee: d.consultation_fee,
+            rating: d.rating,
+          };
+        });
       }
     }
 
@@ -422,7 +461,7 @@ Deno.serve(async (req: Request) => {
         content: sanitized.assistantMessage,
         metadata: {
           follow_ups: sanitized.followUps,
-          triage_result_preview: sanitized.triageResult,
+          triage_result_preview: triageResultWithCards,
         },
       });
 
