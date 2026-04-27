@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../core/theme/app_colors.dart';
 import '../core/constants/app_constants.dart';
 import '../providers/auth_provider.dart';
+import 'notification_bell.dart';
 
 class VoxmedAppBar extends ConsumerWidget implements PreferredSizeWidget {
   final String? title;
@@ -66,6 +67,11 @@ class VoxmedAppBar extends ConsumerWidget implements PreferredSizeWidget {
               ],
             ),
       actions: [
+        if (showAvatar)
+          const Padding(
+            padding: EdgeInsets.only(right: 4),
+            child: NotificationBell(),
+          ),
         if (showAvatar)
           Padding(
             padding: const EdgeInsets.only(right: 16),

@@ -24,6 +24,7 @@ import '../../screens/profile_screen.dart';
 import '../../screens/record_detail_screen.dart';
 import '../../screens/medication_schedule_screen.dart';
 import '../../screens/commit_rate_screen.dart';
+import '../../screens/notifications_screen.dart';
 import '../../core/theme/app_colors.dart';
 import '../../widgets/voxmed_app_bar.dart';
 import '../../widgets/voxmed_bottom_nav.dart';
@@ -213,6 +214,11 @@ final appRouter = GoRouter(
       path: AppRoutes.commitRate,
       parentNavigatorKey: rootNavigatorKey,
       builder: (context, state) => const CommitRateScreen(),
+    ),
+    GoRoute(
+      path: AppRoutes.notifications,
+      parentNavigatorKey: rootNavigatorKey,
+      builder: (context, state) => const NotificationsScreen(),
     ),
   ],
 );

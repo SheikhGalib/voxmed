@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../core/config/supabase_config.dart';
 import '../core/constants/app_constants.dart';
@@ -66,7 +67,17 @@ class AppointmentRepository {
           .insert(payload)
           .select(_appointmentColumns)
           .single();
-      return Appointment.fromJson(result);
+      final created = Appointment.fromJson(result);
+
+      // Fire booking notifications in the background — failure must not break the booking.
+      unawaited(_sendBookingNotifications(
+        result: result,
+        patientId: currentUser.id,
+        doctorId: doctorId,
+        scheduledStartAt: scheduledStartAt,
+      ));
+
+      return created;
     } on AppException {
       rethrow;
     } on PostgrestException catch (e) {
@@ -87,6 +98,75 @@ class AppointmentRepository {
       reason: data['reason'] as String?,
       notes: data['notes'] as String?,
     );
+  }
+
+  /// Inserts in-app notification rows for both the patient and doctor
+  /// after a successful booking. Runs asynchronously — failure is silently
+  /// ignored so it never breaks the booking itself.
+  Future<void> _sendBookingNotifications({
+    required Map<String, dynamic> result,
+    required String patientId,
+    required String doctorId,
+    required DateTime scheduledStartAt,
+  }) async {
+    try {
+      // Resolve the doctor's user_id (= profile_id) for the notification row.
+      final doctorRow = await supabase
+          .from(Tables.doctors)
+          .select('profile_id')
+          .eq('id', doctorId)
+          .maybeSingle();
+      if (doctorRow == null) return;
+      final doctorUserId = doctorRow['profile_id'] as String?;
+      if (doctorUserId == null) return;
+
+      // Extract display names from the already-joined result set.
+      final doctorData = result['doctors'] as Map<String, dynamic>?;
+      final doctorProfile = doctorData?['profiles'] as Map<String, dynamic>?;
+      final doctorName = doctorProfile?['full_name'] as String? ?? 'your doctor';
+
+      final patientProfile = result['profiles'] as Map<String, dynamic>?;
+      final patientName = patientProfile?['full_name'] as String? ?? 'A patient';
+
+      // Format date/time without pulling in an extra import.
+      final local = scheduledStartAt.toLocal();
+      const months = [
+        'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+        'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+      ];
+      final dateStr = '${local.day} ${months[local.month - 1]}';
+      final h12 = local.hour == 0
+          ? 12
+          : (local.hour > 12 ? local.hour - 12 : local.hour);
+      final period = local.hour < 12 ? 'AM' : 'PM';
+      final timeStr =
+          '${h12.toString().padLeft(2, '0')}:${local.minute.toString().padLeft(2, '0')} $period';
+
+      final apptId = result['id'] as String?;
+
+      await supabase.from(Tables.notifications).insert([
+        {
+          'user_id': patientId,
+          'type': 'appointment_reminder',
+          'title': 'Appointment Confirmed',
+          'body':
+              'Your appointment with Dr. $doctorName on $dateStr at $timeStr is confirmed.',
+          if (apptId != null) 'data': {'appointment_id': apptId},
+          'is_read': false,
+        },
+        {
+          'user_id': doctorUserId,
+          'type': 'appointment_reminder',
+          'title': 'New Appointment',
+          'body':
+              '$patientName has booked an appointment on $dateStr at $timeStr.',
+          if (apptId != null) 'data': {'appointment_id': apptId},
+          'is_read': false,
+        },
+      ]);
+    } catch (_) {
+      // Notification failure must never surface to the caller.
+    }
   }
 
   /// Cancel an appointment.

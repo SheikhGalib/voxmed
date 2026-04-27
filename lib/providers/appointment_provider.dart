@@ -3,6 +3,7 @@ import '../core/config/supabase_config.dart';
 import '../core/constants/app_constants.dart';
 import '../core/utils/error_handler.dart';
 import '../repositories/appointment_repository.dart';
+import '../repositories/notification_service.dart';
 import '../models/appointment.dart';
 
 /// Provides the AppointmentRepository instance.
@@ -85,6 +86,15 @@ class AppointmentNotifier extends StateNotifier<AppointmentState> {
         isLoading: false,
         clearError: true,
       );
+
+      // Schedule a local push reminder on the patient's device 15 min before.
+      NotificationService().scheduleAppointmentReminder(
+        appointmentId: created.id,
+        scheduledAt: startAt,
+        otherPartyName: created.doctorName ?? 'your doctor',
+        isDoctor: false,
+      );
+
       return created;
     } on AppException catch (e) {
       state = state.copyWith(isLoading: false, error: e);

@@ -1,6 +1,6 @@
 # VoxMed Connect — Progress Tracker
 
-> **Last Updated:** 2026-04-28 (rev 8)
+> **Last Updated:** 2026-04-30 (rev 10)
 
 ---
 
@@ -415,3 +415,84 @@ CREATE POLICY "Users read own reports" ON storage.objects
     auth.role() = 'authenticated'
   );
 ```
+
+---
+
+## Phase 12: In-App Notifications & Real-Time Updates (✅ 2026-04-29)
+
+### Notification Bell & Provider
+
+| Task | Status | Date | Notes |
+|------|--------|------|-------|
+| `NotificationsNotifier` + `notificationsProvider` | ✅ | 2026-04-29 | `lib/providers/notification_provider.dart` — `AsyncNotifierProvider`; Supabase realtime INSERT subscription filtered by `user_id`; on INSERT fires `showPush()` then reloads list |
+| `unreadNotificationCountProvider` | ✅ | 2026-04-29 | `Provider<int>` derived from `notificationsProvider`; used for badge dot |
+| `NotificationBell` widget | ✅ | 2026-04-29 | `lib/widgets/notification_bell.dart` — bell icon with red-dot badge in app bar; `LayerLink` + `OverlayEntry` floating panel shows top 3 notifications; tap outside dismisses |
+| `NotificationsScreen` | ✅ | 2026-04-29 | `lib/screens/notifications_screen.dart` — full-screen list; "Mark all read" app bar action; pull-to-refresh; tapping a tile marks it read |
+| `/notifications` route | ✅ | 2026-04-29 | Added to `AppRoutes` + `app_router.dart` |
+| `appointmentCompleted` enum value | ✅ | 2026-04-29 | Added to `NotificationType` in `app_constants.dart` |
+| Integrate `NotificationBell` in `VoxmedAppBar` | ✅ | 2026-04-29 | `lib/widgets/voxmed_app_bar.dart` — bell shown before avatar in all app bars |
+
+### Push Notifications via `flutter_local_notifications`
+
+| Task | Status | Date | Notes |
+|------|--------|------|-------|
+| `general` Android channel | ✅ | 2026-04-29 | Added to `NotificationService._createChannels()` — importance HIGH |
+| `showPush()` method | ✅ | 2026-04-29 | `notification_service.dart` — immediate OS push with stable dedup ID; used by realtime INSERT callback |
+| `scheduleAppointmentReminder()` method | ✅ | 2026-04-29 | Schedules `zonedSchedule` 15 min before appointment on local device; stable ID per appointment ID so idempotent |
+| `cancelAppointmentReminder()` method | ✅ | 2026-04-29 | Cancels scheduled reminder by stable ID |
+
+### Doctor Schedule Real-Time Fix
+
+| Task | Status | Date | Notes |
+|------|--------|------|-------|
+| `doctorTodayAppointmentsProvider` realtime | ✅ | 2026-04-29 | Converted from `FutureProvider` → `AsyncNotifierProvider` (`_DoctorTodayNotifier`); subscribes to `PostgresChangeEvent.all` on `appointments` filtered by `doctor_id`; auto-reloads on any change |
+
+### Appointment Booking Notifications
+
+| Task | Status | Date | Notes |
+|------|--------|------|-------|
+| DB notification insert on new booking | ✅ | 2026-04-29 | `AppointmentRepository._sendBookingNotifications()` — after successful insert, looks up doctor `profile_id`, inserts rows into `notifications` for both patient ("Appointment Confirmed") and doctor ("New Appointment"); fires each party's realtime subscription → `showPush()` + in-app bell update |
+| Patient local reminder at appointment time | ✅ | 2026-04-29 | `AppointmentNotifier.createAppointment()` calls `NotificationService().scheduleAppointmentReminder()` after successful booking; fires 15 min before start |
+| Doctor local reminder at appointment time | ✅ | 2026-04-29 | `_DoctorTodayNotifier._fetch()` calls `_scheduleLocalReminders()` on every load/reload; schedules a 15-min-before push for each upcoming appointment on the doctor's device; idempotent via stable ID |
+
+### Seed Data
+
+| Task | Status | Date | Notes |
+|------|--------|------|-------|
+| 8 Bangladesh public hospitals seeded | ✅ | 2026-04-29 | `supabase/scripts/seed_bd_hospitals_doctors.js` — DMCH, SSMC, CMCH, MMCH, RMCH, KMCH, BSMMU, Holy Family Red Crescent |
+| 22 doctors seeded (approved, Mon–Fri schedules) | ✅ | 2026-04-29 | All doctors `approved` status; Mon–Fri 9 AM – 5 PM; 30-min slots; fees 300–800 ৳ |
+| 30-day adherence logs seeded (jim + galib) | ✅ | 2026-04-29 | jim: 58 entries, galib: 175 entries; `prescription_item_id` FK satisfied |
+| `docs/credentials.md` | ✅ | 2026-04-29 | Lists all hospital IDs + 22 doctor emails, doctor IDs, specialties, and consultation fees |
+
+### Currency / UX Fixes
+
+| Task | Status | Date | Notes |
+|------|--------|------|-------|
+| Consultation fee `$` → `৳` | ✅ | 2026-04-29 | `find_care_screen.dart` + `doctor_booking_detail_screen.dart` |
+| Active Patients count fix | ✅ | 2026-04-29 | `doctorStatsProvider` counts distinct patients with at least one `completed` appointment |
+| Appointment completed/cancelled notifications (web) | ✅ | 2026-04-29 | `voxmedweb/server/src/routes/hospital/appointments.js` PATCH endpoint inserts notification rows for patient + doctor on status change |
+
+### Prescription Renewal Notifications (2026-04-30)
+
+| Task | Status | Date | Notes |
+|------|--------|------|-------|
+| Fix `prescription_provider.dart` compile error | ✅ | 2026-04-30 | Broken docstring `on the doctor's device…` after closing `}` parsed as `try/on` — fixed by restoring full `/// Schedules local push reminders…` docstring |
+| Push notification sound fix | ✅ | 2026-04-30 | Added `playSound: true` + `enableVibration: true` to `AndroidNotificationDetails` in both `showPush()` and `scheduleAppointmentReminder()` |
+| Fix "Failed to load approvals" → empty state | ✅ | 2026-04-30 | `clinical_dashboard_screen.dart` error handler renders green "No pending approvals" container instead of red error text |
+| `followUp` added to `RenewalStatus` enum | ✅ | 2026-04-30 | `app_constants.dart` — `.value` returns `'follow_up'`; `fromString('follow_up')` → `followUp` |
+| `renewalFollowUp` added to `NotificationType` | ✅ | 2026-04-30 | Auto snake_case: `'renewal_follow_up'` |
+| `requestRenewal()` notifies doctor | ✅ | 2026-04-30 | `prescription_repository.dart` — after inserting renewal row, calls `_notifyDoctorOfRenewalRequest()` in background (`unawaited`); inserts `renewal_request` notification for the doctor |
+| `updateRenewalStatus()` notifies patient | ✅ | 2026-04-30 | `prescription_repository.dart` — fetches `patient_id` then calls `_notifyPatientOfRenewalResponse()` in background; sends `renewal_approved` / `renewal_rejected` / `renewal_follow_up` notification with optional notes in body |
+| Follow-Up button in Approval Queue card | ✅ | 2026-04-30 | `approval_queue_screen.dart` — `_ApprovalCard` now has 3 buttons: Deny (outlined grey) / Follow-Up (outlined orange) / Approve (filled blue) |
+| Notes field + 3-button row in detail sheet | ✅ | 2026-04-30 | `_ApprovalDetailSheet` converted to `StatefulWidget`; `TextEditingController _notesCtrl`; optional notes passed to `updateRenewalStatus()` and included in patient notification body |
+| Renewal request UX with error handling | ✅ | 2026-04-30 | `prescription_renewals_screen.dart` — `onRequestRenewal` now `async`; wrapped in try-catch; success SnackBar (green) on confirmation; error SnackBar on failure |
+| `isExpired` + `isNearExpiry` on `Prescription` | ✅ | 2026-04-30 | `prescription.dart` — computed getters; `isExpired` checks `validUntil < now`; `isNearExpiry` checks `validUntil < now + 30 days` |
+| `PrescriptionItem.fromJson` `remaining` default | ✅ | 2026-04-30 | Defaults `remaining` to `quantity` when absent from JSON |
+| Renewal notification tests | ✅ | 2026-04-30 | `test/prescription_renewal_test.dart` — 33 tests; covers `RenewalStatus`, `NotificationType`, `Prescription`, `PrescriptionItem`, renewal notification copy logic |
+
+> **DB Note**: If `follow_up` is not yet in the `renewal_status` enum or `renewal_follow_up` is not in `notification_type` enum, run:
+> ```sql
+> ALTER TYPE renewal_status ADD VALUE IF NOT EXISTS 'follow_up';
+> ALTER TYPE notification_type ADD VALUE IF NOT EXISTS 'renewal_follow_up';
+> ```
+

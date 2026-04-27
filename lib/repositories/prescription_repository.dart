@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../core/config/supabase_config.dart';
 import '../core/constants/app_constants.dart';
@@ -85,21 +86,39 @@ class PrescriptionRepository {
     }
   }
 
-  /// Approve or reject a renewal.
-  Future<void> updateRenewalStatus(String renewalId, RenewalStatus status, {String? notes}) async {
+  /// Approve, reject, or call for follow-up on a renewal.
+  Future<void> updateRenewalStatus(
+    String renewalId,
+    RenewalStatus status, {
+    String? notes,
+  }) async {
     try {
       final updates = <String, dynamic>{
         'status': status.value,
         'responded_at': DateTime.now().toUtc().toIso8601String(),
       };
-      if (notes != null) {
-        updates['doctor_notes'] = notes;
-      }
+      if (notes != null) updates['doctor_notes'] = notes;
+
+      // Fetch the renewal row to get patient_id for the notification.
+      final row = await supabase
+          .from(Tables.prescriptionRenewals)
+          .select('patient_id, prescription_id')
+          .eq('id', renewalId)
+          .maybeSingle();
 
       await supabase
           .from(Tables.prescriptionRenewals)
           .update(updates)
           .eq('id', renewalId);
+
+      if (row != null) {
+        unawaited(_notifyPatientOfRenewalResponse(
+          patientId: row['patient_id'] as String,
+          prescriptionId: row['prescription_id'] as String,
+          status: status,
+          notes: notes,
+        ));
+      }
     } on PostgrestException catch (e) {
       throw AppException.fromPostgrestException(e);
     } catch (e) {
@@ -107,8 +126,51 @@ class PrescriptionRepository {
     }
   }
 
+  Future<void> _notifyPatientOfRenewalResponse({
+    required String patientId,
+    required String prescriptionId,
+    required RenewalStatus status,
+    String? notes,
+  }) async {
+    try {
+      late String title;
+      late String body;
+      late String type;
+
+      switch (status) {
+        case RenewalStatus.approved:
+          title = 'Prescription Renewed';
+          body = 'Your doctor approved your prescription renewal. Your medication is ready.';
+          type = 'renewal_approved';
+        case RenewalStatus.rejected:
+          title = 'Renewal Rejected';
+          body = notes != null && notes.isNotEmpty
+              ? 'Renewal denied: $notes'
+              : 'Your doctor declined the prescription renewal request.';
+          type = 'renewal_rejected';
+        case RenewalStatus.followUp:
+          title = 'Follow-Up Required';
+          body = notes != null && notes.isNotEmpty
+              ? 'Your doctor needs a follow-up: $notes'
+              : 'Your doctor has requested a follow-up before renewing your prescription.';
+          type = 'renewal_follow_up';
+        default:
+          return;
+      }
+
+      await supabase.from(Tables.notifications).insert({
+        'user_id': patientId,
+        'type': type,
+        'title': title,
+        'body': body,
+        'data': {'prescription_id': prescriptionId},
+        'is_read': false,
+      });
+    } catch (_) {}
+  }
+
   /// Request a renewal (patient side).
-  Future<void> requestRenewal(String prescriptionId) async {
+  Future<void> requestRenewal(String prescriptionId, {String? reason}) async {
     final uid = supabase.auth.currentUser?.id;
     if (uid == null) throw const AppException(message: 'Not authenticated.');
 
@@ -125,12 +187,53 @@ class PrescriptionRepository {
         'patient_id': uid,
         'doctor_id': rx['doctor_id'],
         'status': 'pending',
+        if (reason != null && reason.trim().isNotEmpty) 'reason': reason.trim(),
       });
+
+      // Notify doctor in background.
+      unawaited(_notifyDoctorOfRenewalRequest(
+        doctorId: rx['doctor_id'] as String,
+        prescriptionId: prescriptionId,
+      ));
     } on PostgrestException catch (e) {
       throw AppException.fromPostgrestException(e);
     } catch (e) {
       throw AppException(message: 'Failed to request renewal: $e');
     }
+  }
+
+  Future<void> _notifyDoctorOfRenewalRequest({
+    required String doctorId,
+    required String prescriptionId,
+  }) async {
+    try {
+      // Resolve doctor profile_id
+      final doctorRow = await supabase
+          .from(Tables.doctors)
+          .select('profile_id')
+          .eq('id', doctorId)
+          .maybeSingle();
+      if (doctorRow == null) return;
+      final doctorUserId = doctorRow['profile_id'] as String?;
+      if (doctorUserId == null) return;
+
+      // Resolve patient name
+      final patientProfile = await supabase
+          .from(Tables.profiles)
+          .select('full_name')
+          .eq('id', supabase.auth.currentUser!.id)
+          .maybeSingle();
+      final patientName = patientProfile?['full_name'] as String? ?? 'A patient';
+
+      await supabase.from(Tables.notifications).insert({
+        'user_id': doctorUserId,
+        'type': 'renewal_request',
+        'title': 'New Renewal Request',
+        'body': '$patientName has requested a prescription renewal.',
+        'data': {'prescription_id': prescriptionId},
+        'is_read': false,
+      });
+    } catch (_) {}
   }
 
   /// Create a new prescription with medication items (doctor writes prescription).

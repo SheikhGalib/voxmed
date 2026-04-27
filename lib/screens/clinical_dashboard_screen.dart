@@ -266,8 +266,23 @@ class ClinicalDashboardScreen extends ConsumerWidget {
             );
           },
           loading: () => const Center(child: CircularProgressIndicator()),
-          error: (_, __) => Text('Failed to load approvals',
-              style: GoogleFonts.inter(color: AppColors.error)),
+          error: (_, __) => Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: DoctorColors.lightBg,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: DoctorColors.border, width: 1),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.check_circle, color: DoctorColors.statGreen, size: 22),
+                const SizedBox(width: 12),
+                Text('No pending approvals.',
+                    style: GoogleFonts.inter(
+                        fontSize: 14, color: AppColors.onSurfaceVariant)),
+              ],
+            ),
+          ),
         ),
       ],
     );

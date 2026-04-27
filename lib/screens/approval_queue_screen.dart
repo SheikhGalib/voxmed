@@ -99,7 +99,11 @@ class _ApprovalQueueScreenState extends ConsumerState<ApprovalQueueScreen> {
         if (_isCardView) {
           return Column(children: sorted.map((r) => Padding(
             padding: const EdgeInsets.only(bottom: 14),
-            child: _ApprovalCard(renewal: r, onAction: (s) => _handleAction(context, r["id"] as String, s), onTap: () => _showDetail(context, r)),
+            child: _ApprovalCard(
+              renewal: r,
+              onAction: (s, {String? notes}) => _handleAction(context, r['id'] as String, s, notes: notes),
+              onTap: () => _showDetail(context, r),
+            ),
           )).toList());
         } else {
           return Column(children: sorted.map((r) => _ApprovalListRow(renewal: r, onTap: () => _showDetail(context, r))).toList());
@@ -110,21 +114,39 @@ class _ApprovalQueueScreenState extends ConsumerState<ApprovalQueueScreen> {
     );
   }
 
-  Future<void> _handleAction(BuildContext context, String renewalId, String status) async {
+  Future<void> _handleAction(BuildContext context, String renewalId, String status, {String? notes}) async {
     try {
       final repo = ref.read(prescriptionRepositoryProvider);
-      final s = status == "approved" ? RenewalStatus.approved : RenewalStatus.rejected;
-      await repo.updateRenewalStatus(renewalId, s);
+      final RenewalStatus s;
+      if (status == 'approved') {
+        s = RenewalStatus.approved;
+      } else if (status == 'follow_up') {
+        s = RenewalStatus.followUp;
+      } else {
+        s = RenewalStatus.rejected;
+      }
+      await repo.updateRenewalStatus(renewalId, s, notes: notes);
       ref.invalidate(pendingRenewalsProvider);
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(status == "approved" ? "Renewal approved." : "Renewal denied."),
-          backgroundColor: status == "approved" ? DoctorColors.statGreen : AppColors.onSurfaceVariant,
-        ));
+        final msg = status == 'approved'
+            ? 'Renewal approved.'
+            : status == 'follow_up'
+                ? 'Follow-up requested.'
+                : 'Renewal denied.';
+        final color = status == 'approved'
+            ? DoctorColors.statGreen
+            : status == 'follow_up'
+                ? DoctorColors.statOrange
+                : AppColors.onSurfaceVariant;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(msg), backgroundColor: color),
+        );
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e"), backgroundColor: AppColors.error));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e'), backgroundColor: AppColors.error),
+        );
       }
     }
   }
@@ -132,7 +154,10 @@ class _ApprovalQueueScreenState extends ConsumerState<ApprovalQueueScreen> {
   void _showDetail(BuildContext context, Map<String, dynamic> renewal) {
     showModalBottomSheet(
       context: context, isScrollControlled: true, useSafeArea: true, backgroundColor: Colors.transparent,
-      builder: (_) => _ApprovalDetailSheet(renewal: renewal, onAction: (s) => _handleAction(context, renewal["id"] as String, s)),
+      builder: (_) => _ApprovalDetailSheet(
+        renewal: renewal,
+        onAction: (s, {String? notes}) => _handleAction(context, renewal['id'] as String, s, notes: notes),
+      ),
     );
   }
 }
@@ -141,7 +166,7 @@ class _ApprovalQueueScreenState extends ConsumerState<ApprovalQueueScreen> {
 
 class _ApprovalCard extends StatelessWidget {
   final Map<String, dynamic> renewal;
-  final void Function(String) onAction;
+  final void Function(String, {String? notes}) onAction;
   final VoidCallback onTap;
   const _ApprovalCard({required this.renewal, required this.onAction, required this.onTap});
 
@@ -187,15 +212,21 @@ class _ApprovalCard extends StatelessWidget {
           const SizedBox(height: 14),
           Row(children: [
             Expanded(child: OutlinedButton(
-              onPressed: () => onAction("rejected"),
+              onPressed: () => onAction('rejected'),
               style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 10), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), side: const BorderSide(color: Color(0xFFE0E0E0))),
-              child: Text("Deny", style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.onSurfaceVariant)),
+              child: Text('Deny', style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.onSurfaceVariant)),
             )),
-            const SizedBox(width: 10),
+            const SizedBox(width: 8),
+            Expanded(child: OutlinedButton(
+              onPressed: () => onAction('follow_up'),
+              style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 10), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), side: BorderSide(color: DoctorColors.statOrange.withValues(alpha: 0.5))),
+              child: Text('Follow-Up', style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w700, color: DoctorColors.statOrange)),
+            )),
+            const SizedBox(width: 8),
             Expanded(child: ElevatedButton(
-              onPressed: () => onAction("approved"),
+              onPressed: () => onAction('approved'),
               style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 10), backgroundColor: DoctorColors.primary, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-              child: Text("Approve", style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w700, color: Colors.white)),
+              child: Text('Approve', style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w700, color: Colors.white)),
             )),
           ]),
         ]),
@@ -246,20 +277,34 @@ class _ApprovalListRow extends StatelessWidget {
 
 // ─── Detail Sheet ─────────────────────────────────────────────────────────────
 
-class _ApprovalDetailSheet extends StatelessWidget {
+class _ApprovalDetailSheet extends StatefulWidget {
   final Map<String, dynamic> renewal;
-  final void Function(String) onAction;
+  final void Function(String, {String? notes}) onAction;
   const _ApprovalDetailSheet({required this.renewal, required this.onAction});
 
   @override
+  State<_ApprovalDetailSheet> createState() => _ApprovalDetailSheetState();
+}
+
+class _ApprovalDetailSheetState extends State<_ApprovalDetailSheet> {
+  final _notesCtrl = TextEditingController();
+
+  @override
+  void dispose() {
+    _notesCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final patientName = renewal["profiles"]?["full_name"] ?? "Unknown";
-    final prescription = renewal["prescriptions"] as Map<String, dynamic>? ?? {};
-    final items = prescription["prescription_items"] as List? ?? [];
-    final diagnosis = prescription["diagnosis"] as String? ?? "N/A";
-    final reason = renewal["reason"] as String? ?? "Renewal requested by patient";
-    final requestedAt = DateTime.tryParse(renewal["requested_at"] ?? "");
-    final dateStr = requestedAt != null ? DateFormat("EEEE, d MMMM yyyy").format(requestedAt.toLocal()) : "—";
+    final renewal = widget.renewal;
+    final patientName = renewal['profiles']?['full_name'] ?? 'Unknown';
+    final prescription = renewal['prescriptions'] as Map<String, dynamic>? ?? {};
+    final items = prescription['prescription_items'] as List? ?? [];
+    final diagnosis = prescription['diagnosis'] as String? ?? 'N/A';
+    final reason = renewal['reason'] as String? ?? 'Renewal requested by patient';
+    final requestedAt = DateTime.tryParse(renewal['requested_at'] ?? '');
+    final dateStr = requestedAt != null ? DateFormat('EEEE, d MMMM yyyy').format(requestedAt.toLocal()) : '—';
 
     return Container(
       decoration: const BoxDecoration(color: Colors.white, borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
@@ -271,12 +316,12 @@ class _ApprovalDetailSheet extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
           child: Row(children: [
             CircleAvatar(radius: 24, backgroundColor: DoctorColors.primaryContainer,
-              child: Text(patientName.isNotEmpty ? patientName[0].toUpperCase() : "?",
+              child: Text(patientName.isNotEmpty ? patientName[0].toUpperCase() : '?',
                 style: GoogleFonts.manrope(fontSize: 18, fontWeight: FontWeight.w800, color: DoctorColors.primary))),
             const SizedBox(width: 14),
             Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text(patientName, style: GoogleFonts.manrope(fontSize: 18, fontWeight: FontWeight.w800, color: AppColors.onSurface)),
-              Text("Renewal request \u2022 $dateStr", style: GoogleFonts.inter(fontSize: 11, color: AppColors.onSurfaceVariant)),
+              Text('Renewal request \u2022 $dateStr', style: GoogleFonts.inter(fontSize: 11, color: AppColors.onSurfaceVariant)),
             ])),
           ]),
         ),
@@ -284,27 +329,47 @@ class _ApprovalDetailSheet extends StatelessWidget {
         Flexible(child: SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            _detailSection("Reason", reason),
+            _detailSection('Reason', reason),
             const SizedBox(height: 16),
-            _detailSection("Diagnosis", diagnosis),
+            _detailSection('Diagnosis', diagnosis),
             const SizedBox(height: 16),
             if (items.isNotEmpty) ...[
-              Text("Medications", style: GoogleFonts.manrope(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.onSurface)),
+              Text('Medications', style: GoogleFonts.manrope(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.onSurface)),
               const SizedBox(height: 10),
               ...items.map((item) => _MedRow(item: item as Map<String, dynamic>)),
               const SizedBox(height: 16),
             ],
+            Text('Notes (optional)', style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w700, letterSpacing: 1, color: AppColors.onSurfaceVariant)),
+            const SizedBox(height: 6),
+            TextField(
+              controller: _notesCtrl,
+              maxLines: 2,
+              decoration: InputDecoration(
+                hintText: 'Add notes for the patient…',
+                hintStyle: GoogleFonts.inter(fontSize: 13, color: AppColors.onSurfaceVariant.withValues(alpha: 0.5)),
+                contentPadding: const EdgeInsets.all(12),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: DoctorColors.border)),
+                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: DoctorColors.border)),
+              ),
+            ),
+            const SizedBox(height: 16),
             Row(children: [
               Expanded(child: OutlinedButton(
-                onPressed: () { Navigator.of(context).pop(); onAction("rejected"); },
+                onPressed: () { Navigator.of(context).pop(); widget.onAction('rejected', notes: _notesCtrl.text.trim().isEmpty ? null : _notesCtrl.text.trim()); },
                 style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)), side: const BorderSide(color: Color(0xFFE0E0E0))),
-                child: Text("Deny", style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.onSurfaceVariant)),
+                child: Text('Deny', style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.onSurfaceVariant)),
               )),
-              const SizedBox(width: 12),
+              const SizedBox(width: 8),
+              Expanded(child: OutlinedButton(
+                onPressed: () { Navigator.of(context).pop(); widget.onAction('follow_up', notes: _notesCtrl.text.trim().isEmpty ? null : _notesCtrl.text.trim()); },
+                style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)), side: BorderSide(color: DoctorColors.statOrange.withValues(alpha: 0.5))),
+                child: Text('Follow-Up', style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w700, color: DoctorColors.statOrange)),
+              )),
+              const SizedBox(width: 8),
               Expanded(child: ElevatedButton(
-                onPressed: () { Navigator.of(context).pop(); onAction("approved"); },
+                onPressed: () { Navigator.of(context).pop(); widget.onAction('approved', notes: _notesCtrl.text.trim().isEmpty ? null : _notesCtrl.text.trim()); },
                 style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 14), backgroundColor: DoctorColors.primary, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
-                child: Text("Approve", style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w700, color: Colors.white)),
+                child: Text('Approve', style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w700, color: Colors.white)),
               )),
             ]),
           ]),
